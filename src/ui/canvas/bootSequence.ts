@@ -7,10 +7,12 @@
  *                 amber beam riding the leading edge. 64 rows, ~6ms each.
  *   380   520ms   the boot art resolves onto the lattice it just laid down —
  *                 dot by dot, in a fixed hash order, never a fade.
- *   520  1220ms   hold.
- *  1220  1540ms   dot dissolve: the art leaves in the same hash order while the
- *                 parameter page arrives underneath it.
- *  1540    ...    `press any key`.
+ *   520   920ms   hold.
+ *   920  1240ms   dot dissolve: the art leaves in the same hash order while the
+ *                 parameter page arrives underneath it. `press any key` fades
+ *                 in with it.
+ *  1240    ...    `press any key`, pulsing amber-to-dim — never absent, so no
+ *                 glance can land on a screen with no instruction.
  *
  * The first keydown dismisses the sequence AND is the user gesture that starts
  * audio — see input/keyboard.ts. Dismissal is accepted at any point, not just
@@ -235,11 +237,12 @@ class Boot implements BootSequence {
       for (let x = 0; x < LATTICE.cols; x++) dm.set(x, y, SCREEN.bg)
     }
 
-    // A slow 1 Hz blink while waiting. Decorative, so reduced motion pins it lit.
-    const lit = motion.reduced || dim || now % 1000 < 620
-    if (!lit) return
+    // A slow 1 Hz pulse while waiting — accent to dim, never absent: the one
+    // instruction on screen must survive any glance. Reduced motion pins it
+    // bright.
+    const bright = motion.reduced || now % 1000 < 620
     const x = Math.round((LATTICE.cols - textWidth(PROMPT)) / 2)
-    dm.text(PROMPT, x, top, dim ? SCREEN.dim : SCREEN.accent)
+    dm.text(PROMPT, x, top, dim || !bright ? SCREEN.dim : SCREEN.accent)
   }
 
   /** import.meta.glob, not a static import: src/assets is owned by another work

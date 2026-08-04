@@ -33,8 +33,10 @@ export const CANVAS_DUR = {
   scan: 380,
   /** Boot art resolving onto the lattice the scan just laid down. */
   resolve: 140,
-  /** Boot art hold before the dissolve. */
-  hold: 700,
+  /** Boot art hold before the dissolve. 700 originally; the audit timed the
+   *  full choreography at 1.54s before the prompt ever appeared, and the hold
+   *  was the long pole. 400 lands the art and keeps the total under 1.25s. */
+  hold: 400,
   /** Dot dissolve into the parameter page. */
   dissolve: 320,
   /** Last-touched parameter row stays highlighted this long. */
