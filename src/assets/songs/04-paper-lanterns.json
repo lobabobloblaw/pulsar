@@ -1,0 +1,626 @@
+{
+  "format": "pulsar-song",
+  "version": 1,
+  "meta": {
+    "name": "paper lanterns",
+    "author": "pulsar",
+    "engineSpeed": 60,
+    "tempo": 150,
+    "speed": 8,
+    "rowsPerPattern": 48,
+    "rowHighlight": 4,
+    "rowHighlight2": 12,
+    "region": "ntsc",
+    "speedSplitPoint": 32,
+    "evenTempo": false
+  },
+  "channels": ["pulse1", "pulse2", "triangle", "noise", "dpcm"],
+  "effectColumns": [3, 1, 1, 1, 1],
+  "order": [
+    [0, 0, 0, 0, 0],
+    [1, 1, 1, 1, 0],
+    [2, 0, 0, 1, 0],
+    [3, 2, 2, 2, 0],
+    [4, 3, 3, 1, 0],
+    [5, 4, 4, 3, 0],
+    [6, 5, 5, 4, 0],
+    [7, 6, 6, 5, 0],
+    [8, 7, 7, 4, 0],
+    [9, 8, 8, 6, 0],
+    [10, 9, 9, 7, 0],
+    [11, 9, 10, 7, 0],
+    [12, 9, 11, 7, 0],
+    [13, 10, 7, 8, 0],
+    [14, 11, 8, 9, 0],
+    [15, 0, 0, 10, 0],
+    [16, 12, 12, 10, 0],
+    [17, 13, 13, 11, 0]
+  ],
+  "patterns": [
+    { "channel": "pulse1", "index": 0, "rows": [] },
+    { "channel": "pulse1", "index": 1, "rows": [
+      { "r": 24, "note": 74, "inst": 10, "vol": 10, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 32, "note": 77, "vol": 11 },
+      { "r": 36, "note": 79, "vol": 12 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 2, "rows": [
+      { "r": 0, "note": 74, "inst": 0, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 8, "note": 77, "vol": 13 },
+      { "r": 12, "note": 79, "vol": 14 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 79, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 77, "vol": 12 },
+      { "r": 32, "note": 75, "vol": 12 },
+      { "r": 36, "note": 74, "vol": 12 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 3, "rows": [
+      { "r": 0, "note": 74, "inst": 0, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 8, "note": 77, "vol": 13 },
+      { "r": 12, "note": 82, "vol": 15 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 82 }] },
+      { "r": 24, "note": 79, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 77, "vol": 12 },
+      { "r": 32, "note": 75, "vol": 11 },
+      { "r": 36, "note": 72, "vol": 11 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 4, "rows": [
+      { "r": 2, "note": 74, "inst": 0, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 10, "note": 77, "vol": 13 },
+      { "r": 14, "note": 79, "vol": 14 },
+      { "r": 16, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 26, "note": 79, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 30, "note": 77, "vol": 12 },
+      { "r": 34, "note": 75, "vol": 12 },
+      { "r": 38, "note": 74, "vol": 12 },
+      { "r": 40, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 46, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 5, "rows": [
+      { "r": 0, "note": 75, "inst": 0, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 4, "note": 74, "vol": 12 },
+      { "r": 8, "note": 72, "vol": 11 },
+      { "r": 12, "note": 70, "vol": 12 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 75, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 32, "note": 74, "vol": 12 },
+      { "r": 40, "note": 70, "vol": 13 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 6, "rows": [
+      { "r": 0, "note": 70, "inst": 0, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 4, "note": 69, "vol": 11 },
+      { "r": 8, "note": 67, "vol": 11 },
+      { "r": 12, "note": 65, "vol": 11 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 67, "vol": 11, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 65, "vol": 11 },
+      { "r": 32, "note": 63, "vol": 10 },
+      { "r": 36, "note": 62, "vol": 11 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 7, "rows": [
+      { "r": 0, "note": 67, "inst": 0, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 4, "note": 65, "vol": 11 },
+      { "r": 8, "note": 63, "vol": 11 },
+      { "r": 12, "note": 60, "vol": 11 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 65, "vol": 11, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 63, "vol": 11 },
+      { "r": 32, "note": 62, "vol": 10 },
+      { "r": 36, "note": 60, "vol": 11 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 8, "rows": [
+      { "r": 0, "note": 74, "inst": 0, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 4, "note": 72, "vol": 12 },
+      { "r": 8, "note": 70, "vol": 12 },
+      { "r": 12, "note": 67, "vol": 12 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 70, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 69, "vol": 11 },
+      { "r": 32, "note": 67, "vol": 11 },
+      { "r": 36, "note": 65, "vol": 11 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 9, "rows": [
+      { "r": 0, "note": 62, "inst": 0, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 8, "note": 65, "vol": 12 },
+      { "r": 12, "note": 67, "vol": 13 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 66, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 32, "note": 65, "vol": 11 },
+      { "r": 36, "note": 62, "vol": 11 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 10, "rows": [
+      { "r": 0, "note": 74, "inst": 10, "vol": 11, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 8, "note": 70, "vol": 10 },
+      { "r": 12, "note": 69, "vol": 10 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 72, "vol": 10, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 70, "vol": 10 },
+      { "r": 32, "note": 67, "vol": 9 },
+      { "r": 36, "note": 65, "vol": 10 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] }
+    ] },
+    { "channel": "pulse1", "index": 11, "rows": [
+      { "r": 0, "note": 75, "inst": 10, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 8, "note": 74, "vol": 11 },
+      { "r": 12, "note": 72, "vol": 11 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 20, "fx": [{ "cmd": "A", "param": 16 }] },
+      { "r": 24, "note": 74, "vol": 11, "fx": [{ "cmd": "4", "param": 0 }, { "cmd": "A", "param": 0 }] },
+      { "r": 32, "note": 70, "vol": 10 },
+      { "r": 36, "note": 67, "vol": 10 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] }
+    ] },
+    { "channel": "pulse1", "index": 12, "rows": [
+      { "r": 0, "note": 74, "inst": 10, "vol": 11, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 4, "note": 72, "vol": 10 },
+      { "r": 8, "note": 70, "vol": 10 },
+      { "r": 12, "note": 69, "vol": 10 },
+      { "r": 20, "note": -2 },
+      { "r": 24, "note": 70, "vol": 11 },
+      { "r": 32, "note": 74, "vol": 11 },
+      { "r": 36, "note": 72, "vol": 11 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 43, "fx": [{ "cmd": "D", "param": 0 }] }
+    ] },
+    { "channel": "pulse1", "index": 13, "rows": [
+      { "r": 0, "note": 87, "inst": 0, "vol": 14, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 2, "note": 86, "vol": 14 },
+      { "r": 4, "note": 84, "vol": 13 },
+      { "r": 8, "note": 82, "vol": 13 },
+      { "r": 12, "note": 79, "vol": 13 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 82, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 81, "vol": 12 },
+      { "r": 32, "note": 79, "vol": 12 },
+      { "r": 36, "note": 77, "vol": 12 },
+      { "r": 44, "note": -2 },
+      { "r": 46, "note": 74, "vol": 13 }
+    ] },
+    { "channel": "pulse1", "index": 14, "rows": [
+      { "r": 6, "note": 77, "inst": 0, "vol": 13 },
+      { "r": 10, "note": 79, "vol": 14 },
+      { "r": 12, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 22, "note": 78, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 30, "note": 77, "vol": 12 },
+      { "r": 34, "note": 74, "vol": 12 },
+      { "r": 42, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 15, "rows": [
+      { "r": 0, "note": 74, "inst": 0, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }, { "cmd": "2", "param": 0 }] },
+      { "r": 8, "note": 77, "vol": 13, "fx": [{ "cmd": "3", "param": 6 }] },
+      { "r": 12, "note": 79, "vol": 14 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 79, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }, { "cmd": "2", "param": 0 }] },
+      { "r": 28, "note": 77, "vol": 12 },
+      { "r": 32, "note": 75, "vol": 12 },
+      { "r": 36, "note": 74, "vol": 12 },
+      { "r": 38, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 16, "rows": [
+      { "r": 0, "note": 76, "inst": 0, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 4, "note": 74, "vol": 12 },
+      { "r": 8, "note": 76, "vol": 12 },
+      { "r": 10, "note": 73, "vol": 12 },
+      { "r": 12, "note": 74, "vol": 13 },
+      { "r": 14, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 79, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }] },
+      { "r": 28, "note": 77, "vol": 12 },
+      { "r": 32, "note": 74, "vol": 12 },
+      { "r": 36, "note": 72, "vol": 12 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse1", "index": 17, "rows": [
+      { "r": 0, "note": 77, "inst": 0, "vol": 13, "fx": [{ "cmd": "4", "param": 0 }, { "cmd": "2", "param": 0 }] },
+      { "r": 8, "note": 79, "vol": 13, "fx": [{ "cmd": "3", "param": 6 }] },
+      { "r": 16, "note": 82, "vol": 14 },
+      { "r": 18, "fx": [{ "cmd": "4", "param": 66 }] },
+      { "r": 24, "note": 75, "vol": 12, "fx": [{ "cmd": "4", "param": 0 }, { "cmd": "2", "param": 0 }] },
+      { "r": 32, "note": 74, "vol": 12 },
+      { "r": 36, "note": 70, "vol": 12 },
+      { "r": 40, "fx": [{ "cmd": "A", "param": 16 }] },
+      { "r": 44, "note": -2, "fx": [{ "cmd": "4", "param": 0 }, { "cmd": "2", "param": 0 }, { "cmd": "A", "param": 0 }] },
+      { "r": 47, "fx": [{ "cmd": "B", "param": 2 }] }
+    ] },
+    { "channel": "pulse2", "index": 0, "rows": [
+      { "r": 4, "note": 62, "inst": 3, "vol": 10 },
+      { "r": 8, "note": 65, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 16, "note": 58, "vol": 10 },
+      { "r": 20, "note": 62, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 28, "note": 63, "vol": 10 },
+      { "r": 32, "note": 67, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 40, "note": 65, "vol": 10 },
+      { "r": 44, "note": 60, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] }
+    ] },
+    { "channel": "pulse2", "index": 1, "rows": [
+      { "r": 4, "note": 62, "inst": 3, "vol": 10 },
+      { "r": 8, "note": 65, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 16, "note": 65, "vol": 10 },
+      { "r": 20, "note": 69, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 28, "note": 63, "vol": 10 },
+      { "r": 32, "note": 67, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 40, "note": 65, "vol": 10 },
+      { "r": 44, "note": 60, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] }
+    ] },
+    { "channel": "pulse2", "index": 2, "rows": [
+      { "r": 4, "note": 65, "inst": 3, "vol": 10 },
+      { "r": 8, "note": 69, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 16, "note": 62, "vol": 10 },
+      { "r": 20, "note": 58, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 28, "note": 63, "vol": 10 },
+      { "r": 32, "note": 60, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 40, "note": 60, "vol": 10 },
+      { "r": 44, "note": 65, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] }
+    ] },
+    { "channel": "pulse2", "index": 3, "rows": [
+      { "r": 4, "note": 65, "inst": 3, "vol": 10 },
+      { "r": 8, "note": 62, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 16, "note": 65, "vol": 10 },
+      { "r": 20, "note": 69, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 28, "note": 67, "vol": 10 },
+      { "r": 32, "note": 62, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 40, "note": 63, "vol": 10 },
+      { "r": 44, "note": 67, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] }
+    ] },
+    { "channel": "pulse2", "index": 4, "rows": [
+      { "r": 4, "note": 63, "inst": 3, "vol": 10 },
+      { "r": 8, "note": 67, "vol": 10, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 16, "note": 65, "vol": 10 },
+      { "r": 20, "note": 69, "vol": 10, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 24, "note": 67, "vol": 11 },
+      { "r": 32, "note": 63, "inst": 1, "vol": 10 },
+      { "r": 38, "note": 62, "vol": 10 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "pulse2", "index": 5, "rows": [
+      { "r": 0, "note": 58, "inst": 2, "vol": 9 },
+      { "r": 5, "note": 62, "vol": 8 },
+      { "r": 10, "note": 67, "vol": 8 },
+      { "r": 15, "note": 58, "vol": 8 },
+      { "r": 20, "note": 62, "vol": 8 },
+      { "r": 25, "note": 63, "vol": 9 },
+      { "r": 30, "note": 67, "vol": 8 },
+      { "r": 35, "note": 58, "vol": 8 },
+      { "r": 40, "note": 63, "vol": 8 },
+      { "r": 45, "note": 67, "vol": 8 }
+    ] },
+    { "channel": "pulse2", "index": 6, "rows": [
+      { "r": 2, "note": 60, "inst": 2, "vol": 9 },
+      { "r": 7, "note": 63, "vol": 8 },
+      { "r": 12, "note": 67, "vol": 8 },
+      { "r": 17, "note": 60, "vol": 8 },
+      { "r": 22, "note": 63, "vol": 8 },
+      { "r": 27, "note": 65, "vol": 9 },
+      { "r": 32, "note": 69, "vol": 8 },
+      { "r": 37, "note": 60, "vol": 8 },
+      { "r": 42, "note": 65, "vol": 8 },
+      { "r": 47, "note": 69, "vol": 8 }
+    ] },
+    { "channel": "pulse2", "index": 7, "rows": [
+      { "r": 4, "note": 58, "inst": 2, "vol": 9 },
+      { "r": 9, "note": 62, "vol": 8 },
+      { "r": 14, "note": 63, "vol": 8 },
+      { "r": 19, "note": 67, "vol": 8 },
+      { "r": 24, "note": 60, "vol": 9 },
+      { "r": 29, "note": 63, "vol": 8 },
+      { "r": 34, "note": 67, "vol": 8 },
+      { "r": 39, "note": 65, "vol": 8 },
+      { "r": 44, "note": 69, "vol": 8 }
+    ] },
+    { "channel": "pulse2", "index": 8, "rows": [
+      { "r": 1, "note": 62, "inst": 2, "vol": 9 },
+      { "r": 6, "note": 65, "vol": 8 },
+      { "r": 11, "note": 69, "vol": 8 },
+      { "r": 16, "note": 58, "vol": 8 },
+      { "r": 21, "note": 62, "vol": 8 },
+      { "r": 26, "note": 63, "vol": 9 },
+      { "r": 31, "note": 66, "vol": 9 },
+      { "r": 36, "note": 58, "vol": 8 },
+      { "r": 41, "note": 62, "vol": 8 },
+      { "r": 46, "note": 65, "vol": 8 }
+    ] },
+    { "channel": "pulse2", "index": 9, "rows": [] },
+    { "channel": "pulse2", "index": 10, "rows": [
+      { "r": 0, "note": 58, "inst": 2, "vol": 10 },
+      { "r": 5, "note": 62, "vol": 9 },
+      { "r": 10, "note": 65, "vol": 9 },
+      { "r": 15, "note": 63, "vol": 9 },
+      { "r": 20, "note": 67, "vol": 9 },
+      { "r": 25, "note": 60, "vol": 10 },
+      { "r": 30, "note": 63, "vol": 9 },
+      { "r": 35, "note": 67, "vol": 9 },
+      { "r": 40, "note": 65, "vol": 9 },
+      { "r": 45, "note": 69, "vol": 9 }
+    ] },
+    { "channel": "pulse2", "index": 11, "rows": [
+      { "r": 2, "note": 62, "inst": 2, "vol": 10 },
+      { "r": 7, "note": 65, "vol": 9 },
+      { "r": 12, "note": 58, "vol": 9 },
+      { "r": 17, "note": 62, "vol": 9 },
+      { "r": 22, "note": 67, "vol": 9 },
+      { "r": 27, "note": 63, "vol": 10 },
+      { "r": 32, "note": 66, "vol": 10 },
+      { "r": 37, "note": 58, "vol": 9 },
+      { "r": 42, "note": 62, "vol": 9 }
+    ] },
+    { "channel": "pulse2", "index": 12, "rows": [
+      { "r": 4, "note": 61, "inst": 3, "vol": 11 },
+      { "r": 8, "note": 64, "vol": 10, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 16, "note": 62, "vol": 10 },
+      { "r": 20, "note": 65, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 28, "note": 59, "vol": 11 },
+      { "r": 32, "note": 65, "vol": 10, "fx": [{ "cmd": "G", "param": 2 }] },
+      { "r": 40, "note": 63, "vol": 10 },
+      { "r": 44, "note": 67, "vol": 9, "fx": [{ "cmd": "G", "param": 2 }] }
+    ] },
+    { "channel": "pulse2", "index": 13, "rows": [
+      { "r": 0, "note": 65, "inst": 3, "vol": 11 },
+      { "r": 8, "note": 60, "vol": 11 },
+      { "r": 16, "note": 62, "vol": 11 },
+      { "r": 24, "note": 67, "vol": 11 },
+      { "r": 30, "note": 63, "inst": 1, "vol": 10 },
+      { "r": 38, "note": 62, "vol": 10 },
+      { "r": 44, "note": -2 }
+    ] },
+    { "channel": "triangle", "index": 0, "rows": [
+      { "r": 0, "note": 46, "inst": 4, "vol": 15 }, { "r": 3, "note": -1 },
+      { "r": 12, "note": 43 }, { "r": 15, "note": -1 },
+      { "r": 24, "note": 39 }, { "r": 27, "note": -1 },
+      { "r": 36, "note": 41 }, { "r": 39, "note": -1 }
+    ] },
+    { "channel": "triangle", "index": 1, "rows": [
+      { "r": 0, "note": 46, "inst": 4, "vol": 15 }, { "r": 3, "note": -1 },
+      { "r": 12, "note": 50 }, { "r": 15, "note": -1 },
+      { "r": 24, "note": 48 }, { "r": 27, "note": -1 },
+      { "r": 36, "note": 41 }, { "r": 39, "note": -1 }
+    ] },
+    { "channel": "triangle", "index": 2, "rows": [
+      { "r": 0, "note": 50, "inst": 4, "vol": 15 }, { "r": 3, "note": -1 },
+      { "r": 12, "note": 43 }, { "r": 15, "note": -1 },
+      { "r": 24, "note": 48 }, { "r": 27, "note": -1 },
+      { "r": 36, "note": 41 }, { "r": 39, "note": -1 }
+    ] },
+    { "channel": "triangle", "index": 3, "rows": [
+      { "r": 0, "note": 46, "inst": 4, "vol": 15 }, { "r": 3, "note": -1 },
+      { "r": 12, "note": 50 }, { "r": 15, "note": -1 },
+      { "r": 24, "note": 43 }, { "r": 27, "note": -1 },
+      { "r": 36, "note": 39 }, { "r": 39, "note": -1 }
+    ] },
+    { "channel": "triangle", "index": 4, "rows": [
+      { "r": 0, "note": 48, "inst": 4, "vol": 15 }, { "r": 3, "note": -1 },
+      { "r": 12, "note": 41 }, { "r": 15, "note": -1 },
+      { "r": 24, "note": 39 },
+      { "r": 36, "note": 46 }
+    ] },
+    { "channel": "triangle", "index": 5, "rows": [
+      { "r": 0, "note": 43, "inst": 4, "vol": 15 }, { "r": 4, "note": 50 }, { "r": 8, "note": 46 },
+      { "r": 12, "note": 43 }, { "r": 16, "note": 50 }, { "r": 20, "note": 46 },
+      { "r": 24, "note": 39 }, { "r": 28, "note": 46 }, { "r": 32, "note": 43 },
+      { "r": 36, "note": 39 }, { "r": 40, "note": 46 }, { "r": 44, "note": 43 }
+    ] },
+    { "channel": "triangle", "index": 6, "rows": [
+      { "r": 0, "note": 48, "inst": 4, "vol": 15 }, { "r": 4, "note": 55 }, { "r": 8, "note": 51 },
+      { "r": 12, "note": 48 }, { "r": 16, "note": 55 }, { "r": 20, "note": 51 },
+      { "r": 24, "note": 41 }, { "r": 28, "note": 48 }, { "r": 32, "note": 45 },
+      { "r": 36, "note": 41 }, { "r": 40, "note": 48 }, { "r": 44, "note": 45 }
+    ] },
+    { "channel": "triangle", "index": 7, "rows": [
+      { "r": 0, "note": 46, "inst": 4, "vol": 15 }, { "r": 4, "note": 53 }, { "r": 8, "note": 50 },
+      { "r": 12, "note": 39 }, { "r": 16, "note": 46 }, { "r": 20, "note": 43 },
+      { "r": 24, "note": 48 }, { "r": 28, "note": 55 }, { "r": 32, "note": 51 },
+      { "r": 36, "note": 41 }, { "r": 40, "note": 48 }, { "r": 44, "note": 45 }
+    ] },
+    { "channel": "triangle", "index": 8, "rows": [
+      { "r": 0, "note": 50, "inst": 4, "vol": 15 }, { "r": 4, "note": 57 }, { "r": 8, "note": 53 },
+      { "r": 12, "note": 43 }, { "r": 16, "note": 50 }, { "r": 20, "note": 46 },
+      { "r": 24, "note": 39 }, { "r": 28, "note": 46 }, { "r": 32, "note": 42 },
+      { "r": 36, "note": 46 }, { "r": 40, "note": 53 }, { "r": 44, "note": 50 }
+    ] },
+    { "channel": "triangle", "index": 9, "rows": [
+      { "r": 0, "note": 46, "inst": 4, "vol": 15 }, { "r": 6, "note": 46 },
+      { "r": 12, "note": 45 }, { "r": 18, "note": 45 },
+      { "r": 24, "note": 44 }, { "r": 30, "note": 44 },
+      { "r": 36, "note": 43 }, { "r": 42, "note": 43 }
+    ] },
+    { "channel": "triangle", "index": 10, "rows": [
+      { "r": 0, "note": 42, "inst": 4, "vol": 15 }, { "r": 6, "note": 42 },
+      { "r": 12, "note": 41 }, { "r": 18, "note": 41 },
+      { "r": 24, "note": 43 }, { "r": 30, "note": 43 },
+      { "r": 36, "note": 39 }, { "r": 42, "note": 39 }
+    ] },
+    { "channel": "triangle", "index": 11, "rows": [
+      { "r": 0, "note": 48, "inst": 4, "vol": 15 }, { "r": 6, "note": 48 },
+      { "r": 12, "note": 41 }, { "r": 18, "note": 41 },
+      { "r": 24, "note": 46 }, { "r": 30, "note": 46 },
+      { "r": 36, "note": 41 }, { "r": 42, "note": 41 }
+    ] },
+    { "channel": "triangle", "index": 12, "rows": [
+      { "r": 0, "note": 45, "inst": 4, "vol": 15 }, { "r": 3, "note": -1 },
+      { "r": 12, "note": 50 }, { "r": 15, "note": -1 },
+      { "r": 24, "note": 43 }, { "r": 27, "note": -1 },
+      { "r": 36, "note": 48 }, { "r": 39, "note": -1 }
+    ] },
+    { "channel": "triangle", "index": 13, "rows": [
+      { "r": 0, "note": 41, "inst": 4, "vol": 15 },
+      { "r": 24, "note": 39 }, { "r": 27, "note": -1 },
+      { "r": 36, "note": 46 }, { "r": 39, "note": -1 },
+      { "r": 40, "note": 41 }, { "r": 44, "note": -1 }
+    ] },
+    { "channel": "noise", "index": 0, "rows": [
+      { "r": 8, "note": 45, "inst": 7, "vol": 7 }, { "r": 20, "note": 45, "vol": 7 },
+      { "r": 32, "note": 45, "vol": 7 }, { "r": 44, "note": 45, "vol": 6 }
+    ] },
+    { "channel": "noise", "index": 1, "rows": [
+      { "r": 4, "note": 45, "inst": 7, "vol": 8 }, { "r": 8, "note": 45, "vol": 6 },
+      { "r": 12, "note": 39, "inst": 5, "vol": 11 }, { "r": 15, "note": 39, "vol": 4 },
+      { "r": 16, "note": 45, "inst": 7, "vol": 8 }, { "r": 20, "note": 45, "vol": 6 },
+      { "r": 23, "note": 39, "inst": 5, "vol": 5 },
+      { "r": 28, "note": 45, "inst": 7, "vol": 8 }, { "r": 32, "note": 45, "vol": 6 },
+      { "r": 36, "note": 39, "inst": 5, "vol": 11 }, { "r": 39, "note": 39, "vol": 4 },
+      { "r": 40, "note": 45, "inst": 7, "vol": 8 }, { "r": 44, "note": 45, "vol": 6 },
+      { "r": 47, "note": 39, "inst": 5, "vol": 5 }
+    ] },
+    { "channel": "noise", "index": 2, "rows": [
+      { "r": 4, "note": 45, "inst": 7, "vol": 8 }, { "r": 8, "note": 45, "vol": 6 },
+      { "r": 12, "note": 39, "inst": 5, "vol": 11 }, { "r": 15, "note": 39, "vol": 4 },
+      { "r": 16, "note": 45, "inst": 7, "vol": 8 }, { "r": 20, "note": 45, "vol": 6 },
+      { "r": 28, "note": 45, "vol": 8 }, { "r": 32, "note": 45, "vol": 6 },
+      { "r": 36, "note": 39, "inst": 5, "vol": 11 },
+      { "r": 40, "note": 37, "inst": 6, "vol": 11 },
+      { "r": 43, "note": 43, "vol": 9, "fx": [{ "cmd": "G", "param": 3 }] },
+      { "r": 46, "note": 43, "vol": 8 }
+    ] },
+    { "channel": "noise", "index": 3, "rows": [
+      { "r": 4, "note": 45, "inst": 7, "vol": 8 }, { "r": 8, "note": 45, "vol": 6 },
+      { "r": 12, "note": 39, "inst": 5, "vol": 11 },
+      { "r": 16, "note": 45, "inst": 7, "vol": 8 }, { "r": 20, "note": 45, "vol": 6 },
+      { "r": 24, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 28, "note": 45, "inst": 7, "vol": 6 },
+      { "r": 32, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 36, "note": 45, "inst": 7, "vol": 6 },
+      { "r": 40, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 44, "note": 45, "inst": 7, "vol": 6 },
+      { "r": 47, "note": 39, "inst": 5, "vol": 5 }
+    ] },
+    { "channel": "noise", "index": 4, "rows": [
+      { "r": 4, "note": 39, "inst": 5, "vol": 11 }, { "r": 8, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 11, "note": 39, "inst": 5, "vol": 4 },
+      { "r": 16, "note": 39, "vol": 11 }, { "r": 20, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 23, "note": 39, "inst": 5, "vol": 5 },
+      { "r": 28, "note": 39, "vol": 11 }, { "r": 32, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 35, "note": 39, "inst": 5, "vol": 4 },
+      { "r": 40, "note": 39, "vol": 11 }, { "r": 44, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 47, "note": 39, "inst": 5, "vol": 5 }
+    ] },
+    { "channel": "noise", "index": 5, "rows": [
+      { "r": 4, "note": 39, "inst": 5, "vol": 11 }, { "r": 8, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 11, "note": 39, "inst": 5, "vol": 4 },
+      { "r": 16, "note": 39, "vol": 11 }, { "r": 20, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 23, "note": 39, "inst": 5, "vol": 5 },
+      { "r": 28, "note": 39, "vol": 11 }, { "r": 32, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 40, "note": 43, "inst": 6, "vol": 10 }, { "r": 44, "note": 37, "vol": 9 },
+      { "r": 46, "note": 43, "vol": 7 }
+    ] },
+    { "channel": "noise", "index": 6, "rows": [
+      { "r": 4, "note": 39, "inst": 5, "vol": 11 }, { "r": 8, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 11, "note": 39, "inst": 5, "vol": 4 },
+      { "r": 16, "note": 39, "vol": 11 }, { "r": 20, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 23, "note": 39, "inst": 5, "vol": 5 },
+      { "r": 28, "note": 39, "vol": 11 }, { "r": 32, "note": 46, "inst": 8, "vol": 7 },
+      { "r": 40, "note": 39, "inst": 5, "vol": 6 }, { "r": 42, "note": 39, "vol": 5 },
+      { "r": 44, "note": 39, "vol": 7 }, { "r": 46, "note": 39, "vol": 4 }
+    ] },
+    { "channel": "noise", "index": 7, "rows": [] },
+    { "channel": "noise", "index": 8, "rows": [
+      { "r": 0, "note": 45, "inst": 7, "vol": 7 }, { "r": 4, "note": 45, "vol": 9 },
+      { "r": 8, "note": 45, "vol": 7 },
+      { "r": 12, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 16, "note": 45, "inst": 7, "vol": 9 }, { "r": 20, "note": 45, "vol": 7 },
+      { "r": 24, "note": 45, "vol": 7 }, { "r": 28, "note": 45, "vol": 9 },
+      { "r": 32, "note": 45, "vol": 7 },
+      { "r": 36, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 40, "note": 45, "inst": 7, "vol": 9 }, { "r": 44, "note": 45, "vol": 7 },
+      { "r": 46, "note": 39, "inst": 5, "vol": 5 }
+    ] },
+    { "channel": "noise", "index": 9, "rows": [
+      { "r": 0, "note": 45, "inst": 7, "vol": 7 }, { "r": 4, "note": 45, "vol": 9 },
+      { "r": 8, "note": 45, "vol": 7 },
+      { "r": 12, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 16, "note": 45, "inst": 7, "vol": 9 }, { "r": 20, "note": 45, "vol": 7 },
+      { "r": 24, "note": 45, "vol": 7 }, { "r": 28, "note": 45, "vol": 9 },
+      { "r": 32, "note": 45, "vol": 7 },
+      { "r": 36, "note": 39, "inst": 5, "vol": 12 },
+      { "r": 40, "note": 46, "inst": 8, "vol": 8 },
+      { "r": 44, "note": 37, "inst": 6, "vol": 10 }, { "r": 46, "note": 43, "vol": 8 }
+    ] },
+    { "channel": "noise", "index": 10, "rows": [
+      { "r": 4, "note": 45, "inst": 7, "vol": 8 }, { "r": 8, "note": 45, "vol": 6 },
+      { "r": 12, "note": 39, "inst": 5, "vol": 11 }, { "r": 15, "note": 39, "vol": 4 },
+      { "r": 16, "note": 45, "inst": 7, "vol": 8 }, { "r": 20, "note": 45, "vol": 6 },
+      { "r": 24, "note": 44, "inst": 9, "vol": 9 },
+      { "r": 28, "note": 45, "inst": 7, "vol": 8 }, { "r": 32, "note": 45, "vol": 6 },
+      { "r": 36, "note": 39, "inst": 5, "vol": 11 }, { "r": 39, "note": 39, "vol": 4 },
+      { "r": 40, "note": 45, "inst": 7, "vol": 8 }, { "r": 44, "note": 45, "vol": 6 }
+    ] },
+    { "channel": "noise", "index": 11, "rows": [
+      { "r": 0, "note": 39, "inst": 5, "vol": 12 }, { "r": 4, "note": 45, "inst": 7, "vol": 6 },
+      { "r": 8, "note": 39, "inst": 5, "vol": 12 }, { "r": 12, "note": 45, "inst": 7, "vol": 6 },
+      { "r": 16, "note": 39, "inst": 5, "vol": 12 }, { "r": 20, "note": 45, "inst": 7, "vol": 6 },
+      { "r": 24, "note": 45, "vol": 8 }, { "r": 28, "note": 45, "vol": 6 },
+      { "r": 32, "note": 44, "inst": 9, "vol": 9 },
+      { "r": 36, "note": 39, "inst": 5, "vol": 11 },
+      { "r": 40, "note": 37, "inst": 6, "vol": 10 }, { "r": 44, "note": 43, "vol": 8 },
+      { "r": 46, "note": 45, "inst": 7, "vol": 6 }
+    ] },
+    { "channel": "dpcm", "index": 0, "rows": [] }
+  ],
+  "instruments": [
+    { "name": "lead-plain", "macros": { "volume": 0, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 1 } },
+    { "name": "harm-soft", "macros": { "volume": 1, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 1 } },
+    { "name": "pluck", "macros": { "volume": 2, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 3 } },
+    { "name": "stab", "macros": { "volume": 3, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 2 } },
+    { "name": "bass", "macros": { "volume": 4, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": -1 } },
+    { "name": "snare", "macros": { "volume": 5, "arpeggio": 0, "pitch": -1, "hiPitch": -1, "duty": 4 } },
+    { "name": "tom", "macros": { "volume": 5, "arpeggio": -1, "pitch": 0, "hiPitch": -1, "duty": 4 } },
+    { "name": "hat-closed", "macros": { "volume": 6, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 4 } },
+    { "name": "hat-open", "macros": { "volume": 7, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 4 } },
+    { "name": "metal", "macros": { "volume": 8, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 5 } },
+    { "name": "x-paper-lanterns-lead-glass", "macros": { "volume": 0, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 0 } }
+  ],
+  "sequences": {
+    "volume": [
+      { "values": [12, 15, 14, 13, 13, 12, 9, 6, 4, 2, 1, 0], "loop": 5, "release": 5 },
+      { "values": [9, 11, 10, 10, 9, 7, 5, 3, 1, 0], "loop": 4, "release": 4 },
+      { "values": [15, 14, 12, 10, 8, 6, 5, 4, 3, 2, 1, 0], "loop": -1, "release": -1 },
+      { "values": [15, 15, 12, 8, 4, 1, 0], "loop": -1, "release": -1 },
+      { "values": [15], "loop": 0, "release": -1 },
+      { "values": [15, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1, 0], "loop": -1, "release": -1 },
+      { "values": [10, 6, 2, 0], "loop": -1, "release": -1 },
+      { "values": [9, 9, 8, 7, 6, 5, 4, 4, 3, 2, 2, 1, 1, 0], "loop": -1, "release": -1 },
+      { "values": [12, 8, 5, 3, 1, 0], "loop": -1, "release": -1 }
+    ],
+    "arpeggio": [
+      { "values": [0, 1, 2], "loop": -1, "release": -1 }
+    ],
+    "pitch": [
+      { "values": [1, 1, 0], "loop": -1, "release": -1 }
+    ],
+    "hiPitch": [],
+    "duty": [
+      { "values": [0], "loop": 0, "release": -1 },
+      { "values": [1], "loop": 0, "release": -1 },
+      { "values": [2], "loop": 0, "release": -1 },
+      { "values": [0, 0, 1, 1, 2], "loop": 4, "release": -1 },
+      { "values": [0], "loop": 0, "release": -1 },
+      { "values": [1], "loop": 0, "release": -1 }
+    ]
+  },
+  "samples": [],
+  "extra": {
+    "qa": {
+      "key": "bb-major",
+      "channels": ["pulse1", "pulse2", "triangle", "noise"],
+      "effects": ["4", "3", "2", "A", "G", "B", "D"],
+      "bpmRange": [111, 114],
+      "durationSec": [108, 122],
+      "rmsRange": [-24.6, -21.0],
+      "renderChecksum": 2854545418,
+      "loopFrame": 2,
+      "form": ["intro", "intro", "A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "B'", "B'", "A'", "A'", "A'"],
+      "motif": { "channel": "pulse1", "patterns": [2, 4, 15, 17], "variation": "statement (p2) - displaced +2 rows (p4) - portamento-connected legato with 3xx (p15) - hemiola regrouping in 8-row units over the plagal cadence (p17)" },
+      "bank": { "instruments": ["lead-plain", "harm-soft", "pluck", "stab", "bass", "snare", "tom", "hat-closed", "hat-open", "metal"], "rev": 1 },
+      "percussionGap": 24,
+      "notes": "POLYMETER (9.1 recipe B): a 5-row pluck ostinato on pulse 2 carries its phase across the whole B section - entry rows 0/2/4/1 at frames 6/7/8/9 (48-row frames: entry = (-48k) mod 5), cited 6:0 -> 9:46 - and returns at 13:0 (entry 0) and 14:2 (entry 2). POLYRHYTHM 2:3 (recipe D): the triangle runs a 6-row cell through all of section C, 10:0 -> 12:42, two bass attacks per three-beat bar. HEMIOLA (recipe E): 3/4's two bars = 24 rows regrouped as 3 x 8 at 5:24/5:32/5:40 (kit and stab accents, triangle holds a whole-bar Eb) and again at 17:0/17:8/17:16 over an F pedal. METRIC SURPRISE (recipe H): D param 0 at 12:43 ends the quiet centre a beat early - its last bar is 2 beats, not 3 - so B' arrives displaced. DISPLACEMENT (recipe F): the motif is restated +2 rows at 4:2 and the B' second phrase is anticipated -2 rows, its first note written into 13:46. COUNTERPOINT: pulse 2 is an independent line with its own rhythm and contour for the whole of B and B'; in the A sections its stab line is a moving inner voice, not a doubling. Written suspensions: 4-3 at 5:32 (Eb4 held across the change to Bb, resolving down to D4 at 5:38) and the plagal cadential one at 17:30 -> 17:38. Appoggiatura at 13:0: Eb6 on the downbeat resolving down to D6 at 13:2, which is the piece's global peak. HARMONY, three distinct non-diatonic devices in three sections: (1) chromatic bass descent Bb-A-Ab-G-Gb-F, one link per bar, 10:0 -> 11:18, the harmony implied by the collision with the held pulses; (2) chained secondary dominants as a descending-fifths sequence A7-Dm-G7-Cm-F-Bb, 16:0 -> 17:12, the raised thirds voiced in pulse 2 (c sharp 4 = 61 at 16:4, b natural 3 = 59 at 16:28) plus a chromatic lower neighbour c sharp 5 = 73 in the lead at 16:10 resolving up to d5 at 16:12; (3) modal interchange, the borrowed iv (Eb minor) at 9:24 and 14:27, its g flat in the lead (66 at 9:24, 78 at 14:22), in the ostinato (66 at 9:31 and 14:32) and in the bass (42 at 9:32). Harmonic rhythm changes section to section: B's first eight bars move one chord per two bars (frames 6-7), everywhere else is one per bar. ENGINE NOTES: 3xx is a PERSISTENT channel mode in this driver and 300 only freezes it, so the portamento in A' is cancelled with 2 param 0 - a documented off value that never consults effect memory - at 15:0, 15:24, 17:0, 17:24 and at the seam 17:44. Vibrato is effect-side and deliberately delayed: the note is written on row n and 4 param 66 on row n+2, cancelled with 4 param 0 on the next attack. DECIMAL PARAMS: 4 param 66 = 442 (speed 4, depth 2), 4 param 82 = 452 on the section peak, 3 param 6 = 306 portamento, A param 16 = A10, a gentle fade (the x digit slides DOWN), A param 0 = A00, G param 2 = a two-tick lilt on the waltz's third beat, G param 3 = a tom flam, D param 0 = enter the next frame at row 0, B param 2 = loop to frame 2. percussionGap 24: the arch's quiet centre (frames 10-12) carries no kit at all, which is the brief's C section played down; the longest silent run is 145 rows of 864, so 83 percent of rows still sit inside a gap of 24 rows or less. rmsRange: measured -22.79 dBFS across the two-pass render; the design's [-20,-9] window is unreachable on this engine, so the declared window is a snug +-1.8 dB around the measurement and stays above the -30 floor."
+    }
+  }
+}
