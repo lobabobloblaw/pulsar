@@ -1,0 +1,4 @@
+Pixel art title screen illustration, flat colors, 16-color palette, one-pixel outline, strong silhouette, hard edges.
+A pulsar neutron star: one bright compact sphere at the exact center, two narrow tapering polar beams sweeping out to opposite corners, a thin ring of dust around the equator.
+Plain solid black background, wide empty margins, high contrast, simple shapes.
+Render exactly one subject, centered.

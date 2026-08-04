@@ -4,3 +4,4 @@ coverage/
 public/pulsar-apu-worklet.js
 *.local
 .DS_Store
+__pycache__/

@@ -1,0 +1,22 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 1789773,
+  "dpcm": {
+    "address": 49152,
+    "runs": [
+      [255, 16],
+      [0, 17]
+    ]
+  },
+  "expect": {
+    "rmsMin": 0.15,
+    "peakMax": 1,
+    "clippedSamplesMax": 0,
+    "channelsSounding": 5
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "pulse 1 A440 (timer 253, duty 2, vol 15), pulse 2 E5 (timer 169, duty 1, vol 6), triangle A3 (timer 253), noise index 8 vol 6 from 0.5 s, DPCM ramp looping throughout. the point of the fixture is the mix, not any one pitch."
+  }
+}

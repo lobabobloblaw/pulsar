@@ -1,0 +1,10 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# one second of a held A440 on the triangle. $4008 = 0xFF holds the linear counter
+# (control set → the reload flag is never cleared), and the note does not actually
+# start until the first quarter-frame clock at cycle 7457 loads that counter.
+0        4015 04
+0        4008 FF
+0        400A 7E
+0        400B 00
+# END 1789773

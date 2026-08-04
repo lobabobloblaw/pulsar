@@ -1,0 +1,21 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 894886,
+  "dpcm": {
+    "address": 49152,
+    "runs": [
+      [255, 16],
+      [0, 17]
+    ]
+  },
+  "expect": {
+    "fundamentalHz": 125.55,
+    "toleranceCents": 30,
+    "rmsMin": 0.1
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "1789773 / (54 * 8 * 33) = 125.55 Hz. the level clamps at 127 partway through the up-ramp (64 steps of +2 from 0 reaches 128, which the guard blocks at 126/127), so the waveform is a clipped triangle, not a symmetric one."
+  }
+}

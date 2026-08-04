@@ -1,0 +1,15 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 1789773,
+  "expect": {
+    "rmsMin": 0.05,
+    "shortModeFundamentalHz": 300.7,
+    "shortModeToleranceCents": 20,
+    "shortModeAfterCycle": 894886
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "long mode has no fundamental (period 32767 * 64 cycles = 1.17 s). short mode: 1789773 / (64 * 93) = 300.70 Hz. NSFPlay's 'noise' channel view shows the same two-mode split."
+  }
+}

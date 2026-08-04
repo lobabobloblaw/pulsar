@@ -1,0 +1,10 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# one second of a held A440 on pulse 1, duty 2 (50%), constant volume 15.
+# the canonical note-on order from plan B6: enable, control, sweep, timer low, timer high.
+0        4015 01
+0        4000 BF
+0        4001 08
+0        4002 FD
+0        4003 00
+# END 1789773

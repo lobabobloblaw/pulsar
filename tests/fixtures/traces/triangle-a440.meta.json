@@ -1,0 +1,15 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 1789773,
+  "expect": {
+    "fundamentalHz": 440.3969,
+    "toleranceCents": 3,
+    "rmsMin": 0.03,
+    "thirdHarmonicDbcMax": -16
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "timer 126 = fCPU/(32*127): the triangle divides by 32 (every CPU cycle, 32 steps) so it reaches the same 440.3969 Hz as pulse timer 253. third harmonic ~1/9 (-19 dB), not 1/3."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 894886,
+  "expect": {
+    "fundamentalHz": 108.9,
+    "toleranceCents": 20,
+    "analyseCycles": [0, 14913],
+    "silentAfterCycle": 30000,
+    "rmsMin": 0.05
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "timer 0x400 = 1789773/(16*1025) = 109.13 Hz for the first 8.3 ms, then permanent silence. Mesen's APU viewer shows the sweep unit's mute flag latching at the same half-frame clock."
+  }
+}

@@ -1,0 +1,12 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# a looping 33-byte DPCM sample: sixteen 0xFF bytes ramp the 7-bit DAC up in +2 steps
+# until it clamps at 127, then seventeen 0x00 bytes ramp it back down to 0. rate index
+# 15 (54 CPU cycles per bit) makes one loop 33*8*54 = 14256 cycles = 125.5 Hz.
+# the sample bytes come from the meta sidecar's "dpcm" block, not from the trace.
+0        4011 00
+0        4010 4F
+0        4012 00
+0        4013 02
+0        4015 10
+# END 894886

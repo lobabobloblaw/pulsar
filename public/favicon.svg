@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="pulsar">
+  <!-- pulsar mark: filled core + two tapering beams crossing to opposite corners.
+       Hand-written, one accent (#1270b8), transparent field. The bitmap favicons in
+       tools/assets/favicon.py set the same mark pixel by pixel for 16/32/48. -->
+  <g fill="#1270b8">
+    <polygon points="0,0 14.2,10.7 10.7,14.2"/>
+    <polygon points="32,0 17.8,10.7 21.3,14.2"/>
+    <polygon points="0,32 14.2,21.3 10.7,17.8"/>
+    <polygon points="32,32 17.8,21.3 21.3,17.8"/>
+    <circle cx="16" cy="16" r="6"/>
+  </g>
+</svg>

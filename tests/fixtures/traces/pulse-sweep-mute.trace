@@ -1,0 +1,13 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# a rising sweep that mutes itself. timer 0x400 with shift 1 targets 0x600 on the
+# first half-frame clock (cycle 14913); 0x600 then targets 0x900, past $7FF, so the
+# sweep unit mutes the channel permanently — the period can no longer be written back.
+# this is the blargg semantic "sweep muting fires even when the sweep is disabled",
+# here in its enabled form: the note simply stops.
+0        4015 01
+0        4000 3F
+0        4001 81
+0        4002 00
+0        4003 04
+# END 894886

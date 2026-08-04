@@ -1,0 +1,15 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 1789773,
+  "expect": {
+    "fundamentalHz": 440.3969,
+    "toleranceCents": 3,
+    "maxAliasDbc": -70,
+    "rmsMin": 0.1
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "timer 253 = fCPU/(16*254) = 440.3969 Hz, +1.561 cents off equal temperament. compare against Mesen/NSFPlay per tests/fixtures/README.md."
+  }
+}

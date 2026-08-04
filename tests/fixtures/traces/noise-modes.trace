@@ -1,0 +1,11 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# half a second of long-mode noise at period index 4 (64 CPU cycles), then the same
+# period in short mode. mode 1 taps bit 6 instead of bit 1, dropping the LFSR period
+# from 32767 to 93 — which turns white noise into a 300.7 Hz tone.
+0        4015 08
+0        400C 3F
+0        400E 04
+0        400F 00
+894886   400E 84
+# END 1789773

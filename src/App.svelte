@@ -1,15 +1,128 @@
+<!--
+  pulsar — app shell (plan C2).
+
+  Responsibilities, and only these:
+   - own the SINGLE requestAnimationFrame loop and publish it on the
+     'pulsar.frame' context. Order inside a frame is fixed: pump the bridge
+     first (it refreshes meter/scope), then let the renderers read. The loop
+     never writes $state — the dev fps chip at 4 Hz is the one exception.
+   - create the audio bridge, wire the parameter store to it, and mirror bridge
+     status into transport.
+   - own the boot gesture: the first keydown (or the first pointer press, for
+     touch and pointer-only users) dismisses the boot sequence AND calls
+     bridge.start(). Autoplay policy requires that call to come from a gesture.
+   - attach the QWERTY listener and construct the MIDI controller. MIDI
+     permission is requested lazily, never on load.
+
+  The ?selftest hook below is the lead's headless gate harness. Do not change
+  its shape: the runner looks for `pre[data-selftest]` and reads document.title.
+-->
 <script lang="ts">
-  import { startEngine, type EngineHandle } from './audio/host/audioEngine'
+  import { onMount } from 'svelte'
   import { runSelfTest } from './selftest'
+  import { bridge } from './audio/bridge'
+  import { attachKeyboard } from './input/keyboard'
+  import { createMidi } from './input/midi'
+  import { params } from './state/params.svelte'
+  import { transport } from './state/transport.svelte'
+  import LiveRegion from './ui/a11y/LiveRegion.svelte'
+  import Brand from './ui/Brand.svelte'
+  import Enclosure from './ui/Enclosure.svelte'
+  import KeyBed from './ui/KeyBed.svelte'
+  import KnobRow from './ui/KnobRow.svelte'
+  import Screen from './ui/Screen.svelte'
+  import StatusBar from './ui/StatusBar.svelte'
+  import { createBootSequence } from './ui/canvas/bootSequence'
+  import { createFrameBus, provideFrame } from './ui/frame'
+  import { noteName } from './state/transport.svelte'
 
-  let engine: EngineHandle | null = $state(null)
-  let busy = $state(false)
-  let error = $state('')
+  const audio = bridge()
+  const boot = createBootSequence()
+  const { bus, emit } = createFrameBus()
+  provideFrame(bus)
+
+  const midi = createMidi(audio, announce)
+
+  let announcement = $state('')
   let selftest = $state('')
+  let started = false
 
-  const iso = crossOriginIsolated
-  const sab = typeof SharedArrayBuffer === 'function'
+  function announce(note: number | string): void {
+    announcement = typeof note === 'number' ? noteName(note) : note
+  }
 
+  /** The user gesture. Idempotent, and safe to call from anywhere. */
+  function startAudio(): void {
+    if (!started) {
+      started = true
+      void audio.start()
+    }
+    if (!boot.done) {
+      boot.dismiss()
+      transport.booted = true
+      transport.setPage('params')
+    }
+  }
+
+  function connectMidi(): void {
+    void midi.ensureAccess()
+  }
+
+  onMount(() => {
+    document.documentElement.dataset['room'] = transport.room
+    params.attach(audio)
+
+    const unsubscribe = audio.subscribe((s) => {
+      transport.audio = s
+    })
+
+    const detachKeys = attachKeyboard({
+      bridge: audio,
+      gesture: () => {
+        if (started && boot.done) return false
+        startAudio()
+        return true // the first key starts audio, it does not play a note
+      },
+      onNote: announce,
+    })
+
+    // Pointer-only and touch users need the same gesture path. Any press
+    // anywhere counts, including a press on a key of the keybed.
+    const onPointerDown = (): void => {
+      if (started && boot.done) return
+      startAudio()
+    }
+    window.addEventListener('pointerdown', onPointerDown)
+
+    let raf = 0
+    let frames = 0
+    let fpsAt = 0
+    const loop = (now: number): void => {
+      raf = requestAnimationFrame(loop)
+      audio.tick(now)
+      emit(now)
+      if (import.meta.env.DEV) {
+        frames++
+        if (now - fpsAt >= 250) {
+          transport.fps = Math.round((frames * 1000) / (now - fpsAt))
+          frames = 0
+          fpsAt = now
+        }
+      }
+    }
+    raf = requestAnimationFrame(loop)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('pointerdown', onPointerDown)
+      detachKeys()
+      unsubscribe()
+      midi.dispose()
+      audio.dispose()
+    }
+  })
+
+  // Headless gate harness — preserved verbatim from WP0.
   $effect(() => {
     if (new URLSearchParams(location.search).has('selftest')) {
       void runSelfTest().then((r) => {
@@ -18,70 +131,62 @@
       })
     }
   })
-
-  async function toggle(): Promise<void> {
-    if (busy) return
-    busy = true
-    error = ''
-    try {
-      if (engine) {
-        await engine.dispose()
-        engine = null
-      } else {
-        engine = await startEngine()
-      }
-    } catch (e) {
-      error = e instanceof Error ? e.message : String(e)
-      engine = null
-    } finally {
-      busy = false
-    }
-  }
 </script>
 
-<main>
-  <h1>pulsar</h1>
-  <p class="sub">m0 scaffold — worklet loader gate</p>
-  <p class="caps">
-    crossOriginIsolated: <code>{String(iso)}</code> ·
-    sharedarraybuffer: <code>{String(sab)}</code>
-    {#if engine}· samplerate: <code>{engine.ctx.sampleRate}</code>{/if}
-  </p>
-  <button onclick={toggle} disabled={busy}>
-    {engine ? 'stop' : 'click to start — 440 hz sine'}
-  </button>
-  {#if error}<p class="err">{error}</p>{/if}
-  {#if selftest}<pre data-selftest>{selftest}</pre>{/if}
-</main>
+<Enclosure>
+  {#snippet brand()}
+    <Brand />
+  {/snippet}
+
+  {#snippet status()}
+    <StatusBar onStartAudio={startAudio} onConnectMidi={connectMidi} />
+  {/snippet}
+
+  {#snippet screen()}
+    <Screen {boot} />
+  {/snippet}
+
+  {#snippet knobs()}
+    <KnobRow />
+  {/snippet}
+
+  {#snippet keys()}
+    <KeyBed {announce} />
+  {/snippet}
+
+  {#snippet foot()}
+    <div class="foot">
+      <p class="t-micro">
+        z–m lower octave · q–i upper · − and = shift octave · shift for fine control
+      </p>
+      <p class="t-micro">not affiliated with teenage engineering</p>
+    </div>
+  {/snippet}
+</Enclosure>
+
+<LiveRegion message={announcement} />
+
+{#if selftest}<pre data-selftest>{selftest}</pre>{/if}
 
 <style>
-  main {
-    font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-    max-width: 640px;
-    margin: 4rem auto;
-    padding: 0 1.5rem;
-    color: #181818;
+  .foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-4);
+    padding-top: var(--s-3);
+    border-top: 1px solid var(--enclosure-hairline);
+    color: var(--enclosure-ink-2);
   }
-  h1 {
-    font-weight: 800;
-    letter-spacing: -0.04em;
-    margin: 0;
-  }
-  .sub {
-    color: #484848;
-  }
-  button {
-    font: inherit;
-    padding: 0.6rem 1.2rem;
-    border: 1px solid #a8a8a8;
-    border-radius: 6px;
-    background: #ffffff;
-    cursor: pointer;
-  }
-  button:disabled {
-    opacity: 0.5;
-  }
-  .err {
-    color: #ce2021;
+
+  pre[data-selftest] {
+    margin: var(--s-4);
+    padding: var(--s-3);
+    font-family: var(--font-ui);
+    font-size: var(--t-body-size);
+    color: var(--enclosure-ink);
+    background: var(--n-000);
+    border-radius: var(--r-2);
+    white-space: pre-wrap;
   }
 </style>

@@ -1,0 +1,204 @@
+/* pulsar — design tokens (plan C1).
+ *
+ * Governing idea: a light aluminium slab with ONE dark emissive well. The screen
+ * is the only lit object on the page, and everything lit is built from one
+ * primitive — a 3px dot on a 4px lattice. The space scale IS the lattice pitch.
+ *
+ * Accent rule (measured WCAG): one accent per surface, the one that clears 4.5:1
+ * on it. Enclosure (light) -> blue #1270b8 (5.20:1 on white chips; only 3.65:1 on
+ * #d8d8d8, so on the slab it is a COMPONENT color, never text). Screen (dark) ->
+ * amber #ffc003 (10.82:1). Blue never appears inside the screen; amber never
+ * appears on the enclosure. Green/red only as a 6px dot always paired with text.
+ */
+
+/* One self-hosted face. Declared here rather than importing fontsource's
+ * stylesheet so that (a) only the latin subset ships and (b) font-display is
+ * `block` — an instrument that reflows its numerals mid-load reads as broken
+ * (D6). The @fontsource-variable/jetbrains-mono package supplies the file. */
+@font-face {
+  font-family: 'JetBrains Mono Variable';
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: block;
+  src: url('@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
+    format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+2013-2014,
+    U+2018-2019, U+201C-201D, U+2020-2022, U+2026, U+2030, U+2039-203A, U+2044,
+    U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* ---- neutrals (measured from teenage.engineering, plan-file §10) ------- */
+  --n-000: #ffffff;
+  --n-100: #d8d8d8;
+  --n-200: #c9c9c9;
+  --n-300: #bdbdbd;
+  --n-400: #a8a8a8;
+  --n-500: #8f8f8f;
+  --n-600: #484848;
+  --n-700: #303030;
+  --n-800: #181818;
+  --n-900: #000000;
+
+  /* ---- accents (one per surface; never mixed across surfaces) ----------- */
+  --a-blue: #1270b8;
+  --a-green: #1aa167;
+  --a-red: #ce2021;
+  --a-amber: #ffc003;
+  --a-gray: #bdbdbd;
+
+  /* ---- surface roles: enclosure (light aluminium) ----------------------- */
+  --page-bg: var(--n-200);
+  --enclosure-bg: var(--n-100);
+  --enclosure-ink: var(--n-800); /* 12.46:1 on #d8d8d8 */
+  --enclosure-ink-2: var(--n-600); /* 6.42:1 on #d8d8d8 */
+  --enclosure-hairline: var(--n-400); /* rules + unlit marks only, never text */
+  --enclosure-accent: var(--a-blue); /* components only on the slab (3.65:1) */
+  --enclosure-mark: var(--n-800); /* knob indicator, key ink */
+  --chip-bg: var(--n-000); /* blue text is legal here: 5.20:1 */
+  --chip-ink: var(--n-800);
+  --chip-accent: var(--a-blue);
+  --key-face: var(--n-000);
+  --key-face-sharp: var(--n-800);
+  --key-active: var(--a-blue);
+
+  /* ---- surface roles: screen (the one lit object) ----------------------- */
+  --screen-bg: #181818;
+  --screen-dot-off: #303030; /* the unlit lattice is deliberately visible */
+  --screen-ink: #ffffff; /* 17.75:1 */
+  --screen-dim: #a8a8a8; /* 7.47:1 */
+  --screen-accent: #ffc003; /* 10.82:1 */
+  --screen-bezel: var(--n-600);
+
+  /* ---- status (always paired with text, never color alone) -------------- */
+  --st-ok: var(--a-green);
+  --st-warn: var(--a-amber);
+  --st-bad: var(--a-red);
+
+  /* ---- space: base-4, the same unit as the lattice ---------------------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* ---- radius: 0 for dots and the screen interior, 20px for the shell --- */
+  --r-0: 0px;
+  --r-1: 3px;
+  --r-2: 6px;
+  --r-3: 12px;
+  --r-4: 20px;
+  --r-max: 50%;
+
+  /* ---- exactly two shadows --------------------------------------------- */
+  --sh-inset: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(0 0 0 / 0.12);
+  --sh-well: inset 0 3px 8px rgb(0 0 0 / 0.55), 0 1px 0 rgb(255 255 255 / 0.55);
+
+  /* ---- focus: one double ring, used verbatim everywhere ----------------- */
+  --focus: 0 0 0 2px var(--n-000), 0 0 0 4px var(--a-blue);
+  --focus-screen: 0 0 0 2px var(--n-900), 0 0 0 4px var(--a-amber);
+
+  /* ---- motion ----------------------------------------------------------- */
+  --dur-fast: 90ms;
+  --dur-med: 180ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ---- type ------------------------------------------------------------- */
+  --font-ui: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Menlo',
+    'Consolas', monospace;
+
+  --t-brand-size: 28px;
+  --t-brand-weight: 800;
+  --t-brand-track: -0.04em;
+  --t-page-size: 16px;
+  --t-page-weight: 700;
+  --t-value-size: 13px;
+  --t-value-weight: 600;
+  --t-body-size: 12px;
+  --t-body-weight: 400;
+  --t-label-size: 10px;
+  --t-label-weight: 500;
+  --t-label-track: 0.08em;
+  --t-micro-size: 9px;
+  --t-micro-weight: 500;
+  --t-micro-track: 0.1em;
+}
+
+/* Room dimmer — NOT dark mode. Lowers enclosure luminance for a dim room while
+ * the screen tokens stay byte-identical, which is what preserves the
+ * lit-screen hierarchy. Blue drops to fill-only (it never sits on the slab in
+ * either room); the knob indicator and slab marks go to ink. */
+:root[data-room='night'] {
+  --page-bg: #7d7d7d;
+  --enclosure-bg: var(--n-500);
+  --enclosure-ink: #0d0d0d; /* 6.01:1 on #8f8f8f */
+  --enclosure-ink-2: var(--n-800); /* 5.44:1 on #8f8f8f */
+  --enclosure-hairline: var(--n-600);
+  --enclosure-mark: #0d0d0d;
+}
+
+/* Reduced motion zeroes decorative durations everywhere at once. Canvas cannot
+ * read a media query, so state/motion.svelte.ts mirrors this to the renderers
+ * (boot scan + dissolve collapse to a single paint; meters keep running). */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-med: 0ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- global type roles ------------------------------------------------- */
+
+html {
+  background: var(--page-bg);
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--t-body-size);
+  font-weight: var(--t-body-weight);
+  font-variant-numeric: tabular-nums; /* readouts must not reflow mid-drag */
+  color: var(--enclosure-ink);
+  background: var(--page-bg);
+}
+
+.t-page {
+  font-size: var(--t-page-size);
+  font-weight: var(--t-page-weight);
+}
+
+.t-value {
+  font-size: var(--t-value-size);
+  font-weight: var(--t-value-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.t-label {
+  font-size: var(--t-label-size);
+  font-weight: var(--t-label-weight);
+  letter-spacing: var(--t-label-track);
+}
+
+.t-micro {
+  font-size: var(--t-micro-size);
+  font-weight: var(--t-micro-weight);
+  letter-spacing: var(--t-micro-track);
+}
+
+/* Only for dynamic strings we do not author (MIDI port names). A global
+   text-transform would mangle them in the other direction. */
+.u-lc {
+  text-transform: lowercase;
+}

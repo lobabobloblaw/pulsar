@@ -1,0 +1,26 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# all five channels at once: an A minor triad on the two pulses and the triangle, a
+# noise hit on the second half-second, and the looping DPCM ramp underneath. this is
+# the fixture that exercises the non-linear mixer's cross-channel behaviour — the
+# triangle and noise are ducked by the DPCM level through the shared TND table.
+0        4015 0F
+0        4000 BF
+0        4001 08
+0        4002 FD
+0        4003 00
+0        4004 76
+0        4005 08
+0        4006 A9
+0        4007 00
+0        4008 FF
+0        400A FD
+0        400B 00
+0        4010 4F
+0        4012 00
+0        4013 02
+0        4015 1F
+894886   400C 36
+894886   400E 08
+894886   400F 00
+# END 1789773
