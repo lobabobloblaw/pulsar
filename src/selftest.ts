@@ -152,7 +152,74 @@ const SOAK_MELODY = [57, 60, 64, 67, 72, 67, 64, 60] // a-minor arpeggio, MIDI
 const SOAK_DIAG_EVERY_MS = 5_000
 const PEAK_BUDGET_US = 267
 
+/** M-Phase2 soak: `?selftest&soak=N&song=<preset id>` plays a real preset through
+ *  the real TrackerDriver over a bare engine for N minutes — the sustained-playback
+ *  claim, measured (counters clean, position advancing, seam crossings). */
+async function runSongSoak(minutes: number, songId: string): Promise<SelfTestResult> {
+  const lines: string[] = []
+  lines.push(`songSoak=${songId} ${minutes}min`)
+  let pass = true
+  try {
+    const [{ presetById }, { parseSong }, { TrackerDriver }, { msToCycles }] = await Promise.all([
+      import('./assets/songs/index'),
+      import('./tracker/model/validate'),
+      import('./tracker/driver/trackerDriver'),
+      import('./audio/timeline/clockMap'),
+    ])
+    const entry = presetById(songId)
+    if (entry === undefined) throw new Error(`unknown preset ${songId}`)
+    const parsed = parseSong(entry.song)
+    lines.push(`diagnostics=${parsed.diagnostics.length}`)
+
+    const engine = await startEngine()
+    lines.push(`transport=${engine.transport}`)
+    const anchor = await Promise.race([engine.ready(), sleep(READY_TIMEOUT_MS).then(() => null)])
+    if (anchor === null) throw new Error('clock anchor timeout')
+
+    const driver = new TrackerDriver(engine, engine)
+    driver.loadSong(parsed.song)
+    driver.play('song')
+    const lookahead = msToCycles(engine.clockRate, 120)
+
+    const endAt = performance.now() + minutes * 60_000
+    let lastOrder = -1
+    let orderAdvances = 0
+    let loops = 0
+    while (performance.now() < endAt) {
+      driver.runTo(engine.nowCycle() + lookahead)
+      engine.flush()
+      await sleep(20)
+      const pos = driver.position
+      if (pos.orderIndex !== lastOrder) {
+        if (pos.orderIndex < lastOrder) loops++
+        lastOrder = pos.orderIndex
+        orderAdvances++
+      }
+    }
+    driver.stop()
+    engine.flush()
+    await sleep(200)
+
+    const d = engine.diagnostics()
+    lines.push(`orderAdvances=${orderAdvances} loops=${loops} lastOrder=${lastOrder}`)
+    lines.push(formatDiagnostics(d))
+    const countersOk = d.droppedWrites === 0 && d.underruns === 0
+    const playedOk = orderAdvances > 2
+    lines.push(`counters=${countersOk ? 'ok' : 'FAIL'}`)
+    lines.push(`advanced=${playedOk ? 'ok' : 'FAIL'}`)
+    pass = countersOk && playedOk
+    await engine.dispose()
+  } catch (e) {
+    lines.push(`error=${e instanceof Error ? e.message : String(e)}`)
+    pass = false
+  }
+  lines.push(pass ? 'SELFTEST PASS' : 'SELFTEST FAIL')
+  return { pass, details: lines.join('\n') }
+}
+
 async function runSoakTest(minutes: number): Promise<SelfTestResult> {
+  const songId = new URLSearchParams(location.search).get('song')
+  if (songId !== null && songId !== '') return runSongSoak(minutes, songId)
   const lines: string[] = []
   lines.push(`soak=${minutes}min`)
   lines.push(`crossOriginIsolated=${String(crossOriginIsolated)}`)
