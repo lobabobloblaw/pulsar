@@ -137,32 +137,32 @@
 
   <div class="ops">
     <span class="keyed">
-      <button type="button" class="key" aria-label="add frame" onclick={() => addFrame(false)}>
-        <Icon name="plus" />
+      <button type="button" class="key mini" aria-label="add frame" onclick={() => addFrame(false)}>
+        <Icon name="plus" size={10} />
       </button>
       <span class="silk">add</span>
     </span>
     <span class="keyed">
-      <button type="button" class="key" aria-label="clone frame" onclick={() => addFrame(true)}>
-        <Icon name="clone" />
+      <button type="button" class="key mini" aria-label="clone frame" onclick={() => addFrame(true)}>
+        <Icon name="clone" size={10} />
       </button>
       <span class="silk">clone</span>
     </span>
     <span class="keyed">
-      <button type="button" class="key" aria-label="remove frame" onclick={removeFrame}>
-        <Icon name="minus" />
+      <button type="button" class="key mini" aria-label="remove frame" onclick={removeFrame}>
+        <Icon name="minus" size={10} />
       </button>
       <span class="silk">remove</span>
     </span>
     <span class="keyed">
-      <button type="button" class="key" aria-label="move frame up" onclick={() => moveFrame(-1)}>
-        <Icon name="up" />
+      <button type="button" class="key mini" aria-label="move frame up" onclick={() => moveFrame(-1)}>
+        <Icon name="up" size={10} />
       </button>
       <span class="silk">up</span>
     </span>
     <span class="keyed">
-      <button type="button" class="key" aria-label="move frame down" onclick={() => moveFrame(1)}>
-        <Icon name="down" />
+      <button type="button" class="key mini" aria-label="move frame down" onclick={() => moveFrame(1)}>
+        <Icon name="down" size={10} />
       </button>
       <span class="silk">down</span>
     </span>
@@ -224,17 +224,19 @@
 
   th,
   td {
-    padding: 2px var(--s-1);
+    padding: 1px var(--s-1);
     text-align: left;
     color: var(--grid-ink-dim);
   }
 
+  /* Not a spreadsheet header — a faint printed legend IN the glass: same
+     ground as the field (opaque, so rows scroll under it), dim ink (7:1 —
+     muted would fail contrast), no rule under it. */
   thead th {
     position: sticky;
     top: 0;
-    background: var(--grid-bg-alt);
-    color: var(--grid-ink);
-    border-bottom: 1px solid var(--grid-hairline);
+    background: var(--grid-bg);
+    color: var(--grid-ink-dim);
     white-space: nowrap;
   }
 
@@ -257,18 +259,17 @@
     background: var(--grid-accent);
   }
 
+  /* Values printed on the glass, never boxed: the old hover border made the
+     whole table sprout outlines under the pointer — pure spreadsheet. The
+     in-glass focus ring below is the only chrome a cell ever grows. */
   input {
     width: 3ch;
-    padding: 1px 2px;
+    padding: 2px 3px;
     font-family: var(--font-ui);
     color: var(--grid-ink);
     background: transparent;
-    border: 1px solid transparent;
+    border: 0;
     border-radius: var(--r-1);
-  }
-
-  input:hover {
-    border-color: var(--grid-hairline);
   }
 
   .ops {

@@ -129,7 +129,7 @@
       </span>
       <span class="keyed">
         <input
-          class="stepwin"
+          class="stepwin window"
           type="number"
           min="0"
           max="16"
@@ -186,12 +186,19 @@
   </p>
 
   <details class="help">
-    <summary class="t-micro">keyboard reference</summary>
+    <!-- A "?" cap, not a text link: summaries were the last blue text sitting
+         on the aluminium. The name reaches AT through the sr span (aria-label
+         on summary is unreliable in VoiceOver); title serves the pointer. -->
+    <summary class="key mini" title="keyboard reference">
+      <span aria-hidden="true">?</span>
+      <span class="sr">keyboard reference</span>
+    </summary>
     <p class="t-micro">
       space toggles edit · enter plays from the cursor · shift-enter loops the pattern · escape
       stops · tab moves between channels · 1 writes a note cut, ` writes a release · ctrl-z undoes.
-      screen readers get cell-level navigation and editing, not a spoken pattern — no tracker
-      solves that honestly.
+      live shell: z–m lower octave · q–i upper · − and = shift octave · shift-drag knobs for fine
+      control. screen readers get cell-level navigation and editing, not a spoken pattern — no
+      tracker solves that honestly.
     </p>
   </details>
 </section>
@@ -246,23 +253,17 @@
     color: var(--enclosure-ink-2);
   }
 
-  /* The step count is a value window the size of a cap. `appearance: textfield`
-     first: Chrome's number spinners eat the box and leave the digit with
-     nowhere to render. */
+  /* The step count is a glass value window the size of a cap (`.window` in
+     tokens.css carries the ground). `appearance: textfield` first: Chrome's
+     number spinners eat the box and leave the digit with nowhere to render. */
   .stepwin {
     appearance: textfield;
     width: 26px;
     height: 24px;
     padding: 0;
     text-align: center;
-    font-family: var(--font-ui);
     font-size: var(--t-micro-size);
     font-weight: var(--t-micro-weight);
-    color: var(--enclosure-ink);
-    background: var(--chip-bg);
-    border: 0;
-    border-radius: var(--r-1);
-    box-shadow: var(--sh-inset);
   }
 
   .readout {
@@ -344,14 +345,13 @@
   }
 
   .help summary {
-    width: fit-content;
-    color: var(--chip-accent);
-    cursor: pointer;
+    list-style: none;
+    font-size: var(--t-micro-size);
+    font-weight: 700;
   }
 
-  .help summary:focus-visible {
-    outline: none;
-    box-shadow: var(--focus);
+  .help summary::-webkit-details-marker {
+    display: none;
   }
 
   .help[open] summary {

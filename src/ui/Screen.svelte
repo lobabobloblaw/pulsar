@@ -187,13 +187,14 @@
   }
 
   /** Vertical room the live shell keeps around the canvas — stage padding,
-   *  brand row, well padding + pager, knobs, keys, foot and the grid gaps,
-   *  measured over CDP on the tightened layout (2026-08-04). The lattice takes
-   *  what is left of the viewport, which is what lets the whole instrument fit
-   *  a short window with no page scroll (dot 6 at ≥964px tall, 5 at ≥900,
-   *  down to DOT_MIN). If the shell ever grows past this the page scrolls a
-   *  little — visible and recoverable, which beats a lattice that resamples. */
-  const SHELL_OVERHEAD = 580
+   *  the rail, well padding + pager, knobs, keys, foot and the grid gaps,
+   *  measured over CDP on the compact-pass layout (457px, 2026-08-04; pinned
+   *  with 3px slack). The lattice takes what is left of the viewport: dot 7
+   *  at ≥908px tall, 6 at ≥844, 5 at ≥780, down to DOT_MIN. The WIDTH budget
+   *  (960 slab − 32 device pad − 16 well pad = 912) caps the dot at 7 — dot 8
+   *  needs 1024. If the shell ever grows past this the page scrolls a little —
+   *  visible and recoverable, which beats a lattice that resamples. */
+  const SHELL_OVERHEAD = 460
 
   function canvasHeightBudget(): number {
     return Math.max(0, window.innerHeight - SHELL_OVERHEAD)
@@ -332,7 +333,7 @@
     width: fit-content;
     display: grid;
     place-items: center;
-    padding: var(--s-3);
+    padding: var(--s-2);
     background: var(--screen-bg);
     border-radius: var(--r-3);
     box-shadow:

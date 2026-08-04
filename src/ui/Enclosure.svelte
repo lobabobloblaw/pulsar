@@ -5,11 +5,13 @@
   than the slab so it reads as an object sitting on a surface rather than as the
   page itself.
 
-  12-column grid, areas: brand/stat -> screen -> knob-a..d -> keys -> foot.
+  12-column grid, areas: rail -> screen -> knob-a..d -> keys -> foot. The rail
+  is ONE thin row — wordmark left, the control strip right — the way a device
+  wears its badge and its switches on the same trim (compact pass 2026-08-04).
   With the tracker open the panel REPLACES the screen and knob rows (§4.1 as
   amended by the 2026-08-04 UI audit): the panel hosts the screen in its own
   left pane and the knobs return when it closes — the stacked five-row shape
-  was ~2x a laptop viewport. Reflows at 720px (brand and status stack; the
+  was ~2x a laptop viewport. Reflows at 720px (the rail wraps internally; the
   knob row goes 2x2) and at 560px (the keybed scrolls one octave at a time —
   see KeyBed.svelte).
 
@@ -46,8 +48,10 @@
     <span class="screw" aria-hidden="true"></span>
     <span class="screw" aria-hidden="true"></span>
     <span class="screw" aria-hidden="true"></span>
-    <header class="area brand">{@render brand()}</header>
-    <div class="area stat">{@render status()}</div>
+    <header class="area rail">
+      <div class="cell">{@render brand()}</div>
+      <div class="cell grow">{@render status()}</div>
+    </header>
     {#if tracker}
       <div class="area tracker">{@render tracker()}</div>
     {:else}
@@ -84,13 +88,13 @@
     display: grid;
     grid-template-columns: repeat(12, 1fr);
     grid-template-areas:
-      'brand brand brand brand brand brand stat stat stat stat stat stat'
+      'rail rail rail rail rail rail rail rail rail rail rail rail'
       'screen screen screen screen screen screen screen screen screen screen screen screen'
       'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
       'keys keys keys keys keys keys keys keys keys keys keys keys'
       'foot foot foot foot foot foot foot foot foot foot foot foot';
-    gap: var(--s-4);
-    padding: var(--s-5);
+    gap: var(--s-3);
+    padding: var(--s-4);
     /* The faintest vertical sheen over the paint — machined face, not flat
        fill. The grain layer in ::before does the micro texture. */
     background-image: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(0 0 0 / 0.04));
@@ -112,7 +116,7 @@
   .device.with-tracker {
     width: min(100% - 24px, 1240px);
     grid-template-areas:
-      'brand brand brand brand brand brand stat stat stat stat stat stat'
+      'rail rail rail rail rail rail rail rail rail rail rail rail'
       'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
       'keys keys keys keys keys keys keys keys keys keys keys keys'
       'foot foot foot foot foot foot foot foot foot foot foot foot';
@@ -190,13 +194,23 @@
     transform: rotate(-12deg);
   }
 
-  .brand {
-    grid-area: brand;
-    align-self: center;
+  .rail {
+    grid-area: rail;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2) var(--s-3);
   }
-  .stat {
-    grid-area: stat;
-    align-self: center;
+
+  /* Flex items default to min-width auto, which would make the status strip
+     overflow the rail instead of wrapping inside it at mid widths. */
+  .cell {
+    min-width: 0;
+  }
+
+  .cell.grow {
+    flex: 1;
   }
   .screen {
     grid-area: screen;
@@ -221,20 +235,18 @@
   @media (max-width: 720px) {
     .device {
       grid-template-areas:
-        'brand brand brand brand brand brand brand brand brand brand brand brand'
-        'stat stat stat stat stat stat stat stat stat stat stat stat'
+        'rail rail rail rail rail rail rail rail rail rail rail rail'
         'screen screen screen screen screen screen screen screen screen screen screen screen'
         'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
         'keys keys keys keys keys keys keys keys keys keys keys keys'
         'foot foot foot foot foot foot foot foot foot foot foot foot';
-      padding: var(--s-4);
-      gap: var(--s-4) var(--s-3);
+      padding: var(--s-3);
+      gap: var(--s-3) var(--s-2);
     }
 
     .device.with-tracker {
       grid-template-areas:
-        'brand brand brand brand brand brand brand brand brand brand brand brand'
-        'stat stat stat stat stat stat stat stat stat stat stat stat'
+        'rail rail rail rail rail rail rail rail rail rail rail rail'
         'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
         'keys keys keys keys keys keys keys keys keys keys keys keys'
         'foot foot foot foot foot foot foot foot foot foot foot foot';

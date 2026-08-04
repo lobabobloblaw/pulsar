@@ -265,7 +265,7 @@
     <label class="t-micro" for="inst-pick">slot</label>
     <select
       id="inst-pick"
-      class="t-value"
+      class="t-value window"
       value={selected}
       onchange={(e) => (selected = Number(e.currentTarget.value))}
     >
@@ -276,7 +276,7 @@
     <label class="t-micro" for="inst-name">name</label>
     <input
       id="inst-name"
-      class="t-value"
+      class="t-value window"
       type="text"
       value={instrument.name}
       onchange={(e) => setInstrumentName(e.currentTarget.value)}
@@ -339,7 +339,10 @@
   </div>
 
   <details class="help">
-    <summary class="t-micro">editing reference</summary>
+    <summary class="key mini" title="editing reference">
+      <span aria-hidden="true">?</span>
+      <span class="sr">editing reference</span>
+    </summary>
     <p class="t-micro">
       arrows edit · shift for bigger steps · + and − change length · l sets the loop point · r
       sets the release point. macros are shared by index, so two instruments on the same slot
@@ -379,15 +382,10 @@
     color: var(--enclosure-ink-2);
   }
 
+  /* The ground and chevron come from tokens' `.window`; only layout is local. */
   select,
   input {
     min-width: 0;
-    padding: 2px var(--s-1);
-    font-family: var(--font-ui);
-    color: var(--grid-ink);
-    background: var(--grid-bg);
-    border: 1px solid var(--grid-hairline);
-    border-radius: var(--r-1);
   }
 
   input {
@@ -419,9 +417,11 @@
     cursor: pointer;
   }
 
+  /* The caps' latch vocabulary, not the glass accent: this button sits on the
+     ALUMINIUM, where amber is banned and white-on-amber is ~1.7:1. */
   .kind[aria-pressed='true'] {
     color: var(--n-000);
-    background: var(--grid-accent);
+    background: var(--chip-accent);
   }
 
   .slot {
@@ -464,26 +464,19 @@
   }
 
   .help summary {
-    width: fit-content;
-    color: var(--chip-accent);
-    cursor: pointer;
+    list-style: none;
+    font-size: var(--t-micro-size);
+    font-weight: 700;
   }
 
-  .help summary:focus-visible {
-    outline: none;
-    box-shadow: var(--focus);
+  .help summary::-webkit-details-marker {
+    display: none;
   }
 
   .help[open] summary {
     margin-block-end: var(--s-1);
   }
 
-  /* Editor caps run smaller than the transport's: they sit inside dense rows
-     the row label already names. */
-  .key.mini {
-    width: 18px;
-    height: 18px;
-  }
 
   button:focus-visible,
   select:focus-visible,

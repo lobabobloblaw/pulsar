@@ -28,7 +28,7 @@
     grid-template-columns: repeat(4, 1fr);
     align-items: start;
     gap: var(--s-5) var(--s-4);
-    padding: var(--s-5) 0;
+    padding: var(--s-3) 0;
     border-top: 1px solid var(--enclosure-hairline);
     border-bottom: 1px solid var(--enclosure-hairline);
   }

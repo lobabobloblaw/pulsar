@@ -171,8 +171,6 @@
 </script>
 
 <div class="knob">
-  <span class="label t-label" id={labelId}>{d.label}</span>
-
   <div
     class="dial"
     class:dragging
@@ -215,7 +213,13 @@
     </svg>
   </div>
 
-  <span class="value t-value">{text}</span>
+  <!-- One printed line under the dial: name and value together, the way a
+       panel is silkscreened (compact pass). The numeric readout plan-file §10
+       requires stays visible; the id feeding aria-labelledby stays with it. -->
+  <p class="readout">
+    <span class="label t-label" id={labelId}>{d.label}</span>
+    <span class="value t-value">{text}</span>
+  </p>
 </div>
 
 <style>
@@ -223,6 +227,14 @@
     display: grid;
     justify-items: center;
     gap: var(--s-2);
+  }
+
+  .readout {
+    display: flex;
+    align-items: baseline;
+    gap: var(--s-1);
+    margin: 0;
+    line-height: 1;
   }
 
   .label {

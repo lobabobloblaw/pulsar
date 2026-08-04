@@ -97,9 +97,10 @@
 
 {#if PRESETS.length > 0}
   <div class="presets" role="group" aria-label="preset songs">
-    <label class="chip t-micro picker">
+    <label class="t-micro picker">
       <span class="muted">songs</span>
       <select
+        class="window"
         bind:this={selectEl}
         value={active ?? ''}
         class:bad={failed !== null}
@@ -158,29 +159,28 @@
     color: var(--enclosure-ink-2);
   }
 
+  /* Silk name, glass window: the picker reads as a program slot — the ground
+     and chevron come from tokens' `.window`. Native popup, native semantics. */
   .picker {
+    display: inline-flex;
+    align-items: center;
     gap: var(--s-1);
   }
 
-  /* The select inherits the chip's type and carries the accent; the chip
-     around it carries the ground. Native popup, native semantics. */
   .picker select {
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    color: var(--chip-accent);
-    background: transparent;
-    border: 0;
-    cursor: pointer;
+    max-width: 22ch;
   }
 
+  /* A failed load RINGS the window — non-text red, visible on the slab; the
+     live-region announcement already said it in words. Red text on glass
+     would sit at 2.5:1. */
   .picker select.bad {
-    color: var(--st-bad);
-  }
-
-  .picker select:focus-visible {
-    outline: none;
-    box-shadow: var(--focus);
+    box-shadow:
+      inset 0 1px 3px rgb(0 0 0 / 0.6),
+      0 0 0 2px var(--st-bad);
   }
 
   .confirm {

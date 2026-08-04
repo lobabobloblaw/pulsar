@@ -214,10 +214,11 @@
   {/snippet}
 
   {#snippet foot()}
+    <!-- The face carries no usage prose (compact pass): the boot screen
+         teaches the first key, the midi screen page carries the fallback
+         mapping, and the full legend lives in the tracker's keyboard
+         reference. Only the disclaimer is printed. -->
     <div class="foot">
-      <p class="t-micro">
-        z–m lower octave · q–i upper · − and = shift octave · shift-drag knobs for fine control
-      </p>
       <p class="t-micro">not affiliated with teenage engineering</p>
     </div>
   {/snippet}
@@ -231,10 +232,8 @@
 <style>
   .foot {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--s-2) var(--s-4);
-    padding-top: var(--s-3);
+    justify-content: flex-end;
+    padding-top: var(--s-2);
     border-top: 1px solid var(--enclosure-hairline);
     color: var(--enclosure-ink-2);
   }
