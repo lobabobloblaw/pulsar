@@ -16,14 +16,32 @@
  *  Int32Array, every register write goes through positional arguments, and the
  *  adaptive controller mutates two numbers.
  *
- *  Monophonic for M3: the core has one pulse channel. WP6's voice allocator replaces
- *  `#soundingNote` with a per-channel assignment and calls the same writers.
+ *  Monophonic, last-note priority, on pulse1 — and that is the M7 decision, not a
+ *  placeholder: the shipped instrument is one voice with a keybed under it, so the
+ *  held-key stack below IS the voice policy. Polyphony arrives with the Phase-2
+ *  tracker, where a real allocator can assign pulse1/pulse2/triangle per row and call
+ *  exactly these writers with a channel index.
  */
+import {
+  dutyBits,
+  levelNibble,
+  masterGainFor,
+  pulseControlAddr,
+  pulseControlByte,
+  pulseSweepAddr,
+  sweepByteFor,
+  volumeFor,
+} from './paramMapping'
 import { pulseTimerForMidi } from './pitch'
-import { DEFAULT_MASTER_GAIN, REG_STATUS } from '../core/constants'
+import { REG_STATUS } from '../core/constants'
 import { msToCycles } from '../timeline/clockMap'
 import type { NesCycle, RegAddr, WriteSink } from '../timeline/types'
 import type { ParamId } from '../params'
+
+/** The register arithmetic lives in `paramMapping` — one definition of what a knob
+ *  means, shared by the scheduler and the bridge. Re-exported here because this is
+ *  where callers (and the M3 tests) already look for it. */
+export { sweepByteFor, volumeFor } from './paramMapping'
 
 /** Default scheduling lead. 6 ms ≈ 10 739 NTSC cycles. */
 export const DEFAULT_LEAD_MS = 6
@@ -40,7 +58,6 @@ export const LEAD_DOWN_MS = 0.5
 const HELD_CAPACITY = 16
 
 const PULSE1_ENABLE = 0x01
-const PULSE1_BASE = 0x4000
 
 /** What the scheduler needs from the engine. `EngineHandle` satisfies it; so does a
  *  three-field fake in a test. */
@@ -94,10 +111,10 @@ export function writePulseNoteOn(
   sweepByte: number,
   enableMask: number,
 ): void {
-  const base = PULSE1_BASE + channel * 4
+  const base = pulseControlAddr(channel)
   sink.write(cycle, REG_STATUS, enableMask)
   // DDLC VVVV — length halt (L) and constant volume (C) both set for a held note.
-  sink.write(cycle, base, ((duty & 3) << 6) | 0x30 | (volume & 0x0f))
+  sink.write(cycle, base, pulseControlByte(duty, volume))
   sink.write(cycle, base + 1, sweepByte & 0xff)
   sink.write(cycle, base + 2, timer & 0xff)
   sink.write(cycle, base + 3, (timer >> 8) & 0x07)
@@ -118,7 +135,7 @@ export function writePulseControl(
   duty: number,
   volume: number,
 ): void {
-  sink.write(cycle, PULSE1_BASE + channel * 4, ((duty & 3) << 6) | 0x30 | (volume & 0x0f))
+  sink.write(cycle, pulseControlAddr(channel), pulseControlByte(duty, volume))
 }
 
 export function writePulseSweep(
@@ -127,27 +144,7 @@ export function writePulseSweep(
   channel: number,
   sweepByte: number,
 ): void {
-  sink.write(cycle, PULSE1_BASE + channel * 4 + 1, sweepByte & 0xff)
-}
-
-/** The `pulse1.sweep` knob (−7..+7, off at 0) as an $4001 EPPP NSSS byte.
- *  Positive = pitch rises, which on hardware means the negate flag: the sweep unit
- *  subtracts the shifted period, and a smaller period is a higher note. 0 is the
- *  plan's canonical "sweep off" byte 0x08. */
-export function sweepByteFor(knob: number): number {
-  const v = Math.round(knob)
-  if (v === 0) return 0x08
-  const shift = Math.min(7, Math.abs(v))
-  const period = 3
-  return 0x80 | (period << 4) | (v > 0 ? 0x08 : 0) | shift
-}
-
-/** Velocity scales the knob's level; a struck key is never silent unless the knob is
- *  at zero. Native units in, register nibble out. */
-export function volumeFor(level: number, velocity: number): number {
-  if (level <= 0 || velocity <= 0) return 0
-  const v = Math.round((level * velocity) / 127)
-  return v < 1 ? 1 : v > 15 ? 15 : v
+  sink.write(cycle, pulseSweepAddr(channel), sweepByte & 0xff)
 }
 
 // --- the scheduler ---------------------------------------------------------------
@@ -246,14 +243,14 @@ export class LiveScheduler {
   setParam(id: ParamId, value: number): void {
     switch (id) {
       case 'pulse1.duty': {
-        this.duty = clampInt(value, 0, 3)
+        this.duty = dutyBits(value)
         if (this.soundingNote >= 0) {
           writePulseControl(this.engine, this.at(), 0, this.duty, this.level)
         }
         break
       }
       case 'pulse1.envDecay': {
-        this.level = clampInt(value, 0, 15)
+        this.level = levelNibble(value)
         if (this.soundingNote >= 0) {
           writePulseControl(this.engine, this.at(), 0, this.duty, this.level)
         }
@@ -267,9 +264,9 @@ export class LiveScheduler {
         break
       }
       case 'master.volume': {
-        // The exp taper lives here rather than in the knob's travel (plan C4).
-        const v = value < 0 ? 0 : value > 1 ? 1 : value
-        this.engine.setMasterGain(DEFAULT_MASTER_GAIN * v * v)
+        // The exp taper lives in paramMapping rather than in the knob's travel
+        // (plan C4) — and in exactly that one place.
+        this.engine.setMasterGain(masterGainFor(value))
         break
       }
       default:
@@ -366,9 +363,4 @@ export class LiveScheduler {
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v
-}
-
-function clampInt(v: number, lo: number, hi: number): number {
-  const n = Math.round(v)
-  return n < lo ? lo : n > hi ? hi : n
 }

@@ -87,3 +87,44 @@ Default 6 ms (10 739 NTSC cycles), bounds 3–25 ms. Every 2 s: any new late wri
 since the last check → **+2 ms**; a clean interval → **−0.5 ms**. Back off fast,
 recover slowly — a lead that oscillates is worse than one that is 1 ms too long.
 The current value is reported in `engine.diagnostics().leadMs`.
+
+## how the bridge maps knobs onto registers (M7)
+
+`src/audio/bridge.ts` is the only thing the UI holds. It owns an `EngineHandle`, a
+`LiveScheduler` and an `AnalyserNode` tap, and it is where native parameter values
+become register writes. The arithmetic itself lives in
+`src/audio/host/paramMapping.ts` — pure, DOM-free, and imported by both the bridge
+and the scheduler so there is exactly one definition of what a knob means
+(`tests/unit/bridgeMapping.test.ts`).
+
+| knob (native units) | register | byte | notes |
+|---|---|---|---|
+| `pulse1.duty` 0–3 | `$4000` | `DDLC VVVV`, `D` = duty | written **alone** on a held note — no `$4003`, so the sequencer phase never resets |
+| `pulse1.envDecay` 0–15 | `$4000` | same byte's `VVVV` | constant-volume mode (`C` = 1): the nibble is pulse1's **level**, scaled by velocity |
+| `pulse1.sweep` −7…+7 | `$4001` | `EPPP NSSS` | `0` → the canonical off byte `0x08`; `±n` → enabled, divider period 3, shift `|n|`, negate set for positive (a smaller period is a higher note) |
+| `master.volume` 0–1 | — | — | not a register: `masterGain = 2.0 · v²` via the `config` message. The exp taper the registry declares is applied here, once — `paramFraction` keeps the knob's travel linear on purpose |
+
+No parameter writes `$4002`, `$4003` or `$4015`, which is what makes every knob
+live: turning one under a held key changes the sound without retriggering the note.
+
+**Why `pulse1.envDecay` is a level and not an envelope period.** `$4000`'s `VVVV`
+nibble is dual-purpose — constant volume with `C` = 1, hardware envelope period with
+`C` = 0. Live play needs `C` = 1: the envelope always restarts at 15, so a `C` = 0
+mapping would throw away velocity, and sustaining a held key needs the halt bit
+`L` = 1, which is also the envelope's *loop* flag (a repeating sawtooth tremolo, not
+a decay). `C` = 0 with `L` = 0 does decay once, but then the length counter cuts the
+note after at most ~2.1 s. The parameter therefore keeps its `pulse1.envDecay` id
+and reads `level` on the enclosure. A real per-note envelope belongs to the Phase-2
+instrument macro engine, where it can have its own release point.
+
+**Meter and scope.** One `AnalyserNode` (`fftSize` 512) hangs off the worklet node.
+`bridge.tick(now)`, pumped first in the app's single rAF, copies the window into one
+preallocated staging array, reduces it to rms/peak in `meter[0..3]`, and hands the
+newest 256 samples to `scope`. Nothing there allocates, and the arrays are created
+once at `start()`. Diagnostics are polled on a bridge-internal 10 Hz timer — the
+frame loop must not write `$state` — and republished as a `BridgeStatus` only when a
+field the chips show actually moves.
+
+**URL flags.** `?stub` returns the synthetic bridge (the shell with no audio thread);
+`?pm` forces `startEngine({ forcePostMessage: true })`, which exercises the fallback
+transport without touching COOP/COEP headers.

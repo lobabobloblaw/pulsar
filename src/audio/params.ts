@@ -3,7 +3,7 @@
  * Shared by both sides of the UI<->audio boundary. The UI reads this file for
  * ranges, labels and formatting; the audio side owns the register mapping and
  * may rename a parameter in exactly one place. Values that cross the bridge are
- * always NATIVE units (duty index 0..3, decay 0..15, sweep -7..+7, volume 0..1)
+ * always NATIVE units (duty index 0..3, level 0..15, sweep -7..+7, volume 0..1)
  * — never normalized 0..1, never register bytes.
  *
  * `label` is capped at 7 characters because it has to render in the 5x7 bitmap
@@ -50,9 +50,14 @@ export const PARAMS: Readonly<Record<ParamId, ParamDescriptor>> = {
     enumLabels: DUTY_LABELS,
     format: (v) => DUTY_LABELS[clampIndex(v, DUTY_LABELS.length)] ?? '',
   },
+  /** Reads `level`, not `decay`: WP6 mapped this onto $4000's VVVV nibble in
+   *  CONSTANT-VOLUME mode (C = 1), which is what makes velocity audible and what
+   *  lets a held key sustain — see host/paramMapping.ts for the full argument. The
+   *  id is deliberately left alone; renaming it would churn the engine tests for no
+   *  behavioural gain, and the registry is the one place a rename would ever go. */
   'pulse1.envDecay': {
     id: 'pulse1.envDecay',
-    label: 'decay',
+    label: 'level',
     min: 0,
     max: 15,
     step: 1,
