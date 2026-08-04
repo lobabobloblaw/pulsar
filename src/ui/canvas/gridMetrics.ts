@@ -15,19 +15,20 @@
 import { computeLayout, type GridLayout, type GridPalette } from './patternRenderer'
 
 /** Every token the grid reads, with the fallback it uses if the sheet has not
- *  loaded yet. Fallbacks are the day-room values from `tokens.css`. */
+ *  loaded yet. Fallbacks are the glass values from `tokens.css` — the tracker
+ *  surfaces are lit displays and room-invariant since the device pass. */
 const TOKENS = {
-  bg: ['--grid-bg', '#ffffff'],
-  bgAlt: ['--grid-bg-alt', '#f2f2f2'],
-  bgBeat: ['--grid-bg-beat', '#ebebeb'],
-  bgBar: ['--grid-bg-bar', '#dcdcdc'],
-  ink: ['--grid-ink', '#181818'],
-  inkDim: ['--grid-ink-dim', '#484848'],
-  inkMuted: ['--grid-ink-muted', '#949494'],
-  accent: ['--grid-accent', '#1270b8'],
-  selection: ['--grid-selection', '#d8e7f4'],
-  hairline: ['--grid-hairline', '#bdbdbd'],
-  focus: ['--grid-focus', '#1270b8'],
+  bg: ['--grid-bg', '#181818'],
+  bgAlt: ['--grid-bg-alt', '#101010'],
+  bgBeat: ['--grid-bg-beat', '#222222'],
+  bgBar: ['--grid-bg-bar', '#2c2c2c'],
+  ink: ['--grid-ink', '#ececec'],
+  inkDim: ['--grid-ink-dim', '#a8a8a8'],
+  inkMuted: ['--grid-ink-muted', '#5e5e5e'],
+  accent: ['--grid-accent', '#ffc003'],
+  selection: ['--grid-selection', '#2c3f52'],
+  hairline: ['--grid-hairline', '#343434'],
+  focus: ['--grid-focus', '#ffc003'],
 } as const satisfies Record<keyof GridPalette, readonly [string, string]>
 
 export function resolvePalette(root: Element = document.documentElement): GridPalette {

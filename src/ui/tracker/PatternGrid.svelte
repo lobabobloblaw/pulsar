@@ -790,6 +790,9 @@
 </div>
 
 <style>
+  /* The grid is a lit display module, same glass as the dot-matrix well:
+     machined rim outside, recess and one faint reflection overlaid inside
+     (the canvas is opaque, so the inner light must sit above it). */
   .grid-host {
     position: relative;
     min-width: 0;
@@ -797,7 +800,30 @@
     overflow: hidden;
     background: var(--grid-bg);
     border-radius: var(--r-2);
-    box-shadow: var(--sh-inset);
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 0.4),
+      0 1px 0 rgb(255 255 255 / 0.35);
+  }
+
+  .grid-host::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    box-shadow: inset 0 3px 8px rgb(0 0 0 / 0.45);
+    background: linear-gradient(
+      115deg,
+      rgb(255 255 255 / 0.05),
+      rgb(255 255 255 / 0.012) 30%,
+      transparent 46%
+    );
+  }
+
+  @media (prefers-contrast: more) {
+    .grid-host::after {
+      background: none;
+    }
   }
 
   canvas {

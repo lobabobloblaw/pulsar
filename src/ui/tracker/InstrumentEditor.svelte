@@ -428,11 +428,15 @@
     color: var(--enclosure-ink-2);
   }
 
+  /* The envelope is display glass like the grid — rim outside, recess in. */
   .envelope {
     position: relative;
     background: var(--grid-bg);
     border-radius: var(--r-2);
-    box-shadow: var(--sh-inset);
+    box-shadow:
+      inset 0 2px 6px rgb(0 0 0 / 0.45),
+      0 0 0 1px rgb(0 0 0 / 0.4),
+      0 1px 0 rgb(255 255 255 / 0.35);
   }
 
   canvas {
@@ -450,7 +454,8 @@
 
   .handle:focus-visible {
     outline: none;
-    box-shadow: var(--focus);
+    /* On the glass, the screen's ring — the aluminium ring vanishes here. */
+    box-shadow: var(--focus-screen);
   }
 
   .help {

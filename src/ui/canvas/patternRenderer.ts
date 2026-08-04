@@ -435,8 +435,8 @@ export function drawRows(
     ctx.fillStyle = state.focused ? palette.accent : palette.inkDim
     if (state.editing) {
       ctx.fillRect(x, y, field.w, rowH)
-      // Redraw the glyph knocked out of the block, so the value under the
-      // cursor stays readable — white on blue is 5.9:1.
+      // Redraw the glyph knocked out of the block in the glass's own ground,
+      // so the value under the cursor stays readable — bg-on-amber is 9.9:1.
       const i = state.cursorRow - view.firstRow
       if (i >= 0 && i < view.rowCount) {
         const value = view.data[

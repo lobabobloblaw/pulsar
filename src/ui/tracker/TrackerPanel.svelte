@@ -303,6 +303,33 @@
     min-width: 0;
   }
 
+  /* Three-pane mode is a fixed workbench BAY: the row is exactly the grid's
+     height and every pane lives inside it — the order table and the
+     instrument editor scroll within the bay rather than stretching the page.
+     (A fourteen-frame song once pushed the order pane past the grid and the
+     whole instrument scrolled again.) The height is PatternGrid's own clamp,
+     kept in lockstep. */
+  @media (min-width: 1081px) {
+    .work {
+      height: clamp(280px, 46vh, 520px);
+      align-items: stretch;
+    }
+
+    .side {
+      min-height: 0;
+      align-content: stretch;
+    }
+
+    .side:first-child {
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+
+    .side:last-child {
+      overflow-y: auto;
+      align-content: start;
+    }
+  }
+
   .narrow {
     display: none;
     max-width: 52ch;

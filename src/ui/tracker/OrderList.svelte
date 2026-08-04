@@ -172,9 +172,13 @@
 <style>
   .order {
     display: grid;
-    grid-template-rows: auto 1fr auto;
+    /* minmax(0, 1fr), not bare 1fr: inside the workbench bay the scroll row
+       must be able to shrink BELOW its content and scroll, or a long song
+       stretches the whole pane past the grid. */
+    grid-template-rows: auto minmax(0, 1fr) auto;
     gap: var(--s-2);
     min-width: 0;
+    min-height: 0;
   }
 
   .head {
@@ -193,12 +197,16 @@
     color: var(--enclosure-ink-2);
   }
 
+  /* The order table is display glass like the grid beside it. */
   .scroll {
     overflow: auto;
     max-height: clamp(200px, 40vh, 460px);
     background: var(--grid-bg);
     border-radius: var(--r-2);
-    box-shadow: var(--sh-inset);
+    box-shadow:
+      inset 0 3px 8px rgb(0 0 0 / 0.45),
+      0 0 0 1px rgb(0 0 0 / 0.4),
+      0 1px 0 rgb(255 255 255 / 0.35);
   }
 
   table {
@@ -244,7 +252,8 @@
   }
 
   .frame[aria-current='true'] {
-    color: var(--n-000);
+    /* Glass ink on the amber accent — 9.9:1; white on amber would vanish. */
+    color: var(--grid-bg);
     background: var(--grid-accent);
   }
 
@@ -280,5 +289,12 @@
   input:focus-visible {
     outline: none;
     box-shadow: var(--focus);
+  }
+
+  /* Controls sitting ON the glass take the screen's focus ring — the
+     aluminium ring's white halo vanishes against dark glass. */
+  .scroll button:focus-visible,
+  .scroll input:focus-visible {
+    box-shadow: var(--focus-screen);
   }
 </style>

@@ -85,18 +85,24 @@
    * bands are neutral luminance steps derived from --n-100 / --n-300, never
    * colour: exactly one accent lives on this surface and it belongs to the
    * cursor and the playhead. */
-  --grid-bg: #ffffff; /* --n-000 */
-  --grid-bg-alt: #f2f2f2; /* header + gutter ground, --n-100 at 25% */
-  --grid-bg-beat: #ebebeb; /* rowHighlight band, --n-100 at 40% */
-  --grid-bg-bar: #dcdcdc; /* rowHighlight2 band, --n-300 at 45% */
-  --grid-ink: #181818; /* note column */
-  --grid-ink-dim: #484848; /* instrument, volume, effects, row numbers */
-  --grid-ink-muted: #949494; /* '...' placeholders — --enclosure-hairline, one
+  /* The tracker's work surfaces are LIT DISPLAYS, not paper (device pass
+     2026-08-04): grid, order table and envelope share the dot-matrix
+     screen's dark glass, so like the screen they are room-invariant — glass
+     does not dim with the room, which is also what keeps a bright field from
+     out-shining the screen at night (the reason this block once carried a
+     night override). Amber is the glass accent; blue stays on aluminium. */
+  --grid-bg: #181818; /* the screen well's ground */
+  --grid-bg-alt: #101010; /* header + gutter ground, a step deeper */
+  --grid-bg-beat: #222222; /* rowHighlight band */
+  --grid-bg-bar: #2c2c2c; /* rowHighlight2 band */
+  --grid-ink: #ececec; /* note column — 14.6:1 on the glass */
+  --grid-ink-dim: #a8a8a8; /* instrument, volume, effects, row numbers — 7.0:1 */
+  --grid-ink-muted: #5e5e5e; /* '...' placeholders — non-text marks, one
                                 step darker so the marks still clear 3:1 */
-  --grid-hairline: #bdbdbd; /* column + channel rules */
-  --grid-accent: #1270b8; /* cursor + playhead, and nothing else */
-  --grid-selection: #d8e7f4; /* accent at 12% over the field */
-  --grid-focus: #1270b8;
+  --grid-hairline: #343434; /* column + channel rules */
+  --grid-accent: #ffc003; /* cursor + playhead — the screen's amber, nothing else */
+  --grid-selection: #2c3f52; /* a blue-family wash the ink stays readable on (8.6:1) */
+  --grid-focus: #ffc003;
 
   /* ---- status (always paired with text, never color alone) -------------- */
   --st-ok: var(--a-green);
@@ -182,22 +188,8 @@
   --enclosure-hairline: var(--n-600);
   --enclosure-mark: #0d0d0d;
 
-  /* The grid dims with the room like every other enclosure surface — a white
-   * field at night would out-shine the screen, which is the one thing the room
-   * dimmer exists to prevent. Measured on #b4b4b4: ink 9.39:1 · ink-dim 6.37:1
-   * · ink-muted 3.33:1 · accent 3.43:1 (the blue darkens rather than dropping
-   * to fill-only, because the playhead has to stay findable in motion). */
-  --grid-bg: #b4b4b4;
-  --grid-bg-alt: #a8a8a8;
-  --grid-bg-beat: #a8a8a8;
-  --grid-bg-bar: #9a9a9a;
-  --grid-ink: #0d0d0d;
-  --grid-ink-dim: #303030;
-  --grid-ink-muted: #5a5a5a;
-  --grid-hairline: #8f8f8f;
-  --grid-accent: #0d5b96;
-  --grid-selection: #9fb6c8;
-  --grid-focus: #0d5b96;
+  /* No --grid-* overrides here: the tracker's surfaces are lit glass now and
+   * stay identical in both rooms, exactly like the dot-matrix screen. */
 }
 
 /* Reduced motion zeroes decorative durations everywhere at once. Canvas cannot
