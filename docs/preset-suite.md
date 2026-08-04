@@ -1179,3 +1179,423 @@ analysed bar-by-bar, or used as a model** (§0.1).
 - Engine facts in §1 and §3 come from this repository: `src/tracker/driver/*`,
   `src/audio/host/pitch.ts`, `docs/phase2-design.md`, `docs/register-timeline.md`,
   `docs/deviations.md`, and plan-file §B7's verified constant tables.
+
+---
+
+## 9. the prestige pass — addendum (binding)
+
+User feedback on the first two rendered pieces: *"a nice start — albeit a little
+generic-sounding. I'm hoping for compositions with more complexity, polyrhythms, prestige
+chiptune feel."*
+
+**This section is the binding form of that direction and supersedes the interim message the
+batch composers received.** It is an addendum: §§0–8 stand as written. Where it tightens an
+earlier rule it says so in bold, inline. Three earlier rules are tightened here — §2.2's
+default posture for pulse 2 (**9.2**), §2.10's non-diatonic floor (**9.3**), and §6's rubric
+and thresholds (**9.5**). Everything else in §§0–8 is unchanged and still binding.
+
+**Section map:** 9.1 polymeter/polyrhythm catalog · 9.2 counterpoint upgrade · 9.3 harmonic
+ambition floor · 9.4 rhythm and drum language · 9.5 rubric changes · 9.6 revision brief:
+`07-rust-and-neon` · 9.7 revision brief: `08-long-division` · 9.8 constraints that do not move.
+
+**The one-sentence definition of the target.** Prestige is **line independence** — every
+sounding voice has its own rhythm, its own contour and its own reason to be there — plus a
+metric layer the ear can feel arguing with the bar. It is **not** more notes. A piece that
+gets busier without getting more independent has moved away from the target, not toward it.
+
+### 9.1 polymeter and polyrhythm — tracker-exact recipes
+
+**The one structural fact that governs all of this.** `rowsPerPattern` is *song-level*: there
+are no short patterns and no per-lane pattern lengths. Every lane advances frames together.
+So **polymeter here is always written straight through the global grid** — you author the
+phase carry by hand, across as many patterns as the cycle needs. Two mechanisms, and only
+two: (a) an odd-period cell written out with its phase carried across N patterns, and
+(b) `Dxx` truncating a frame.
+
+Grid vocabulary at the album's standard `rowsPerPattern: 64`, `rowHighlight: 4`:
+**1 row = 16th · 2 = 8th · 3 = dotted-8th · 4 = beat · 6 = dotted-quarter · 8 = half-bar ·
+16 = bar · 64 = frame (4 bars).**
+
+**Phase-carry table (64-row frames).** A cell of length `c` re-aligns with the frame boundary
+after `lcm(c,64)/64` frames. The **entry row** of frame `k` — the local row of that frame's
+first attack — is `ceil(64k/c)·c − 64k`, equivalently `(−64k) mod c`. Author one pattern per
+distinct entry row and cycle them in the order list. **Compute this, do not guess it: the
+sequence is not `0,1,2,…` and it is not the obvious one.**
+
+| cell `c` | frames to re-align | entry rows, in frame order | reads as |
+|---|---|---|---|
+| 3 (dotted-8th) | **3** | **0, 2, 1** | 3-against-4: a fast limp that walks around the beat |
+| 5 | **5** | **0, 1, 2, 3, 4** | 5-over-4: the phase shift itself is the subject |
+| 6 (dotted-quarter) | **3** | **0, 2, 4** | 2:3 against the beat — the safest, most musical option |
+| 7 | 7 | 0, 6, 5, 4, 3, 2, 1 | too long for a 12–18 frame piece; use only as a 1-frame gesture |
+| 10 | **5** | **0, 6, 2, 8, 4** | 5-over-4 at the 8th level; the fast-tempo substitute for `c=5` |
+| 12 | **3** | **0, 8, 4** | 3-against-4 at the half-note level; broad and structural |
+
+For `paper-lanterns` (48-row frames): `c=6` re-aligns every frame (entry row 0 always —
+useless as a polymeter, useful as a hemiola, see below); `c=5` takes **5** frames with entry
+rows **0, 2, 4, 1, 3**; `c=7` takes 7, entry rows 0, 1, 2, 3, 4, 5, 6.
+
+**Recipe A — 3-against-4 ostinato (dotted-8th cell).**
+Attacks every 3 rows. Frame 1 pattern: rows 0, 3, 6, … 63. Frame 2 pattern (**entry row 2**):
+rows 2, 5, 8, … 62. Frame 3 pattern (**entry row 1**): rows 1, 4, 7, … 61. Order the three
+patterns and the cell resolves onto the downbeat exactly at frame 4. Put it on **pulse 2 or
+triangle**, never the lead. At 150 BPM one cell is 0.30 s; at 100 BPM, 0.45 s.
+
+**Recipe B — 5-over-4 phase shift (5-row cell).**
+Attacks every 5 rows: entry rows 0, 1, 2, 3, 4 over five frames. Self-contained alternative when
+five frames is too many: 12 cells (60 rows) + a 4-row cadential tag = 64, which re-aligns
+every frame and reads as "the bar keeps arriving early". Best at **90–130 BPM**; above 140
+the 5-row unit blurs — use `c=10` instead.
+
+**Recipe C — tresillo (3+3+2).**
+16th-level: an 8-row half-bar as 3+3+2 → attacks at rows **0, 3, 6** and **8, 11, 14** of
+each 16-row bar. 8th-level: a 16-row bar as 6+6+4 → attacks at **0, 6, 12**.
+Use 16th-level at **90–130 BPM**; at 140–160 it becomes a gallop, so use the 8th-level
+grouping there. Tresillo on the bass with a straight kit above it is the single cheapest
+upgrade available to a four-square riff.
+
+**Recipe D — 2:3 between lanes.**
+Triangle on a 6-row cell (rows 0, 6, 12, 18, …) against a kit on the 4-row beat: two bass
+attacks per three beats. The pair re-aligns every 12 rows (3 beats) and against the 16-row
+bar every 48 rows (3 bars). Keep the two lanes in different registers or the ear fuses them.
+
+**Recipe E — hemiola cadence.**
+6 rows against a 4-row beat *is* 3:2. In 4/4: take the **last 3 bars before a cadence
+(48 rows) and accent every 6 rows** — rows 0, 6, 12, 18, 24, 30, 36, 42 of that span; eight
+groups, closing exactly on the barline. In 3/4 (`paper-lanterns`, 12-row bars): **2 bars =
+24 rows regrouped as 3 × 8 rows.** Put the accents on pulse 2 and the kit and let the
+triangle hold, so the metre dissolves and then snaps back at the cadence.
+
+**Recipe F — motif displacement.**
+Restate the motif at **+2 rows** (an 8th late), **+1** (a 16th late), or **−1**
+(anticipated). Every displaced restatement is a *new pattern*: shift each row's `r` and
+either (a) write the 1–2 wrapped rows into rows 0–1 of the pattern the next frame plays, or
+(b) shorten the phrase's last note so nothing wraps. (b) is safer and is the default.
+Audibility: ±1 row reads at 90–105 BPM; at 140–160 use ±2 or ±4.
+
+**Recipe G — `Gxx` sub-row displacement.**
+`Gxx` delays a channel's note by `xx` ticks. At speed 6, `G03` = half a row (a 32nd); at
+speed 9, `G03` = ⅓ of a row. A whole lane held at `G01`–`G02` sits *behind* the beat; a lane
+alternating `G00`/`G02` swings a straight-tempo piece. Legible at **90–130 BPM only** —
+above that a tick reads as timbre, not time. **Caveat:** `Gxx` delays macro index 0 too, so a
+6-tick drum envelope under `G03` loses half its tail.
+
+**Recipe H — metric insertion via `Dxx`.**
+`Dxx` on any row ends the frame after that row and starts the next frame at row `xx`.
+- **Drop one beat:** `D00` on **row 59** of a 64-row frame → a 60-row frame whose last bar
+  is 12 rows (3 beats).
+- **Drop two beats:** `D00` on **row 55** → 56 rows.
+- **Add one beat:** insert an extra order frame and put `D00` on **row 3** of it → a 4-row
+  frame. This is the only way to lengthen; there are no short patterns.
+- **Elide into the next section:** `D08` on the last row → the next frame starts at row 8,
+  skipping its first half-bar.
+The row accumulator carries across the jump, so a swung piece keeps its groove, and Gate B's
+no-dead-frames check still passes because the target frame is reached. Budget: **one metric
+surprise per piece** (§9.4) — two is a gimmick.
+
+**Where each device reads best.**
+
+| device | 90–105 BPM | 110–130 | 140–160 |
+|---|---|---|---|
+| 3-row cell (A) | clear, spacious | **ideal** | reads as shimmer/texture |
+| 5-row cell (B) | **ideal** | good | blurs — use `c=10` |
+| 6-row cell (D) | good | **ideal** | **ideal** |
+| tresillo 16th (C) | **ideal** | good | gallops — use 6+6+4 |
+| hemiola (E) | good | **ideal** | **ideal** |
+| displacement ±1 row (F) | audible | marginal | inaudible — use ±2 |
+| `Gxx` sub-row (G) | **ideal** | good | do not bother |
+| `Dxx` insertion (H) | **ideal** | **ideal** | **ideal** |
+
+### 9.2 counterpoint upgrade — pulse 2 is a voice, not a mirror
+
+**This tightens §2.1 and §2.2.** §2.2 offered echo, harmony and countermelody as three equal
+options for pulse 2 and gave the echo trick pride of place. From now on:
+
+- **The DEFAULT posture for pulse 2 is an independent line** — its own rhythm, its own
+  contour, its own phrase shape. Not the lead's rhythm at another interval.
+- **Echo and canon are demoted to deliberate section colours.** They are still excellent and
+  §2.2's recipes are unchanged, but they may cover **at most one third of a piece's frames**,
+  and `midnight-ferry` — whose whole brief is the echo/canon vocabulary — is the single
+  exception, where they may cover two thirds.
+
+**Complementary rhythm, measured.** Across any section, **≥ 40 % of pulse 2's attacks must
+fall on rows where pulse 1 has no attack**, and the two lanes must not share an identical
+attack-row set in any pattern. The practical device: pulse 2 moves *while the lead holds or
+rests*. §2.10's rule that every lead phrase ends with a beat of rest exists precisely to
+give pulse 2 somewhere to speak.
+
+**Own contour.** Contrary or oblique motion against pulse 1 on **≥ 50 % of shared attack
+rows**; the two lines never place their section peak on the same row; pulse 2 stays below
+pulse 1 except for one deliberate voice-crossing per piece.
+
+**Written suspensions and appoggiaturas** — the cheapest prestige on this hardware, because
+they cost nothing but row placement:
+- **Suspension:** hold a chord tone from the previous chord across the change (2–4 rows into
+  the new chord), then **resolve down by step**. At 4 rows/beat: the chord changes on row 0,
+  the suspended note sounds rows 0–3, the resolution lands on row 4. A 4–3 suspension over a
+  dominant is the classic cadential form and it is *audible* on a pulse channel.
+- **Appoggiatura:** attack a non-chord tone **on** the strong beat and resolve by step within
+  1–2 rows. Put it in the lead at a phrase peak.
+- **Quota:** **≥ 2 written suspensions or appoggiaturas per piece**, at least one at a
+  cadence. Name them in `extra.qa.notes` with `frame:row`.
+
+**When parallel thirds/sixths are earned.** Only after the two voices have been demonstrably
+independent for **≥ 8 bars**; only for **≤ 4 bars** at a time; and only as a hook, a chorus
+lift, or a final statement. Parallel motion as a section's default harmonic posture is now a
+rubric-4 failure, not a style choice.
+
+### 9.3 harmonic ambition floor — raised
+
+**This tightens §2.10.** The floor was "at least one non-diatonic colour per piece". It is now:
+
+**≥ 2 *distinct* non-diatonic devices per album piece, occurring in different sections**,
+each named in `extra.qa.notes` with `frame:row`. From this menu (a borrowed iv and a borrowed
+♭VI count as **one** device — modal interchange — not two):
+
+| device | what it is | cheap 3-voice voicing |
+|---|---|---|
+| **chromatic mediant** | a triad a third from the tonic whose quality is not the diatonic one (in C major: E major, E♭ major, A♭ major) | triangle takes the new root; the two pulses take the third and fifth; keep one common tone stationary |
+| **chained secondaries** | V/V → V → i, or V/vi → vi → V/V → V — two or more links | each link raises one note by a semitone; put the raised tone in pulse 2 so the lead stays singable |
+| **chromatic bass descent** | a stepwise chromatic line in the triangle under a held or slowly-moving harmony, 4+ links | triangle walks; pulses hold; the harmony is *implied* by the collision |
+| **true pivot modulation** | a chord functioning in both keys, approached in the old key and quitted in the new | state the pivot bare (two voices), then confirm the new key with its dominant |
+| **augmented sixth** | ♭6 in the bass, 1 and ♯4 above, resolving outward to V | triangle ♭6, pulse 1 ♯4, pulse 2 the tonic — three voices, exactly the chord, resolves by contrary motion |
+| **Neapolitan ♭II** | major triad on ♭2, usually first inversion, into V | already used by `long-division`'s coda |
+| **common-tone diminished** | a fully-diminished chord sharing a tone with its target | one held pulse note, everything else moves by semitone |
+| **modal interchange** | borrowed iv, ♭VI, ♭VII, ♭II, picardy third | the album's existing vocabulary |
+
+**The no-stock-loop rule.** No album piece may be built on a repeating four-chord loop.
+Specifically banned as a *section's or piece's harmonic backbone*: `I–V–vi–IV` and every
+rotation of it, `vi–IV–I–V`, `i–♭VII–♭VI–V` held for a whole section, a looped `ii–V–I` with
+no destination, and 12-bar blues as an entire form. Mechanically: **no four-chord cycle may
+repeat for more than 8 consecutive bars anywhere in a piece.**
+
+Two positive requirements come with it: **(1)** at least one section whose *harmonic rhythm*
+differs from the others (two chords per bar against one chord per two bars, say), and
+**(2)** at least one progression that is a **sequence going somewhere** — a descending-fifths
+or descending-thirds chain of ≥ 3 links — rather than a loop returning to its start.
+
+**Melodic chromaticism.** Chromatic passing tones between scale degrees a whole tone apart;
+chromatic lower neighbours into a strong-beat target; ♯4→5 and ♭6→5 inflections; a chromatic
+approach on the row before a downbeat. Rules that keep it craft rather than noise: **every
+chromatic note resolves by step in the same direction within 2 rows**, no chromatic note is
+held longer than 2 rows, and the accidental budget is Gate B's 12 % — which works out to
+roughly **one chromatic event every two bars in the lead**, concentrated in the sections that
+own it rather than sprinkled evenly.
+
+### 9.4 rhythm and drum language
+
+**Ghost notes.** The backbeat is not the drum part. Between the accented hits, write snare
+ghosts at **vol 3–6** on off-16ths. Concrete, on a 16-row bar with backbeats at rows 4 and
+12: ghosts at rows **6, 10, 14** at vol 4–6, and a ghost at row 15 pushing into the next
+downbeat. Ghosts use the same `snare` instrument — the volume column is the whole difference.
+
+**Per-section kit variation — never one loop throughout.** Each section changes **at least
+two** of: hat density (16ths → 8ths → off-beats only), hat instrument (`hat-closed` →
+`hat-open` on a chosen subdivision), kick placement, snare timbre (note 39 ↔ 41), the
+presence of `metal`(44, mode 1) ticks, ghost density. A hat lane that plays the same
+subdivision at the same two volumes for the whole piece is now a rubric finding, not a
+neutral choice.
+
+**Fills on 8-bar seams.** Every 8-bar unit ends with a fill in its **last 8 rows** (half a
+bar) or **last 16 rows** for a section-ending fill. Materials: `tom`(37/43) with
+`pit-tom-drop`; a **pitch-macro sweep riser** — a noise note with a pitch macro ramping the
+index *down* (`[-1,-1,-1,-1,-1,-1,-1,-1,0]` on a note at index 10, rising over 8 ticks);
+a **faller** using `pit-kick-drop`-shaped values on a mid note; a `crash` on the following
+downbeat. **No two fills in a piece may be identical** (this restates §2.10's quota and makes
+it explicit at the 8-bar seam).
+
+**One metric surprise per piece.** Exactly one: a dropped beat (`D00` on row 59, recipe H), a
+dropped two beats, an inserted 4-row frame, or a full bar where the kit stops and only the
+polymetric cell continues. Place it at a section seam where it *does* something — before a
+break, into a modulation, at the return of the main theme.
+
+### 9.5 rubric changes — **supersedes §6's axis 4 and §6's thresholds**
+
+**New axis 11 — metric & polyrhythmic interest.**
+
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| ≥ 2 distinct structural devices from 9.1, one carrying its phase across ≥ 3 frames, **plus** the piece's metric surprise, all cited `frame:row` | **one structural polyrhythmic device, verifiable at a stated `frame:row`**, spanning ≥ 2 frames or a full section, **plus** displaced restatements of the main material | surface syncopation plus one tresillo or hemiola moment, but the bar is never genuinely challenged | mild syncopation only | four-square throughout |
+
+**Axis 4, counterpoint — tightened.** A **4 now requires sustained line independence, not
+moments**:
+
+| 5 | 4 | 3 | 2 | 1 |
+|---|---|---|---|---|
+| independence sustained across ≥ 2 sections, ≥ 2 written suspensions/appoggiaturas incl. one cadential, ≥ 2 contrary-motion cadences, parallels only as an earned ≤ 4-bar gesture | **independence sustained through at least one complete section** — pulse 2 with its own rhythm and contour for the whole of it — plus ≥ 1 suspension/appoggiatura and ≥ 1 contrary-motion cadence | independence in *moments* only; thirds/sixths or echo is the default posture elsewhere | pulse 2 shadows pulse 1 rhythmically almost throughout | pulse 2 is a harmoniser or an echo machine and nothing else |
+
+**New thresholds — these replace §6's "any axis ≤ 2, total < 38 / 50".** Total is now
+**out of 55**:
+
+- **Any axis ≤ 2 → mandatory revision.**
+- **Total < 42 / 55 → mandatory revision.**
+- Total 42–47 → revision at the director's discretion, two lowest axes named.
+- Total ≥ 48 with no axis below 3 → pass to audition.
+
+**Evidence requirement.** Self-scores and critic scores **must cite `frame:row` evidence for
+axis 7 (briefed techniques) and axis 11 (metric interest)** — a claim without a location does
+not count and the axis is scored as if the claim were absent. Axes 1, 7, 8, 10 and 11 are
+scorable from the document; 2–6 and 9 need the render.
+
+Gates remain pass/fail and outside the score (§7.1). A piece that fails a gate is not scored.
+
+### 9.6 revision brief — `07-rust-and-neon.json` (batch C)
+
+Self-contained: everything needed is here plus the file itself. **Keep the key (e-minor),
+the tempo (`tempo 150 / speed 9` = 100 BPM), the 12-frame order and its form labels, the
+DPCM identity (DPCM carries kick+snare, no noise kick anywhere), and `loopFrame 1`.** All
+five rules of the loop convention (§2.9) still apply.
+
+**What reads as generic, with evidence.**
+
+1. *The riff is four-square and restated without displacement.* Frames 1, 2 and 4 all play
+   `pulse1 p1` + `pulse2 p1` + `triangle p1` — the same four bars three times, unchanged.
+2. *Pulse 2 is a rhythmic clone.* `pulse2 p1`'s attack rows (0, 6, 10, 14, 16, 20, 24, 32,
+   38, 42, 46, 48, 54, 56, 58) are **identical** to `pulse1 p1`'s; it is the lead at a fixed
+   interval below, and it holds that posture across four consecutive frames (1–4).
+3. *The kit is one loop.* `noise p1` is 8th-note hats on note 45 at every even row 0–62 with
+   the volume alternating 11/8, plus a snare on rows 6, 22, 38, 54 — and nothing between the
+   backbeats anywhere in the piece.
+
+**Prescribed changes.**
+
+- **A. Displace and re-group the riff.**
+  - Frame 1 keeps `pulse1 p1` as the statement.
+  - **Frame 2** gets a new `pulse1` pattern: the same pitches **re-grouped as a 16th-level
+    tresillo** — attacks on rows 0, 3, 6 · 8, 11, 14 · 16, 19, 22 · 24, 27, 30 and the same
+    3+3+2 across bars 3–4. At 100 BPM a row is 150 ms, so the 3-row unit is a clearly
+    audible 450 ms. Melodic content unchanged; only the grid changes.
+  - **Frame 4** gets a new `pulse1` pattern: the riff **displaced +2 rows** (an 8th late) —
+    every `r` becomes `r+2`, and the closing note is shortened so nothing passes row 63.
+    Triangle and kit stay aligned; that collision is the effect.
+  - Frame 3 (`A'`, the octave-up statement) is already a variation — leave it.
+- **B. Give pulse 2 its own line.**
+  - Re-author `pulse2 p1` **in place** — it is referenced by frames 1–4 and all four should
+    get the improved line — so that **≥ 40 % of its attacks land on rows where pulse 1 has
+    none**.
+    Working target: drop its attacks at rows 6, 20 and 42, add attacks at rows 8, 12, 28,
+    44 and 52, and let it *rise* where the lead falls. Harmonic function unchanged.
+  - **A″ (frames 9–11):** author a genuinely independent `pulse2` counter-line, a new
+    pattern for frame 10 and one for frame 11, moving where the lead holds. Include **one
+    written suspension**: hold pulse 2's chord tone across the chord change at
+    **frame 11 : row 32** and resolve it **down by step at row 36**.
+- **C. Ghost notes and per-section kit variation.**
+  - Ghost snares (same `snare` instrument, **vol 4–6**) on the off-16ths between backbeats:
+    rows **11, 15, 27, 31, 43, 47, 59, 63**.
+  - Change at least two kit elements per section: **A** = 8th hats as now; **B (frames 5–6)**
+    = hats on off-8ths only plus a `metal`(44, mode 1) accent on row 0 of each bar;
+    **break (frames 7–8)** = hats out entirely, ghosts only, so the DPCM pump is naked;
+    **A″ (frames 9–11)** = 16th hats for the first two bars then back to 8ths, and move the
+    snare to note **41**.
+  - A **distinct** fill in the last 8 rows of frames 4, 6, 8 and 10 — one tom fill
+    (37/43 with `pit-tom-drop`), one pitch-macro riser, one all-ghost fill, one crash-led.
+    No two identical.
+- **D. One metric surprise.** Put `D00` — `{"cmd":"D","param":0}` — on **row 59 of frame 6**
+  (the last B frame). Frame 6 then runs 60 rows and the break lands a beat early.
+  **Watch the pattern sharing:** frames 5 and 6 are `[3,2,2,4,2]` on *every* lane, so editing
+  any existing pattern would truncate frame 5 as well. Author a **new noise pattern** for
+  frame 6 (a copy of `noise p4` plus the `D00` at row 59, plus its own fill) and point frame 6
+  at it — which also breaks up the two identical B frames, so this fixes two findings at once.
+  **Add `"D"` to `extra.qa.effects`**, or Gate B's claimed-effects check will not see it and
+  the unclaimed-effect path will.
+- **E. Re-declare.** Update `extra.qa.notes` with `frame:row` citations for the tresillo, the
+  displacement, the suspension and the dropped beat (axes 7 and 11 need them), then re-render
+  and re-pin `renderChecksum` in the same commit.
+
+**Target after revision:** axis 11 ≥ 4 (the tresillo restatement plus the dropped beat, both
+cited), axis 4 ≥ 4 (pulse 2 independent through the whole of A″).
+
+### 9.7 revision brief — `08-long-division.json` (batch C)
+
+Self-contained. **Keep the 25-frame order and its form labels, the `F07`/`F06` architecture
+at frames 11 and 14, the four key centres and their prepared modulations, and `loopFrame 2`.**
+The loop convention (§2.9) still applies.
+
+**What reads as generic, with evidence.** The modulations are prepared and the motif
+development is real — the problem is the *surface between* them.
+
+1. *The B section's accompaniment is four identical frames.* Frames 7–10 play `pulse2 p3`
+   four times and `triangle p2` four times.
+2. *The bridge is three identical frames.* Frames 11, 12 and 13 play `pulse1 p5`, `pulse2 p4`,
+   `triangle p3`, `noise p9` — unchanged, three times.
+3. *The A theme's accompaniment is metrically plain* — the triangle sits on the beat under
+   frames 2–6 and nothing argues with the bar anywhere in the piece.
+
+**Prescribed changes.**
+
+**Read this first — pattern sharing.** Several of the changes below apply to *one* frame, but
+that frame's pattern index is shared with others: `pulse1 p3` runs at frames 7 **and** 8,
+`pulse1 p5` at 11–13, `pulse1 p7` at 16 **and** 18, `pulse2 p1` at frames 2, 3 **and** 5,
+`pulse1 p6` at frames 14 **and** 15. **Editing in place changes every frame that references
+the index.** Wherever a change is meant for one frame, author a **new pattern index** and
+repoint that frame's entry in the order list; the order list's shape and its `form` labels do
+not change.
+
+- **A. Polymetric accompaniment cell under the A theme (frames 2–6).** Put a **6-row
+  dotted-quarter cell on pulse 2**, phase-carried across three patterns:
+  - frame 2 pattern — entry row 0: attacks on rows **0, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60**;
+  - frame 3 pattern — entry row **2**: rows **2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62**;
+  - frame 4 pattern — entry row **4**: rows **4, 10, 16, 22, 28, 34, 40, 46, 52, 58**;
+  - frames 5–6 keep their existing aligned `pulse2` patterns — the device gets a beginning
+    and an end.
+
+  These are **three new pattern indices** repointed at frames 2, 3 and 4; do not edit
+  `pulse2 p1` in place or frame 5 loses its alignment. The harmony is unchanged; the cell is
+  *when*, not *what*. This is the piece's axis-11 evidence: cite it as
+  `frame 2 : row 0 → frame 4 : row 58`.
+- **B. Displaced motif re-entries after each modulation.**
+  - **Frame 7 (C major):** the motif re-enters **+2 rows** — a new pattern holding `pulse1
+    p3`'s rows shifted by +2 with the last note shortened so nothing wraps. Frame 8 keeps the
+    undisplaced `p3`, so the displacement reads as an entry gesture.
+  - **Frame 11 (D minor, after `F07`):** re-enters **+4 rows** (a full beat late) as a new
+    pattern; the first beat of the bridge belongs to the triangle alone. Frames 12–13 keep
+    `p5` (change D then gives them their own material anyway).
+  - **Frame 16 (A minor, `A'`):** re-enters **−2 rows** (anticipated) as a new pattern, with
+    the two anticipation rows written into rows **62–63 of a new `pulse1` pattern for frame
+    15** — not into `p6` in place, which frame 14 also plays.
+- **C. Hemiola into the `F07` tempo drop.** In the **last 3 bars of frame 10** (rows 16–63)
+  accent every 6 rows: rows **16, 22, 28, 34, 40, 46, 52, 58** — eight groups closing exactly
+  on the barline. Put the accents on pulse 2 and the kit (snare plus tom), hold a triangle
+  pedal underneath, and let 4/4 dissolve right before the tempo changes. The beat returns at
+  frame 11 row 0.
+- **D. Chromatic inner voice in the bridge (frames 11–13).** Give pulse 2 a descending
+  chromatic line under the D-minor harmony — **d → c♯ → c♮ → b♮ → b♭**, one step per bar,
+  each note resolving down by step within 2 rows, over a held triangle d pedal. This is the
+  bridge's second non-diatonic device (the E7 pivot is the first). It also fixes finding 2:
+  frames 11–13 must end up with **at least two distinct patterns per lane**. Keep the
+  chromatic tones to one per bar in a single voice so the accidental budget holds.
+- **E. Break up the B accompaniment (frames 7–10).** One variation pattern per lane, used at
+  frames 9–10: the **triangle takes a 6-row cell for two frames** (entry row 0 at frame 9,
+  entry row **2** at frame 10 — rows 2, 8, 14 … 62) and pulse 2 adds a **written suspension**
+  at the frame-10 cadence — hold across
+  the chord change on **row 48**, resolve down by step on **row 52**.
+- **F. One metric surprise.** `D00` on **row 59 of frame 20** (the last `A'` frame) so the
+  coda arrives a beat early. Put it on **`pulse1 p12`**, which frame 20 alone references —
+  every other lane at frame 20 shares its pattern with frames 16/17/19. `"D"` is already in
+  this song's declared effects.
+- **G. Re-declare.** Add `frame:row` citations for the polymetric cell, the hemiola, the three
+  displaced re-entries and the suspension to `extra.qa.notes`; re-render; re-pin
+  `renderChecksum` in the same commit.
+
+**Target after revision:** axis 11 = 5 is reachable here (polymetric cell + hemiola + dropped
+beat); axis 4 ≥ 4 via the bridge's chromatic inner voice and the frame-10 suspension.
+
+### 9.8 constraints that do not move
+
+- **Originality is absolute** (§0.1): idiom, technique, form and energy only — never a
+  melody, a progression or a phrase from an existing work, and no brief may name one.
+- **The 5-rule loop convention** (§2.9) is unchanged: explicit `inst`/`vol` at the loop row,
+  no effect left running across the seam, no note stranded, a musical turnaround, and the
+  declared `loopFrame` matching the final `Bxx`. Displacement and polymetry make rule 3
+  easier to break — a phase-carried cell must land its last attack **before** the seam.
+- **Mix-discipline floors** (§2.8) are unchanged: ≤ 45 % of note events at vol 15, ≥ 5
+  distinct column values, ≥ 1 bar with two or more voices resting, rests are mix, clipping is
+  re-voiced and never re-gained. Ghost notes at vol 4–6 help this floor rather than
+  threatening it.
+- **Every device must survive the deterministic gates** (§7.1): key consistency ≥ 88 %
+  (which is what bounds §9.3's chromaticism), claimed effects declared, no dead frames,
+  duration and RMS in range, checksum re-pinned in the same commit as any edit.
+- **Complexity is line independence, never clutter.** Density ceiling: **≤ 28 note attacks
+  per bar summed across all five lanes**, and **never more than two lanes running 16ths at
+  once**. If a piece needs to get busier to sound better, the fix is almost always a
+  different rhythm in an existing voice, not another voice.
