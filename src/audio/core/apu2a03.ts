@@ -303,7 +303,9 @@ export class Apu2A03 implements WriteSink {
   /** Switch the analog section between console models without rebuilding the engine. */
   setConsoleModel(model: ConsoleModel): void {
     this.consoleModel = model
-    this.filters.setRates(this.sampleRate, model)
+    // setModel, not setRates: a live switch keeps filter state so it cannot click
+    // (review finding #5). setRates' full reset is for sample-rate changes only.
+    this.filters.setModel(model)
   }
 
   setMixerMode(mode: MixerMode): void {

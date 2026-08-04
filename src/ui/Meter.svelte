@@ -11,7 +11,12 @@
   lattice (see Screen.svelte), so there is exactly one trace implementation in
   the codebase regardless of which surface it lands on.
 
-  Source arrays are read inside the single rAF only, never in an $effect.
+  Source arrays are read inside the single rAF only, never in an $effect. The
+  numeric readout is written straight to the text node through `bind:this` for
+  the same reason the canvas is a canvas: C2 says the frame loop never writes
+  $state, and a 4 Hz rune write is still a 4 Hz reactive invalidation that runs
+  for as long as the page is open. `textContent` on a node nothing else renders
+  is the frame path's equivalent of a canvas draw.
 -->
 <script lang="ts">
   import { bridge } from '../audio/bridge'
@@ -41,9 +46,12 @@
   const level = new LevelState()
 
   let canvas = $state<HTMLCanvasElement | null>(null)
-  let text = $state('silent')
+  /** The readout's text node owner. Written from the frame loop, never read in
+   *  the template — so nothing invalidates when the level changes. */
+  let readout = $state<HTMLSpanElement | null>(null)
   let dm: DotMatrix | null = null
   let lastTextAt = 0
+  let lastText = 'silent'
 
   const cols = $derived(mode === 'level' ? LEVEL_COLS : 128)
   const rows = $derived(mode === 'level' ? LEVEL_ROWS : 24)
@@ -91,7 +99,12 @@
         matrix.endFrame()
         if (showText && now - lastTextAt > 250) {
           lastTextAt = now
-          text = levelText(audio.meter)
+          const next = levelText(audio.meter)
+          const el = readout
+          if (el !== null && next !== lastText) {
+            lastText = next
+            el.textContent = next
+          }
         }
       } else {
         matrix.beginFrame()
@@ -123,7 +136,7 @@
 <div class="meter" class:scope={mode === 'scope'}>
   <canvas bind:this={canvas} aria-hidden="true"></canvas>
   {#if showText}
-    <span class="read t-micro">{label} {text}</span>
+    <span class="read t-micro">{label} <span bind:this={readout}>silent</span></span>
   {/if}
 </div>
 

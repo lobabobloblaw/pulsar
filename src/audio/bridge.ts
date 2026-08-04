@@ -47,6 +47,8 @@ export interface AudioBridge {
   allNotesOff(): void
   /** NATIVE units; the audio side owns the register mapping. */
   setParam(id: ParamId, value: number): void
+  /** Switch the analog output section: NES (HP90→HP440→LP14k) or Famicom (HP37). */
+  setConsoleModel(model: 'nes' | 'famicom'): void
   /** [rmsL, peakL, rmsR, peakR], 0..1. Read in rAF ONLY. */
   readonly meter: Float32Array
   /** 256 samples, -1..1. Read in rAF ONLY. */
@@ -62,7 +64,7 @@ export interface AudioBridge {
 /** What the stub last did — surfaced in the dev chip so the shell is verifiably
  *  wired end to end without audible output. Not part of the real contract. */
 export interface StubAction {
-  kind: 'none' | 'start' | 'noteOn' | 'noteOff' | 'allNotesOff' | 'setParam'
+  kind: 'none' | 'start' | 'noteOn' | 'noteOff' | 'allNotesOff' | 'setParam' | 'setConsoleModel'
   detail: string
   at: number
 }
@@ -131,6 +133,10 @@ class RealBridge implements AudioBridge {
 
   readonly #forcePostMessage: boolean
 
+  /** Survives the gap between page load and the first gesture, exactly like
+   *  `#values` — a pre-start toggle would otherwise start the engine as 'nes'. */
+  #consoleModel: 'nes' | 'famicom' = 'nes'
+
   constructor(opts: { forcePostMessage?: boolean } = {}) {
     this.#forcePostMessage = opts.forcePostMessage === true
     const transport = this.#forcePostMessage || !sabAvailable() ? 'postMessage' : 'sab'
@@ -175,7 +181,11 @@ class RealBridge implements AudioBridge {
     this.#publish({ ...this.#status, state: 'starting' })
     let engine: EngineHandle | null = null
     try {
-      engine = await startEngine(this.#forcePostMessage ? { forcePostMessage: true } : {})
+      engine = await startEngine(
+        this.#forcePostMessage
+          ? { forcePostMessage: true, consoleModel: this.#consoleModel }
+          : { consoleModel: this.#consoleModel },
+      )
       if (this.#disposed) {
         void engine.dispose()
         return
@@ -204,6 +214,9 @@ class RealBridge implements AudioBridge {
       for (const id of Object.keys(this.#values) as ParamId[]) {
         scheduler.setParam(id, this.#values[id])
       }
+      // A model toggle during the async start window would otherwise be silently
+      // dropped — startEngine read #consoleModel before the await (finding #6).
+      engine.setConfig({ consoleModel: this.#consoleModel })
 
       engine.ctx.onstatechange = (): void => {
         this.#onContextState()
@@ -257,6 +270,12 @@ class RealBridge implements AudioBridge {
     const s = this.#scheduler
     if (s === null) return
     s.setParam(id, value)
+  }
+
+  /** Remembered before start (like `#values`), pushed live after. */
+  setConsoleModel(model: 'nes' | 'famicom'): void {
+    this.#consoleModel = model
+    this.#engine?.setConfig({ consoleModel: model })
   }
 
   subscribe(fn: (s: BridgeStatus) => void): () => void {
@@ -381,7 +400,14 @@ class RealBridge implements AudioBridge {
       this.#publish(this.#statusFor('running'))
       return
     }
-    if (state === 'closed') return
+    if (state === 'closed') {
+      // Chrome closes the context on device loss. Claiming 'running' with nothing
+      // sounding would be a truthfulness violation (finding #16) — publish the
+      // failure and let a fresh gesture retry via start()'s cleared promise.
+      this.#startPromise = null
+      this.#publish({ ...this.#statusFor('error'), error: 'audio device lost' })
+      return
+    }
     this.#publish(this.#statusFor('starting'))
     void engine.ctx.resume().catch((e: unknown) => {
       const message = e instanceof Error ? e.message : String(e)
@@ -467,6 +493,10 @@ class StubBridge implements AudioBridge {
     this.#note('setParam', `${id}=${value}`)
   }
 
+  setConsoleModel(model: 'nes' | 'famicom'): void {
+    this.#note('setConsoleModel', model)
+  }
+
   subscribe(fn: (s: BridgeStatus) => void): () => void {
     this.#subs.add(fn)
     fn(this.#status)
@@ -537,6 +567,12 @@ export function createAudioBridge(): AudioBridge {
 /** Module-level singleton: one bridge per document, created lazily so that
  *  importing this module has no side effects. */
 let singleton: AudioBridge | null = null
+
+/** App teardown disposes the bridge; a remount (Vite HMR is the everyday case)
+ *  must get a FRESH one, not a latched-dead singleton. Review finding #12. */
+export function releaseBridge(instance: AudioBridge): void {
+  if (singleton === instance) singleton = null
+}
 
 export function bridge(): AudioBridge {
   if (singleton === null) {

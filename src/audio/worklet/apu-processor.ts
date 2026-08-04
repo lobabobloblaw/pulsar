@@ -66,6 +66,9 @@ class PulsarApuProcessor extends AudioWorkletProcessor {
   private stopped = false
   private underruns = 0
   private peakProcessNs = 0
+  /** Quanta left unmeasured after start — first-run JIT must not pin the peak
+   *  (finding #7). 50 quanta ≈ 133 ms at 48 kHz. */
+  private warmupQuanta = 50
 
   /** Bound once; null where the global is absent (then load reporting stays 0). */
   private readonly perfNow: (() => number) | null
@@ -119,9 +122,6 @@ class PulsarApuProcessor extends AudioWorkletProcessor {
     if (out === undefined) return true
     const n = out.length
 
-    const perfNow = this.perfNow
-    const t0 = perfNow === null ? 0 : perfNow()
-
     if (!this.started) {
       this.started = true
       const consumer = this.consumer
@@ -132,6 +132,14 @@ class PulsarApuProcessor extends AudioWorkletProcessor {
         sampleRate,
       })
     }
+
+    // Timed AFTER the one-shot start block (which allocates and posts), and only
+    // once warmed: the first WARMUP_QUANTA carry first-run JIT of the whole render
+    // path, and a never-reset running max would pin that cold-start spike for the
+    // life of the context, making the soak's peak gate meaningless (finding #7).
+    const perfNow = this.warmupQuanta > 0 ? null : this.perfNow
+    if (this.warmupQuanta > 0) this.warmupQuanta--
+    const t0 = perfNow === null ? 0 : perfNow()
 
     const apu = this.apu
     const target = apu.cycle + apu.cyclesForSamples(n)

@@ -46,6 +46,19 @@ exporter plug in without touching the core.
 Note-off: clear the channel's `$4015` bit (authentic hard cut; the 90/440 Hz
 high-passes absorb the step).
 
+The same discipline for the other channels (the register whose write has side
+effects — length load / phase latch / restart — always comes LAST):
+
+- **triangle** — `$4015 |= 0x04` → `$4008` (`CRRR RRRR`, bit 7 set to sustain) →
+  `$400A` timer low → **`$400B` last** (timer high + length load + linear-counter
+  reload flag). A fresh triangle note is silent until the next quarter-frame clock
+  (≤ 4.17 ms) — that reload latency is the hardware's soft attack.
+- **noise** — `$4015 |= 0x08` → `$400C` (halt/const-vol/volume) → `$400E`
+  (mode + period index) → **`$400F` last** (length load + envelope restart).
+- **dmc** — `$4011` (direct level) → `$4010` (IRQ/loop/rate) → `$4012` addr →
+  `$4013` length → **`$4015 |= 0x10` last** (starts the sample only if
+  `bytesRemaining === 0`).
+
 `src/audio/host/liveScheduler.ts` owns these sequences (`writePulseNoteOn`,
 `writeNoteOff`, `writePulseControl`, `writePulseSweep`) — the `$4015` argument is
 the whole enable byte, never a single bit, so adding a channel cannot silence the

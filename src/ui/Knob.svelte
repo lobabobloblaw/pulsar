@@ -18,10 +18,34 @@
 
   Geometry: 56px dial, 240 degrees of travel (-120 to +120), 24 detent dots,
   3px ink indicator, label above, numeric readout always beneath.
+
+  SHIFT = FINE, AND WHAT THAT HONESTLY MEANS PER PARAMETER.
+
+  The store quantises every write to the parameter's step, so a value can only
+  ever land on the step grid — "fine" cannot mean "a smaller value", it can only
+  mean "a smaller MOVE per gesture". Every path here therefore accumulates in
+  `acc`, an unquantised shadow of the value, and commits through the store; the
+  readout shows the quantised truth, never the accumulator.
+
+    continuous parameters (step < 1 — master.volume, step 0.01):
+        shift = one tenth of a step per notch, so ten shifted wheel notches or
+        ten shifted arrows move the value by exactly one step. Real fine
+        control, and the sub-step remainder survives between gestures.
+
+    integer and enum parameters (step >= 1 — duty, level, sweep):
+        shift moves ONE STEP, exactly like an unmodified arrow or notch. There
+        is nothing between 8 and 9 on a 0..15 nibble or between two duty cycles,
+        so a tenth-of-a-step mode would either do nothing at all (the bug this
+        replaces) or silently need ten presses to move one position. Doing the
+        plain thing is the honest answer.
+
+  Dragging is unaffected: it is a continuous gesture whose sensitivity (range/200
+  vs range/1000 per pixel) is meaningful on every parameter, integer or not.
 -->
 <script lang="ts">
+  import { untrack } from 'svelte'
   import { paramFraction, speak, type ParamId } from '../audio/params'
-  import { params } from '../state/params.svelte'
+  import { params, quantize } from '../state/params.svelte'
   import { nonPassiveWheel } from './actions/nonPassiveWheel'
   import { pointerDrag } from './actions/pointerDrag'
 
@@ -42,14 +66,37 @@
   const labelId = $derived(`knob-${id.replace('.', '-')}-label`)
 
   let dragging = $state(false)
-  /** The drag accumulator. Kept OUTSIDE the store so that Shift can change
-   *  sensitivity mid-drag without the value jumping: the accumulator carries
-   *  the sub-step remainder that quantisation would otherwise throw away. */
-  let acc = 0
 
-  /** An enum parameter has no meaningful fine mode — a four-position switch
-   *  does not have tenths. */
-  const fineStep = $derived(d.taper === 'enum' ? d.step : d.step / 10)
+  /** The accumulator, shared by drag, wheel and keyboard. Kept OUTSIDE the store
+   *  so that Shift can change sensitivity mid-gesture without the value jumping:
+   *  it carries the sub-step remainder that quantisation would otherwise throw
+   *  away. Deliberately not $state — nothing renders it. Seeded once (untracked:
+   *  this is a plain local, not a derivation), then kept in sync by the effect
+   *  below. */
+  let acc = untrack(() => params.get(id))
+
+  /** How many notches of Shift make one step. */
+  const FINE_DIVISOR = 10
+
+  /** Fine mode only exists where the grid is finer than a whole unit. See the
+   *  file header: on an integer or enum parameter Shift is a plain step. */
+  const fineable = $derived(d.taper !== 'enum' && d.step < 1)
+  const fineStep = $derived(fineable ? d.step / FINE_DIVISOR : d.step)
+
+  /** Re-seed when anything else moved the parameter — reset, another control,
+   *  a MIDI CC — so the accumulator can never drift away from the truth. It
+   *  reads `value`, so it re-runs on every store write; after our own writes
+   *  the quantised accumulator already equals the value and nothing happens. */
+  $effect(() => {
+    if (quantize(d, acc) !== value) acc = value
+  })
+
+  /** The one write path out of this component: clamp the accumulator, then let
+   *  the store clamp and quantise its own copy. */
+  function commit(next: number): void {
+    acc = next < d.min ? d.min : next > d.max ? d.max : next
+    params.set(id, acc)
+  }
 
   function detentAngle(i: number): number {
     return -SWEEP / 2 + (SWEEP * i) / (DETENTS - 1)
@@ -61,17 +108,13 @@
 
   function onStart(): void {
     dragging = true
-    acc = value
   }
 
   function onMove(_dx: number, dy: number, e: PointerEvent): void {
     const range = d.max - d.min
     // C7 verbatim: acc += (lastY - y) * (shift ? range/1000 : range/200).
     // pointerDrag hands us dy = y - lastY, hence the negation.
-    acc += -dy * (e.shiftKey ? range / 1000 : range / 200)
-    if (acc < d.min) acc = d.min
-    if (acc > d.max) acc = d.max
-    params.set(id, acc)
+    commit(acc + -dy * (e.shiftKey ? range / 1000 : range / 200))
   }
 
   function onEnd(): void {
@@ -79,12 +122,11 @@
   }
 
   function onWheel(steps: number, e: WheelEvent): void {
-    params.nudge(id, steps * (e.shiftKey ? fineStep : d.step))
+    commit(acc + steps * (e.shiftKey ? fineStep : d.step))
   }
 
   function reset(): void {
-    params.reset(id)
-    acc = params.get(id)
+    acc = params.reset(id)
   }
 
   function onPointerDown(e: PointerEvent): void {
@@ -100,23 +142,23 @@
     switch (e.key) {
       case 'ArrowUp':
       case 'ArrowRight':
-        params.nudge(id, step)
+        commit(acc + step)
         break
       case 'ArrowDown':
       case 'ArrowLeft':
-        params.nudge(id, -step)
+        commit(acc - step)
         break
       case 'PageUp':
-        params.nudge(id, d.step * 10)
+        commit(acc + d.step * 10)
         break
       case 'PageDown':
-        params.nudge(id, -d.step * 10)
+        commit(acc - d.step * 10)
         break
       case 'Home':
-        params.set(id, d.min)
+        commit(d.min)
         break
       case 'End':
-        params.set(id, d.max)
+        commit(d.max)
         break
       default:
         handled = false
@@ -124,7 +166,6 @@
     if (handled) {
       e.preventDefault()
       e.stopPropagation()
-      acc = params.get(id)
     }
   }
 </script>

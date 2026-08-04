@@ -20,7 +20,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { runSelfTest } from './selftest'
-  import { bridge } from './audio/bridge'
+  import { bridge, releaseBridge } from './audio/bridge'
   import { attachKeyboard } from './input/keyboard'
   import { createMidi } from './input/midi'
   import { params } from './state/params.svelte'
@@ -68,9 +68,24 @@
     void midi.ensureAccess()
   }
 
+  /** Harness mode: the selftest/soak owns its own engine and its numbers must be
+   *  uncontaminated — the interactive shell stays visible but INERT (no gesture
+   *  listeners, no keyboard, no second AudioContext, no MIDI). Review finding #4. */
+  const harnessMode = new URLSearchParams(location.search).has('selftest')
+
   onMount(() => {
     document.documentElement.dataset['room'] = transport.room
+    if (harnessMode) {
+      let raf = 0
+      const loop = (now: number): void => {
+        raf = requestAnimationFrame(loop)
+        emit(now)
+      }
+      raf = requestAnimationFrame(loop)
+      return () => cancelAnimationFrame(raf)
+    }
     params.attach(audio)
+    transport.attach(audio)
 
     const unsubscribe = audio.subscribe((s) => {
       transport.audio = s
@@ -119,6 +134,7 @@
       unsubscribe()
       midi.dispose()
       audio.dispose()
+      releaseBridge(audio)
     }
   })
 
@@ -133,6 +149,9 @@
   })
 </script>
 
+<!-- The one main landmark; the stage/device manage their own layout, so a plain
+     block wrapper is inert visually and satisfies axe's landmark-one-main/region. -->
+<main aria-label="pulsar">
 <Enclosure>
   {#snippet brand()}
     <Brand />
@@ -157,7 +176,7 @@
   {#snippet foot()}
     <div class="foot">
       <p class="t-micro">
-        z–m lower octave · q–i upper · − and = shift octave · shift for fine control
+        z–m lower octave · q–i upper · − and = shift octave · shift-drag knobs for fine control
       </p>
       <p class="t-micro">not affiliated with teenage engineering</p>
     </div>
@@ -165,6 +184,7 @@
 </Enclosure>
 
 <LiveRegion message={announcement} />
+</main>
 
 {#if selftest}<pre data-selftest>{selftest}</pre>{/if}
 

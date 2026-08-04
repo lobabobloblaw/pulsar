@@ -205,4 +205,27 @@ describe('AnalogFilterChain', () => {
     chain.reset()
     expect(chain.process(0)).toBe(0)
   })
+
+  it('a live setModel() switch cannot click (review finding #5)', () => {
+    // A held mixer level: the HPs settle toward 0 output. Zeroing state on the
+    // switch used to re-inject the full DC as a ~0.35 step; with state preserved
+    // the boundary sample moves by less than the pre-switch sample-to-sample delta.
+    const LEVEL = 0.35
+    const runSwitch = (from: 'nes' | 'famicom', to: 'nes' | 'famicom'): number => {
+      const chain = new AnalogFilterChain()
+      chain.setRates(48000, from)
+      let prev = 0
+      for (let i = 0; i < 4000; i++) prev = chain.process(LEVEL)
+      chain.setModel(to)
+      let maxStep = 0
+      for (let i = 0; i < 64; i++) {
+        const y = chain.process(LEVEL)
+        maxStep = Math.max(maxStep, Math.abs(y - prev))
+        prev = y
+      }
+      return maxStep
+    }
+    expect(runSwitch('nes', 'famicom')).toBeLessThan(0.02)
+    expect(runSwitch('famicom', 'nes')).toBeLessThan(0.02)
+  })
 })

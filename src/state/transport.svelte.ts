@@ -7,7 +7,7 @@
  */
 
 import { SvelteSet } from 'svelte/reactivity'
-import type { BridgeStatus } from '../audio/bridge'
+import type { AudioBridge, BridgeStatus } from '../audio/bridge'
 
 export type MidiPermission = 'unknown' | 'granted' | 'denied' | 'unavailable' | 'blocked'
 
@@ -66,8 +66,17 @@ class TransportState {
    *  "never write $state from the frame loop" rule. */
   fps = $state(0)
 
+  #bridge: AudioBridge | null = null
+
   constructor() {
     this.room = initialRoom()
+  }
+
+  /** Mirrors `params.attach`: App wires the bridge in, the store never imports it.
+   *  Pushes the current model so a pre-attach toggle is not lost. */
+  attach(bridge: AudioBridge): void {
+    this.#bridge = bridge
+    bridge.setConsoleModel(this.consoleModel)
   }
 
   setRoom(room: Room): void {
@@ -86,6 +95,7 @@ class TransportState {
 
   toggleModel(): void {
     this.consoleModel = this.consoleModel === 'nes' ? 'famicom' : 'nes'
+    this.#bridge?.setConsoleModel(this.consoleModel)
   }
 
   nextPage(): void {

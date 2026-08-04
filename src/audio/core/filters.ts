@@ -36,8 +36,12 @@ export class OnePoleHighPass {
     this.k = onePoleCoeff(cutoffHz, sampleRate)
   }
 
+  /** k = 1 alone is only an identity from zero state; aligning yPrev to xPrev makes
+   *  it an identity from the CURRENT state, so a live model switch cannot click
+   *  (review finding #5). From a fresh (zeroed) section this is a no-op. */
   bypass(): void {
     this.k = 1
+    this.yPrev = this.xPrev
   }
 
   reset(): void {
@@ -87,7 +91,22 @@ export class AnalogFilterChain {
 
   setRates(sampleRate: number, model: FilterModel): void {
     this.sampleRate = sampleRate
+    this.applyModel(model)
+    this.reset()
+  }
+
+  /** Live model switch: swap coefficients, KEEP filter state. Zeroing mid-stream
+   *  produced a ~0.79 full-scale step (review finding #5); with state preserved the
+   *  chain glides — HP sections entering bypass align yPrev to xPrev, the LP's
+   *  k = 0 form is stateless per-sample, and re-engaged sections have been tracking
+   *  the stream the whole time because process() always runs all three. */
+  setModel(model: FilterModel): void {
+    this.applyModel(model)
+  }
+
+  private applyModel(model: FilterModel): void {
     this.model = model
+    const sampleRate = this.sampleRate
     if (model === 'nes') {
       this.hp1.setCutoff(NES_HP1_HZ, sampleRate)
       this.hp2.setCutoff(NES_HP2_HZ, sampleRate)
@@ -101,7 +120,6 @@ export class AnalogFilterChain {
       this.hp2.bypass()
       this.lp.bypass()
     }
-    this.reset()
   }
 
   reset(): void {

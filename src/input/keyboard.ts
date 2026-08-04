@@ -11,7 +11,9 @@
  *
  * Stuck-note guard is non-negotiable. Losing the window mid-note (Cmd+Tab, a
  * screen lock, an OS notification stealing focus) means keyup never arrives, so
- * blur / visibilitychange->hidden / pointercancel all panic.
+ * blur / visibilitychange->hidden / pointercancel all panic. macOS swallows
+ * keyup for letter keys while Command is held WITHOUT losing the window, which
+ * no window-level guard can catch — so the Cmd/Ctrl keydown panics too.
  */
 
 import type { AudioBridge } from '../audio/bridge'
@@ -120,6 +122,16 @@ export function attachKeyboard(opts: KeyboardOptions): () => void {
 
   function keydown(e: KeyboardEvent): void {
     if (isTextTarget(e.target)) return
+
+    // macOS delivers NO keyup for a letter key while Command is held: hold z,
+    // press Cmd, release z, release Cmd -> keyup(KeyZ) never arrives and the
+    // note drones for ever, with no blur to save us because the window never
+    // lost focus. The Cmd/Ctrl keydown is the last moment we can still see it
+    // coming, so it panics. Deliberately before the modifier bail below, and
+    // deliberately not altKey: Option is a dead-key modifier that still
+    // delivers keyup, and Option+letter is how accented characters are typed.
+    if ((e.metaKey || e.ctrlKey) && held.size > 0) panic()
+
     if (e.metaKey || e.ctrlKey || e.altKey) return
 
     if (!gestureDone && opts.gesture) {

@@ -25,6 +25,7 @@
     "@types/audioworklet": "^0.0.100",
     "@types/node": "^22.15.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "axe-core": "^4.12.1",
     "svelte": "^5.56.8",
     "svelte-check": "^4.7.4",
     "typescript": "^6.0.3",

@@ -14,11 +14,12 @@
 // Output contract (the lead's headless CDP harness greps these): the details blob
 // always ends in `SELFTEST PASS` or `SELFTEST FAIL`, and App.svelte maps that onto
 // `document.title = 'pulsar-selftest-pass' | 'pulsar-selftest-fail'`.
+import { NTSC_CPU_HZ } from './audio/core/constants'
 import { startEngine } from './audio/host/audioEngine'
 import { LiveScheduler } from './audio/host/liveScheduler'
 import { formatDiagnostics } from './audio/host/diagnostics'
 import { centsBetween, peakAmplitude, zeroCrossingHz } from './audio/dsp/toneMeasure'
-import { midiToHz, pulseHzForTimer, pulseTimerForHz } from './audio/host/pitch'
+import { midiToHz, pulseHzForTimer, pulseTimerForHz, triangleTimerForHz } from './audio/host/pitch'
 
 export interface SelfTestResult {
   pass: boolean
@@ -39,6 +40,11 @@ function sleep(ms: number): Promise<void> {
 }
 
 export async function runSelfTest(expectedHz = 440): Promise<SelfTestResult> {
+  // M8 soak: `?selftest&soak=<minutes>` switches to the long-run harness. Living
+  // here (not in App) keeps the UI tree untouched and the title contract single.
+  const soakMinutes = Number(new URLSearchParams(location.search).get('soak') ?? '0')
+  if (soakMinutes > 0) return runSoakTest(soakMinutes)
+
   const lines: string[] = []
   const iso = crossOriginIsolated
   const sab = typeof SharedArrayBuffer === 'function'
@@ -120,6 +126,138 @@ export async function runSelfTest(expectedHz = 440): Promise<SelfTestResult> {
 
     // Note-off is an authentic hard cut; the high-passes absorb the step.
     scheduler.allNotesOff()
+    await engine.dispose()
+  } catch (e) {
+    lines.push(`error=${e instanceof Error ? e.message : String(e)}`)
+    pass = false
+  }
+
+  lines.push(pass ? 'SELFTEST PASS' : 'SELFTEST FAIL')
+  return { pass, details: lines.join('\n') }
+}
+
+// ─── M8 soak harness ────────────────────────────────────────────────────────────
+//
+// Drives all four tone channels RAW through the WriteSink — the same producer shape
+// the Phase-2 tracker will be — on a 200 ms step pattern: pulse-1 melody, pulse-2
+// fifth, triangle bass, auto-cut noise hats, a $4011 DMC-level ramp (exercises
+// ducking), and a console-model flip every 32 steps. Diagnostics are sampled every
+// 5 s (fields copied — `diagnostics()` reuses its object). Acceptance (plan M8 c):
+// zero underruns, zero dropped writes over the whole run; `peakProcessUs` is gated
+// only when the worklet's clock probe actually reports (headless AudioWorklet scopes
+// lack `performance`, and a vacuously-passing gate is worse than none).
+
+const SOAK_STEP_MS = 200
+const SOAK_MELODY = [57, 60, 64, 67, 72, 67, 64, 60] // a-minor arpeggio, MIDI
+const SOAK_DIAG_EVERY_MS = 5_000
+const PEAK_BUDGET_US = 267
+
+async function runSoakTest(minutes: number): Promise<SelfTestResult> {
+  const lines: string[] = []
+  lines.push(`soak=${minutes}min`)
+  lines.push(`crossOriginIsolated=${String(crossOriginIsolated)}`)
+  let pass = true
+
+  try {
+    const engine = await startEngine()
+    lines.push(`transport=${engine.transport}`)
+    lines.push(`sampleRate=${engine.ctx.sampleRate}`)
+    const anchor = await Promise.race([engine.ready(), sleep(READY_TIMEOUT_MS).then(() => null)])
+    if (anchor === null) throw new Error('clock anchor timeout')
+
+    const endAt = performance.now() + minutes * 60_000
+    let nextDiagAt = performance.now() + SOAK_DIAG_EVERY_MS
+    let step = 0
+    let maxPeakUs = 0
+    let lastLate = 0
+    let famicom = false
+
+    while (performance.now() < endAt) {
+      const c = engine.scheduleCycle()
+      const melody = SOAK_MELODY[step % SOAK_MELODY.length] ?? 60
+      const p1 = pulseTimerForHz(midiToHz(melody), engine.clockRate)
+      const p2 = pulseTimerForHz(midiToHz(melody - 7), engine.clockRate)
+      // triangleTimerForHz, not pulse: the triangle divides by 32 (finding #8 —
+      // the pulse helper put it an octave low at HALF the intended event rate).
+      const tri = triangleTimerForHz(midiToHz(melody - 24), engine.clockRate)
+
+      engine.write(c, 0x4015, 0x0f)
+      // pulse 1 — melody, duty 2, constant volume 12, halted length
+      engine.write(c, 0x4000, 0xb0 | 12)
+      engine.write(c, 0x4001, 0x08)
+      engine.write(c, 0x4002, p1 & 0xff)
+      engine.write(c, 0x4003, (p1 >> 8) & 0x07)
+      // pulse 2 — a fifth below, duty 1, quieter
+      engine.write(c, 0x4004, 0x70 | 8)
+      engine.write(c, 0x4005, 0x08)
+      engine.write(c, 0x4006, p2 & 0xff)
+      engine.write(c, 0x4007, (p2 >> 8) & 0x07)
+      // triangle — bass, control set (sustains through the linear counter)
+      engine.write(c, 0x4008, 0xff)
+      engine.write(c, 0x400a, tri & 0xff)
+      engine.write(c, 0x400b, (tri >> 8) & 0x07)
+      // noise — un-halted hat that the length counter cuts by itself
+      engine.write(c, 0x400c, 0x10 | 6)
+      engine.write(c, 0x400e, 0x04)
+      engine.write(c, 0x400f, 0x18) // length index 3 → 2 half-frames ≈ 17 ms hat
+      // dmc level ramp every 4th step — moves the tnd index, exercises ducking
+      if (step % 4 === 0) engine.write(c, 0x4011, (step % 16) * 8)
+      if (step % 32 === 31) {
+        famicom = !famicom
+        engine.setConfig({ consoleModel: famicom ? 'famicom' : 'nes' })
+      }
+      engine.flush()
+
+      await sleep(SOAK_STEP_MS)
+      step++
+
+      if (performance.now() >= nextDiagAt) {
+        nextDiagAt += SOAK_DIAG_EVERY_MS
+        const d = engine.diagnostics()
+        if (d.peakProcessUs > maxPeakUs) maxPeakUs = d.peakProcessUs
+        lastLate = d.lateWrites
+        if (d.droppedWrites !== 0 || d.underruns !== 0) {
+          lines.push(
+            `t=${Math.round((performance.now() - (endAt - minutes * 60_000)) / 1000)}s ` +
+              `FAIL dropped=${d.droppedWrites} underruns=${d.underruns}`,
+          )
+          pass = false
+        }
+      }
+    }
+
+    engine.write(engine.scheduleCycle(), 0x4015, 0x00)
+    engine.flush()
+    await sleep(200)
+
+    const d = engine.diagnostics()
+    lines.push(`steps=${step}`)
+    lines.push(`cyclesElapsed≈${Math.round(engine.nowCycle())}`)
+    lines.push(formatDiagnostics(d))
+    lines.push(`maxPeakUs=${maxPeakUs.toFixed(1)}`)
+    lines.push(`lateWrites=${lastLate}`)
+
+    const countersOk = d.droppedWrites === 0 && d.underruns === 0
+    lines.push(`counters=${countersOk ? 'ok' : 'FAIL'}`)
+    pass = pass && countersOk
+
+    // The int32-wrap claim must be asserted, not implied: a ≥21-minute run exists
+    // to CROSS 2^31 NES cycles (≈20 min at 1.789773 MHz) and still be running.
+    const mustCross = minutes * 60 * NTSC_CPU_HZ > 2 ** 31
+    if (mustCross) {
+      const crossed = engine.nowCycle() > 2 ** 31
+      lines.push(`int32CycleCrossing=${crossed ? 'ok' : 'FAIL'}`)
+      pass = pass && crossed
+    }
+
+    if (maxPeakUs > 0) {
+      const peakOk = maxPeakUs < PEAK_BUDGET_US
+      lines.push(`peakGate=${peakOk ? 'ok' : 'FAIL'} (budget ${PEAK_BUDGET_US}us)`)
+      pass = pass && peakOk
+    } else {
+      lines.push('peakGate=untrusted (worklet clock probe unavailable — not counted)')
+    }
+
     await engine.dispose()
   } catch (e) {
     lines.push(`error=${e instanceof Error ? e.message : String(e)}`)
