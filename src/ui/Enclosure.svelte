@@ -72,7 +72,13 @@
     display: grid;
     place-items: start center;
     min-height: 100dvh;
-    padding: var(--s-4) var(--s-3);
+    /* Notches and home bars: the desk extends under them, the slab does not
+       (env() is 0 everywhere that has no insets, so desktop is unchanged). */
+    padding:
+      calc(var(--s-4) + env(safe-area-inset-top, 0px))
+      calc(var(--s-3) + env(safe-area-inset-right, 0px))
+      calc(var(--s-4) + env(safe-area-inset-bottom, 0px))
+      calc(var(--s-3) + env(safe-area-inset-left, 0px));
     background: radial-gradient(
         120% 90% at 50% -10%,
         rgb(255 255 255 / 0.07),
@@ -255,7 +261,11 @@
 
   @media (max-width: 560px) {
     .stage {
-      padding: var(--s-4) var(--s-2);
+      padding:
+        calc(var(--s-4) + env(safe-area-inset-top, 0px))
+        calc(var(--s-2) + env(safe-area-inset-right, 0px))
+        calc(var(--s-4) + env(safe-area-inset-bottom, 0px))
+        calc(var(--s-2) + env(safe-area-inset-left, 0px));
     }
     .device {
       border-radius: var(--r-3);

@@ -111,7 +111,7 @@
          turns the screen to the song page — the panel hosts the screen beside
          the grid, and a giant params readout narrates nothing there. Closing
          restores the live-play default. -->
-    <span class="keyed">
+    <span class="keyed tracker-toggle">
       <button
         type="button"
         class="key"
@@ -256,6 +256,18 @@
     outline: none;
   }
 
+  @media (pointer: coarse) {
+    .switch {
+      position: relative;
+    }
+
+    .switch::before {
+      content: '';
+      position: absolute;
+      inset: -8px 0;
+    }
+  }
+
   .switch:focus-visible .track {
     box-shadow: var(--focus);
   }
@@ -272,6 +284,14 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
+  }
+
+  /* Under the workbench threshold the panel only leads to its "needs a wider
+     window" card — the phone player under the screen is the path instead. */
+  @media (max-width: 720px) {
+    .tracker-toggle {
+      display: none;
+    }
   }
 
   /* The meter sits on the LED line. */

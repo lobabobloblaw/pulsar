@@ -29,6 +29,7 @@
   import LiveRegion from './ui/a11y/LiveRegion.svelte'
   import Brand from './ui/Brand.svelte'
   import Enclosure from './ui/Enclosure.svelte'
+  import PlayerStrip from './ui/PlayerStrip.svelte'
   import KeyBed from './ui/KeyBed.svelte'
   import KnobRow from './ui/KnobRow.svelte'
   import Screen from './ui/Screen.svelte'
@@ -182,6 +183,9 @@
      so out loud, and that message has nowhere else to go. -->
 {#snippet screenView()}
   <Screen {boot} />
+  <!-- Phone player: visible only under 721px, where the tracker cannot open.
+       It travels with the screen so the enclosure grid needs no new area. -->
+  <PlayerStrip announce={announceText} />
 {/snippet}
 
 {#snippet trackerArea()}

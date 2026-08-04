@@ -374,6 +374,26 @@ select.window {
   background: var(--st-bad);
 }
 
+/* Touch keeps the machined sizes and grows the TARGETS: an invisible overlay
+   gives a 24px cap a ~40px thumb pad and an 18px mini the same. Overlaps
+   between neighbours resolve by paint order, which is close enough to centre-
+   accurate for caps 8px apart. */
+@media (pointer: coarse) {
+  .key {
+    position: relative;
+  }
+
+  .key::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+
+  .key.mini::before {
+    inset: -11px;
+  }
+}
+
 .u-lc {
   text-transform: lowercase;
 }

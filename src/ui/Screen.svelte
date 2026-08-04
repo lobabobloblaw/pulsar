@@ -400,6 +400,18 @@
     box-shadow: var(--focus);
   }
 
+  @media (pointer: coarse) {
+    .page-dot {
+      position: relative;
+    }
+
+    .page-dot::before {
+      content: '';
+      position: absolute;
+      inset: -14px;
+    }
+  }
+
   .pager-name {
     color: var(--enclosure-ink-2);
   }

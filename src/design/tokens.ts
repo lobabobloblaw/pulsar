@@ -23,8 +23,13 @@ export const SCREEN = {
   accent: '#ffc003',
 } as const
 
-/** Dot size bounds for the sizing rule in dotMatrix.ts. */
-export const DOT_MIN = 3
+/** Dot size bounds for the sizing rule in dotMatrix.ts. The floor is 2, not 3
+ *  (mobile pass 2026-08-04): DOT_MIN 3 made the screen module 400px wide at
+ *  minimum, which overflows every phone portrait viewport — at dot 2 on a
+ *  DPR 2-3 phone the lattice stays crisp and the module fits. Desktop windows
+ *  that can fit 3 still get 3; the rule only reaches 2 when nothing larger
+ *  fits. */
+export const DOT_MIN = 2
 export const DOT_MAX = 8
 
 /** Decorative canvas timings, in ms. Mirrors --dur-* intent for the renderers. */

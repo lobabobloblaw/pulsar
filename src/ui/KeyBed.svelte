@@ -425,4 +425,20 @@
       scroll-snap-type: x mandatory;
     }
   }
+
+  /* Thumbs get a deeper bed; the widths stay — 40px white keys are already
+     honest touch targets. */
+  @media (pointer: coarse) {
+    .bed {
+      height: 164px;
+    }
+
+    .white {
+      height: 164px;
+    }
+
+    .black {
+      height: 100px;
+    }
+  }
 </style>

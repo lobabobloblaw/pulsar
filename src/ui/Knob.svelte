@@ -106,15 +106,25 @@
     return i / (DETENTS - 1) <= fraction + 1e-6
   }
 
+  /** Horizontal travel accumulated across the gesture. Touch has no Shift, so
+   *  pulling the finger ASIDE is the touch-native fine mode (the scrubbing
+   *  idiom): past 48px of offset the same vertical travel moves at the
+   *  shifted rate. The accumulator design above is exactly what lets the rate
+   *  change mid-gesture without a value jump. */
+  let aside = 0
+
   function onStart(): void {
     dragging = true
+    aside = 0
   }
 
-  function onMove(_dx: number, dy: number, e: PointerEvent): void {
+  function onMove(dx: number, dy: number, e: PointerEvent): void {
+    aside += dx
+    const fine = e.shiftKey || (e.pointerType === 'touch' && Math.abs(aside) > 48)
     const range = d.max - d.min
     // C7 verbatim: acc += (lastY - y) * (shift ? range/1000 : range/200).
     // pointerDrag hands us dy = y - lastY, hence the negation.
-    commit(acc + -dy * (e.shiftKey ? range / 1000 : range / 200))
+    commit(acc + -dy * (fine ? range / 1000 : range / 200))
   }
 
   function onEnd(): void {
