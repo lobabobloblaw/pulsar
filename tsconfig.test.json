@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  "include": [
+    "tests/**/*.ts",
+    "src/audio/core/**/*.ts",
+    "src/audio/dsp/**/*.ts",
+    "src/audio/timeline/**/*.ts",
+    "src/audio/protocol/**/*.ts"
+  ]
+}
