@@ -626,7 +626,9 @@ function parseDpcm(
   for (const key of Object.keys(input)) {
     const a = input[key]
     const where = `${path}["${key}"]`
-    const note = int(key, -1)
+    // A JSON object key is ALWAYS a string, so this must parse the string — `int()`
+    // takes the `number` branch and would reject every well-formed key map.
+    const note = /^\d+$/.test(key) ? Number.parseInt(key, 10) : -1
     if (!inRange(note, MIN_NOTE, MAX_NOTE)) {
       d.error(where, `key ${json(key)} is not a note number in ${MIN_NOTE}..${MAX_NOTE}`)
       continue

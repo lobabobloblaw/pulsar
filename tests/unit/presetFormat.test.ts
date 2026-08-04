@@ -24,8 +24,25 @@ const ROOT = join(import.meta.dirname, '..', '..')
 const PRESET_DIR = join(ROOT, 'src', 'assets', 'songs')
 const TINY = join(ROOT, 'tests', 'fixtures', 'songs', 'tiny.json')
 
-/** The four tracks §5.2 commits to. Absent while WP11 is mid-flight. */
-const EXPECTED_PRESETS = ['first-light', 'long-fall', 'hammer-shop', 'switchback']
+/** The four technique demos design §5.2 commits to, plus the eight album pieces
+ *  `docs/preset-suite.md` §4 adds to the same directory. Any of them may be absent while
+ *  its composer batch is mid-flight; nothing OUTSIDE the list may ever appear. Album
+ *  files carry a two-digit play-order prefix (`07-rust-and-neon.json`), which
+ *  `src/assets/songs/index.ts` strips to form the id. */
+const EXPECTED_PRESETS = [
+  'first-light',
+  'long-fall',
+  'hammer-shop',
+  'switchback',
+  'iron-sunrise',
+  'glass-ladder',
+  'midnight-ferry',
+  'paper-lanterns',
+  'tide-pool',
+  'switch-cutter',
+  'rust-and-neon',
+  'long-division',
+]
 
 function presetFiles(): string[] {
   if (!existsSync(PRESET_DIR)) return []
@@ -37,11 +54,12 @@ function presetFiles(): string[] {
 describe('shipped presets — structural gate', () => {
   const files = presetFiles()
 
-  it(`reports which of the four preset tracks exist (${files.length} of 4 present)`, () => {
-    const present = files.map((f) => f.replace(/\.json$/, ''))
+  it(`reports which preset tracks exist (${files.length} of ${EXPECTED_PRESETS.length} present)`, () => {
+    const present = files.map((f) => f.replace(/\.json$/, '').replace(/^\d{2}-/, ''))
     for (const id of present) expect(EXPECTED_PRESETS).toContain(id)
-    // Not an assertion that all four exist — WP11 lands them independently — but the
-    // set may never contain something the design did not name.
+    // Not an assertion that all of them exist — the batches land them independently —
+    // but the set may never contain something the design did not name, and never twice.
+    expect(new Set(present).size).toBe(present.length)
     expect(present.length).toBeLessThanOrEqual(EXPECTED_PRESETS.length)
   })
 

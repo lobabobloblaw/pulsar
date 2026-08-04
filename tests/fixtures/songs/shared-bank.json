@@ -1,0 +1,832 @@
+{
+  "kind": "pulsar-shared-bank",
+  "rev": 1,
+  "note": "preset-suite.md §3 — the album bank, frozen. NOT a playable Song: it holds only sequences, instruments and samples, and its sequences carry a `name` the song format does not have. Songs embed only the entries they use, densely renumbered, NAMES PRESERVED — tests/unit/presets.test.ts resolves every canonical instrument name in every album song back to these values and fails on any drift. Copy from here; do not retype.",
+  "samples": [
+    {
+      "name": "dpcm-kick",
+      "data": "Vtvd+/1+7922qkqSCEEQBBESKVVVa7vdu7u729ZqlUqSJCIiEpEkKVVVtda2bbtt27bWqqpKJSVJkiRJkpJKVVVVq7W1ta2ttdWqVVWlSqWUlJSUUkqpVFVVVbVqtdZqrdVqtapaVamqVKmUSqVUKpUqVVVVVVXVqlatVq1a1apaVVVVVZWqUpWqVKlSlapSVVVVVVVVVauqVdWqWlW1qqqqqqqqqqpSVZWqSlWlqipVVVVVVVVVVVVVtaqqalVV1aqqqqqqqqqqqqqqqlRVVaWqqqpUVVVVVVVVVVVVVVVVVVVVq6qqqqpqVVVVVVVVVVVVVVVVqqqqqipVVVVVVVU="
+    },
+    {
+      "name": "dpcm-snare",
+      "data": "qmqqOqqWqg9qpjqjVqn/QGg6OpaWD09kNjNXVf6XAHiopqobaot6B2aqq2G/cHCkphtbSzszY2apalbFoFaqH2iaOo6Wpc9CljlPVFYXV1iqHpqZ6oxXJV6ZqCtqKzqOpqnLYssyy2SLKysrSy46LdqMjampllZaamaamVaVVWWqlqqVaqaaplapZWlqmmWWlg=="
+    }
+  ],
+  "sequences": {
+    "volume": [
+      {
+        "name": "vol-lead",
+        "values": [
+          12,
+          15,
+          14,
+          13,
+          13,
+          12,
+          9,
+          6,
+          4,
+          2,
+          1,
+          0
+        ],
+        "loop": 5,
+        "release": 5
+      },
+      {
+        "name": "vol-lead-soft",
+        "values": [
+          9,
+          11,
+          10,
+          10,
+          9,
+          7,
+          5,
+          3,
+          1,
+          0
+        ],
+        "loop": 4,
+        "release": 4
+      },
+      {
+        "name": "vol-echo",
+        "values": [
+          7,
+          9,
+          8,
+          7,
+          7,
+          5,
+          3,
+          2,
+          1,
+          0
+        ],
+        "loop": 4,
+        "release": 4
+      },
+      {
+        "name": "vol-pluck",
+        "values": [
+          15,
+          14,
+          12,
+          10,
+          8,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-stab",
+        "values": [
+          15,
+          15,
+          12,
+          8,
+          4,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-pad",
+        "values": [
+          0,
+          2,
+          4,
+          6,
+          8,
+          9,
+          10,
+          11,
+          11,
+          12,
+          12,
+          12,
+          10,
+          8,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "loop": 11,
+        "release": 11
+      },
+      {
+        "name": "vol-tri-gate",
+        "values": [
+          15
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "vol-tri-short",
+        "values": [
+          15,
+          15,
+          15,
+          15,
+          15,
+          15,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-tri-kick",
+        "values": [
+          15,
+          15,
+          15,
+          15,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-kick",
+        "values": [
+          15,
+          13,
+          9,
+          5,
+          2,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-snare",
+        "values": [
+          15,
+          15,
+          12,
+          10,
+          8,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-hat-closed",
+        "values": [
+          10,
+          6,
+          2,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-hat-open",
+        "values": [
+          9,
+          9,
+          8,
+          7,
+          6,
+          5,
+          4,
+          4,
+          3,
+          2,
+          2,
+          1,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-crash",
+        "values": [
+          12,
+          12,
+          11,
+          10,
+          10,
+          9,
+          9,
+          8,
+          8,
+          7,
+          7,
+          6,
+          6,
+          5,
+          5,
+          4,
+          4,
+          3,
+          3,
+          2,
+          2,
+          1,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-metal",
+        "values": [
+          12,
+          8,
+          5,
+          3,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      }
+    ],
+    "arpeggio": [
+      {
+        "name": "arp-maj",
+        "values": [
+          0,
+          4,
+          7
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-min",
+        "values": [
+          0,
+          3,
+          7
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-dom7",
+        "values": [
+          0,
+          4,
+          7,
+          10
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-min7",
+        "values": [
+          0,
+          3,
+          7,
+          10
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-sus4",
+        "values": [
+          0,
+          5,
+          7
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-oct",
+        "values": [
+          0,
+          12
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-fifth",
+        "values": [
+          0,
+          7
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "arp-grace",
+        "values": [
+          -2,
+          -1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "arp-snare-rise",
+        "values": [
+          0,
+          1,
+          2
+        ],
+        "loop": -1,
+        "release": -1
+      }
+    ],
+    "pitch": [
+      {
+        "name": "pit-kick-drop",
+        "values": [
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "pit-tom-drop",
+        "values": [
+          1,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "pit-vib-delay",
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          -1,
+          -1,
+          -1,
+          -1,
+          1,
+          1
+        ],
+        "loop": 10,
+        "release": -1
+      },
+      {
+        "name": "pit-vib-wide",
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          2,
+          2,
+          -2,
+          -2,
+          -2,
+          -2,
+          2,
+          2
+        ],
+        "loop": 8,
+        "release": -1
+      },
+      {
+        "name": "pit-fall",
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          2,
+          5,
+          9,
+          14,
+          20,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "pit-scoop",
+        "values": [
+          7,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          -1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      }
+    ],
+    "hiPitch": [
+      {
+        "name": "hip-tri-kick",
+        "values": [
+          4,
+          6,
+          8,
+          10,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      }
+    ],
+    "duty": [
+      {
+        "name": "dut-12",
+        "values": [
+          0
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-25",
+        "values": [
+          1
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-50",
+        "values": [
+          2
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-attack",
+        "values": [
+          0,
+          0,
+          1,
+          1,
+          2
+        ],
+        "loop": 4,
+        "release": -1
+      },
+      {
+        "name": "dut-attack-bright",
+        "values": [
+          2,
+          2,
+          1,
+          1,
+          1
+        ],
+        "loop": 4,
+        "release": -1
+      },
+      {
+        "name": "dut-pwm-slow",
+        "values": [
+          2,
+          2,
+          2,
+          2,
+          1,
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-pwm-fast",
+        "values": [
+          2,
+          1,
+          0,
+          1
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-noise-long",
+        "values": [
+          0
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-noise-short",
+        "values": [
+          1
+        ],
+        "loop": 0,
+        "release": -1
+      }
+    ]
+  },
+  "instruments": [
+    {
+      "name": "lead-bright",
+      "macros": {
+        "volume": 0,
+        "arpeggio": -1,
+        "pitch": 2,
+        "hiPitch": -1,
+        "duty": 3
+      }
+    },
+    {
+      "name": "lead-round",
+      "macros": {
+        "volume": 0,
+        "arpeggio": -1,
+        "pitch": 2,
+        "hiPitch": -1,
+        "duty": 2
+      }
+    },
+    {
+      "name": "lead-thin",
+      "macros": {
+        "volume": 0,
+        "arpeggio": -1,
+        "pitch": 2,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    },
+    {
+      "name": "lead-plain",
+      "macros": {
+        "volume": 0,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 1
+      }
+    },
+    {
+      "name": "harm-soft",
+      "macros": {
+        "volume": 1,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 1
+      }
+    },
+    {
+      "name": "echo-thin",
+      "macros": {
+        "volume": 2,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    },
+    {
+      "name": "echo-round",
+      "macros": {
+        "volume": 2,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 2
+      }
+    },
+    {
+      "name": "pluck",
+      "macros": {
+        "volume": 3,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 3
+      }
+    },
+    {
+      "name": "stab",
+      "macros": {
+        "volume": 4,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 2
+      }
+    },
+    {
+      "name": "pad",
+      "macros": {
+        "volume": 5,
+        "arpeggio": -1,
+        "pitch": 2,
+        "hiPitch": -1,
+        "duty": 5
+      }
+    },
+    {
+      "name": "arp-bed-maj",
+      "macros": {
+        "volume": 1,
+        "arpeggio": 0,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    },
+    {
+      "name": "arp-bed-min",
+      "macros": {
+        "volume": 1,
+        "arpeggio": 1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    },
+    {
+      "name": "bass",
+      "macros": {
+        "volume": 6,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": -1
+      }
+    },
+    {
+      "name": "bass-short",
+      "macros": {
+        "volume": 7,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": -1
+      }
+    },
+    {
+      "name": "tri-kick",
+      "macros": {
+        "volume": 8,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": 0,
+        "duty": -1
+      }
+    },
+    {
+      "name": "kick",
+      "macros": {
+        "volume": 9,
+        "arpeggio": -1,
+        "pitch": 0,
+        "hiPitch": -1,
+        "duty": 7
+      }
+    },
+    {
+      "name": "snare",
+      "macros": {
+        "volume": 10,
+        "arpeggio": 8,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 7
+      }
+    },
+    {
+      "name": "tom",
+      "macros": {
+        "volume": 10,
+        "arpeggio": -1,
+        "pitch": 1,
+        "hiPitch": -1,
+        "duty": 7
+      }
+    },
+    {
+      "name": "hat-closed",
+      "macros": {
+        "volume": 11,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 7
+      }
+    },
+    {
+      "name": "hat-open",
+      "macros": {
+        "volume": 12,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 7
+      }
+    },
+    {
+      "name": "crash",
+      "macros": {
+        "volume": 13,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 7
+      }
+    },
+    {
+      "name": "metal",
+      "macros": {
+        "volume": 14,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 8
+      }
+    },
+    {
+      "name": "dpcm-kit",
+      "macros": {
+        "volume": -1,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": -1
+      },
+      "dpcm": {
+        "36": {
+          "sample": 0,
+          "pitch": 12,
+          "loop": false,
+          "delta": 8
+        },
+        "39": {
+          "sample": 1,
+          "pitch": 15,
+          "loop": false,
+          "delta": 8
+        }
+      }
+    }
+  ]
+}

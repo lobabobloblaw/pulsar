@@ -1,6 +1,7 @@
 node_modules/
 dist/
 coverage/
+previews/
 public/pulsar-apu-worklet.js
 *.local
 .DS_Store
