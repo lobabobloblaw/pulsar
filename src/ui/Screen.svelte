@@ -181,18 +181,38 @@
     return box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
   }
 
+  /** Vertical room the live shell keeps around the canvas — stage padding,
+   *  brand row, well padding + pager, knobs, keys, foot and the grid gaps,
+   *  measured over CDP on the tightened layout (2026-08-04). The lattice takes
+   *  what is left of the viewport, which is what lets the whole instrument fit
+   *  a short window with no page scroll (dot 6 at ≥964px tall, 5 at ≥900,
+   *  down to DOT_MIN). If the shell ever grows past this the page scrolls a
+   *  little — visible and recoverable, which beats a lattice that resamples. */
+  const SHELL_OVERHEAD = 580
+
+  function canvasHeightBudget(): number {
+    return Math.max(0, window.innerHeight - SHELL_OVERHEAD)
+  }
+
   $effect(() => {
     const el = canvas
     const box = well
     if (!el || !box) return
 
     const matrix = new DotMatrix(el)
-    matrix.resize(wellContentWidth(box))
+    matrix.resize(wellContentWidth(box), canvasHeightBudget())
 
+    // ResizeObserver sees the well's width change; a purely vertical window
+    // resize moves only the viewport budget, so the window listener is not
+    // redundant with it.
     const ro = new ResizeObserver(() => {
-      matrix.resize(wellContentWidth(box))
+      matrix.resize(wellContentWidth(box), canvasHeightBudget())
     })
     ro.observe(box)
+    const onWindowResize = (): void => {
+      matrix.resize(wellContentWidth(box), canvasHeightBudget())
+    }
+    window.addEventListener('resize', onWindowResize)
 
     const stop = frame.subscribe((now) => {
       if (transport.page === 'boot' && !boot.done) {
@@ -210,6 +230,7 @@
 
     return () => {
       stop()
+      window.removeEventListener('resize', onWindowResize)
       ro.disconnect()
       matrix.destroy()
     }
@@ -294,7 +315,7 @@
   .well {
     display: grid;
     place-items: center;
-    padding: var(--s-4);
+    padding: var(--s-3);
     background: var(--screen-bg);
     border-radius: var(--r-3);
     box-shadow: var(--sh-well);

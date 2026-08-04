@@ -9,8 +9,11 @@
  *   dpr = max(1, round(devicePixelRatio))   <- ROUND, not raw. A 1.5x display
  *         renders at 2x and lets the compositor downscale; rendering AT 1.5x
  *         puts dot edges on half-pixels and the lattice shimmers.
- *   dot = clamp(min, floor(containerWidth / cols), max)   integer CSS px
- *   canvas CSS size = exactly cols*dot x rows*dot; leftover width is bezel.
+ *   dot = clamp(min, floor(min(width / cols, height / rows)), max)  integer CSS px
+ *         — the largest dot that fits BOTH axes (`dotFor`). Height defaults to
+ *         unbounded: the meter sizes by width alone, the screen passes the
+ *         viewport budget so the instrument fits a window without scrolling.
+ *   canvas CSS size = exactly cols*dot x rows*dot; leftover space is bezel.
  *
  * Two layers, because 8192 unlit squares per frame is the whole frame budget:
  *   Layer A  the unlit lattice, painted once into an offscreen surface and
@@ -21,6 +24,7 @@
  */
 
 import { DOT_MAX, DOT_MIN, LATTICE, SCREEN } from '../../design/tokens'
+import { dotFor } from './dotFit'
 import { ADVANCE, GLYPH_H, GLYPH_W, glyph, textWidth } from './font5x7'
 import { GLYPH8, glyph8 as glyphRows8, type Glyph8Name } from './glyphs8'
 import { watchDevicePixelRatio } from './gridMetrics'
@@ -62,9 +66,10 @@ export class DotMatrix {
   #used = 0
   /** Forces the next `resize` past its early-out. See the constructor. */
   #dprDirty = false
-  /** The last container width `resize` was given, so the DPR watcher can redo
+  /** The last container box `resize` was given, so the DPR watcher can redo
    *  the sizing itself — Meter sizes once at mount and never again. */
   #lastWidth = 0
+  #lastHeight = Infinity
   #unwatchDpr: () => void
 
   constructor(canvas: HTMLCanvasElement, opts: DotMatrixOptions = {}) {
@@ -90,7 +95,7 @@ export class DotMatrix {
     // itself exactly once at mount, so waiting for a caller would never heal.
     this.#unwatchDpr = watchDevicePixelRatio(() => {
       this.#dprDirty = true
-      if (this.#lastWidth > 0) this.resize(this.#lastWidth)
+      if (this.#lastWidth > 0) this.resize(this.#lastWidth, this.#lastHeight)
     })
   }
 
@@ -117,11 +122,11 @@ export class DotMatrix {
   }
 
   /** Returns true when the geometry actually changed. Safe to call per frame. */
-  resize(containerWidth: number): boolean {
+  resize(containerWidth: number, containerHeight: number = Infinity): boolean {
     this.#lastWidth = containerWidth
+    this.#lastHeight = containerHeight
     const dpr = Math.max(1, Math.round(globalThis.devicePixelRatio || 1))
-    const raw = Math.floor(containerWidth / this.cols)
-    const dot = raw < this.#dotMin ? this.#dotMin : raw > this.#dotMax ? this.#dotMax : raw
+    const dot = dotFor(containerWidth, containerHeight, this.cols, this.rows, this.#dotMin, this.#dotMax)
     if (dot === this.#dot && dpr === this.#dpr && this.#hasLattice() && !this.#dprDirty) return false
     this.#dprDirty = false
 

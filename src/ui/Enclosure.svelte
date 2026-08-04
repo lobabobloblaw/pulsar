@@ -55,7 +55,7 @@
     display: grid;
     place-items: start center;
     min-height: 100dvh;
-    padding: var(--s-6) var(--s-3);
+    padding: var(--s-4) var(--s-3);
     background: var(--page-bg);
   }
 
@@ -71,7 +71,7 @@
       'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
       'keys keys keys keys keys keys keys keys keys keys keys keys'
       'foot foot foot foot foot foot foot foot foot foot foot foot';
-    gap: var(--s-5) var(--s-4);
+    gap: var(--s-4);
     padding: var(--s-5);
     background: var(--enclosure-bg);
     border-radius: var(--r-4);
