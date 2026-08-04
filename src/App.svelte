@@ -33,6 +33,7 @@
   import KnobRow from './ui/KnobRow.svelte'
   import Screen from './ui/Screen.svelte'
   import StatusBar from './ui/StatusBar.svelte'
+  import PresetBar from './ui/tracker/PresetBar.svelte'
   import TrackerPanel from './ui/tracker/TrackerPanel.svelte'
   import { createBootSequence } from './ui/canvas/bootSequence'
   import { createFrameBus, provideFrame } from './ui/frame'
@@ -170,8 +171,15 @@
      block wrapper is inert visually and satisfies axe's landmark-one-main/region. -->
 <!-- The tracker area only exists while the panel is open, so the enclosure keeps
      its Phase-1 shape (and its Phase-1 width) when it is closed. -->
+<!-- The preset browser fills TrackerPanel's `presetBar` seam from here (design §5.6),
+     and gets the SAME LiveRegion route as the panel: a preset that fails to load says
+     so out loud, and that message has nowhere else to go. -->
 {#snippet trackerArea()}
-  <TrackerPanel announce={announceText} />
+  <TrackerPanel announce={announceText}>
+    {#snippet presetBar()}
+      <PresetBar announce={announceText} />
+    {/snippet}
+  </TrackerPanel>
 {/snippet}
 
 <main aria-label="pulsar">

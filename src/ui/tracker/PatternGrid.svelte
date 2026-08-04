@@ -25,7 +25,12 @@
   import { untrack } from 'svelte'
   import { bridge } from '../../audio/bridge'
   import { LOCAL_VELOCITY, NOTE_KEYS } from '../../input/keyboard'
-  import { resolveTrackerKey, type ColumnKind, type TrackerKeyContext } from '../../input/trackerKeys'
+  import {
+    resolveTrackerKey,
+    type ColumnKind,
+    type TrackerAction,
+    type TrackerKeyContext,
+  } from '../../input/trackerKeys'
   import { motion } from '../../state/motion.svelte'
   import { song } from '../../state/song.svelte'
   import { tracker } from '../../state/tracker.svelte'
@@ -268,38 +273,67 @@
     return { kind: f.kind }
   }
 
-  function write(field: CellField, value: number | null): void {
-    song.writeField(tracker.frame, tracker.channel, tracker.row, field, value)
+  /** One cell write, addressed by ORDER FRAME and row rather than by "wherever the
+   *  cursor is": live record lands on the frame that was playing when the key went
+   *  down, which is not necessarily the frame the editor is looking at (§2.6). */
+  function writeAt(frame: number, row: number, field: CellField, value: number | null): void {
+    song.writeField(frame, tracker.channel, row, field, value)
     dirty = true
+  }
+
+  function write(field: CellField, value: number | null): void {
+    writeAt(tracker.frame, tracker.row, field, value)
   }
 
   function advance(): void {
     if (tracker.editStep > 0) tracker.moveRow(tracker.editStep)
   }
 
-  /** Where a written note lands.
+  /** Where a written note lands: a row AND the order frame that row belongs to.
    *
-   *  Stopped: the cursor row — step record. Playing: live record, and the row
-   *  comes from the input event's OWN timestamp, not from the lookahead
-   *  (§2.6). WP9's `recordSink.onNote` is that mapping and returns the row it
-   *  chose; until it lands, the driver's current row is the same row the player
-   *  heard themselves play, which is the property that matters. */
-  function recordRow(note: number): number {
-    if (!tracker.position.playing) return tracker.row
-    const sink = (audio as { recordSink?: { onNote(n: number, v: number): number } | null })
-      .recordSink
-    const row = sink?.onNote(note, LOCAL_VELOCITY) ?? -1
-    return row >= 0 ? row : tracker.position.row
+   *  Stopped: the cursor — step record. Playing: live record, and both numbers come
+   *  from the input event's OWN timestamp rather than from the lookahead (§2.6).
+   *  `recordSink.onNote` is that mapping; it returns the row and publishes the frame
+   *  it was in on `orderIndex`. The frame is not optional detail — the playhead runs
+   *  through the order list while the editor sits still, so taking the row from the
+   *  recorder and the pattern from the cursor writes the note into a different
+   *  pattern than the one the player just heard. */
+  interface RecordTarget {
+    row: number
+    orderIndex: number
+  }
+
+  function recordTarget(note: number): RecordTarget {
+    if (!tracker.position.playing) return { row: tracker.row, orderIndex: tracker.frame }
+    const sink =
+      (
+        audio as {
+          recordSink?: { onNote(n: number, v: number): number; readonly orderIndex: number } | null
+        }
+      ).recordSink ?? null
+    const row = sink === null ? -1 : sink.onNote(note, LOCAL_VELOCITY)
+    // Unmappable (nothing in the row log yet): the driver's current position is the
+    // closest true answer, and it is at most one lookahead away.
+    if (sink === null || row < 0) {
+      return { row: tracker.position.row, orderIndex: tracker.position.orderIndex }
+    }
+    const order = sink.orderIndex
+    return { row, orderIndex: order >= 0 ? order : tracker.position.orderIndex }
   }
 
   function writeNote(note: number): void {
-    const row = recordRow(note)
-    if (row !== tracker.row) tracker.setCursor(row, tracker.channel, tracker.field)
-    write(NOTE_FIELD, note)
-    if (note >= 0 && song.field(tracker.frame, tracker.channel, tracker.row, INST_FIELD) === null) {
-      write(INST_FIELD, 0)
+    const { row, orderIndex } = recordTarget(note)
+    // The cursor only follows a recorded note when the note landed in the frame the
+    // editor is showing. Dragging it across frames would move the user's view out
+    // from under them mid-take, and the write has already been addressed properly.
+    if (orderIndex === tracker.frame && row !== tracker.row) {
+      tracker.setCursor(row, tracker.channel, tracker.field)
     }
-    announceCell(true)
+    writeAt(orderIndex, row, NOTE_FIELD, note)
+    if (note >= 0 && song.field(orderIndex, tracker.channel, row, INST_FIELD) === null) {
+      writeAt(orderIndex, row, INST_FIELD, 0)
+    }
+    announceCell(true, row, orderIndex)
     if (!tracker.position.playing) advance()
   }
 
@@ -345,9 +379,24 @@
 
   /* ---- key handling ------------------------------------------------------- */
 
+  /** Tab and shift-tab move between channels (§4.5) and every resolved action below
+   *  is `preventDefault`ed — which, on the grid's single tab stop, is a keyboard trap:
+   *  once focus is in here it can never leave, and WCAG 2.1.2 says it must be able to.
+   *  The escape hatch is the EDGE. Tab past the last channel and shift-tab before the
+   *  first are not moves the grid can make, so they fall through to the browser and
+   *  focus leaves normally. The keymap is untouched (`trackerKeys.test.ts` pins the
+   *  mapping); this is the one place that knows how many channels there are. */
+  function tabLeavesGrid(e: KeyboardEvent, action: TrackerAction): boolean {
+    if (e.code !== 'Tab' || action.kind !== 'move') return false
+    if (action.channels > 0) return tracker.channel >= channelCount - 1
+    if (action.channels < 0) return tracker.channel <= 0
+    return false
+  }
+
   function onKeyDown(e: KeyboardEvent): void {
     const action = resolveTrackerKey(e, keyContext())
     if (action === null) return
+    if (tabLeavesGrid(e, action)) return
     e.preventDefault()
     if (e.repeat && (action.kind === 'note' || action.kind === 'toggleEdit')) return
 
@@ -541,9 +590,9 @@
 
   /* ---- announcements (§4.4) ----------------------------------------------- */
 
-  function cellLabel(row: number, channel: number): string {
+  function cellLabel(row: number, channel: number, frame: number = tracker.frame): string {
     const name = labels[channel] ?? ''
-    const cell = song.cell(tracker.frame, channel, row)
+    const cell = song.cell(frame, channel, row)
     if (cell === null) return `channel ${name}, row ${row}, empty`
     const parts: string[] = []
     if (cell.note !== undefined) {
@@ -564,12 +613,18 @@
     return `channel ${name}, row ${row}, ${parts.join(', ')}`
   }
 
-  /** One announcement per 250 ms for movement; edits always announce (§4.4). */
-  function announceCell(immediate: boolean): void {
+  /** One announcement per 250 ms for movement; edits always announce (§4.4). The
+   *  target defaults to the cursor and is passed explicitly by live record, which can
+   *  write a cell the cursor is not standing on. */
+  function announceCell(
+    immediate: boolean,
+    row: number = tracker.row,
+    frame: number = tracker.frame,
+  ): void {
     const now = performance.now()
     if (!immediate && now - lastAnnounceAt < 250) return
     lastAnnounceAt = now
-    announce?.(cellLabel(tracker.row, tracker.channel))
+    announce?.(cellLabel(row, tracker.channel, frame))
   }
 
   const cellId = (row: number, channel: number): string => `pg-${row}-${channel}`

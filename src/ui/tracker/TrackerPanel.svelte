@@ -16,7 +16,8 @@
   second control language.
 -->
 <script lang="ts">
-  import type { Snippet } from 'svelte'
+  import { untrack, type Snippet } from 'svelte'
+  import { bridge } from '../../audio/bridge'
   import { bpm } from '../../state/songModel'
   import { song } from '../../state/song.svelte'
   import { tracker } from '../../state/tracker.svelte'
@@ -28,19 +29,37 @@
   interface Props {
     announce?: ((message: string) => void) | undefined
     /** ===== PresetBar mount seam (design §5.6 / §6.2) ====================
-     *  `src/ui/tracker/PresetBar.svelte` is WP11's file and does not exist
-     *  yet. Two ways in, both one line, neither of which touches anything
-     *  else in this component:
+     *  Filled by `src/App.svelte`, which owns the LiveRegion the preset bar
+     *  announces through:
      *
-     *    1. pass it here — `<TrackerPanel>{#snippet presetBar()}<PresetBar/>{/snippet}`
-     *    2. or import it in this file and render it inside
-     *       `[data-slot="preset-bar"]` below, replacing the placeholder.
+     *      <TrackerPanel announce={announceText}>
+     *        {#snippet presetBar()}<PresetBar announce={announceText} />{/snippet}
+     *      </TrackerPanel>
      *
-     *  The slot keeps its size and position either way, so the panel's
-     *  layout does not move when the presets land. */
+     *  Left as a prop rather than imported here so the panel keeps no
+     *  dependency on the preset registry, and so a host that has no presets
+     *  (a test, an embed) renders the placeholder instead. The slot keeps its
+     *  size and position either way, so the panel's layout does not move. */
     presetBar?: Snippet | undefined
   }
   let { announce, presetBar }: Props = $props()
+
+  /** The driver holds a COMPILED copy of the document, so an edit made while the
+   *  transport is running is inert until the song is handed over again — you type a
+   *  note into the row the playhead is about to reach and hear nothing. `song.version`
+   *  is bumped by every command, undo and redo, which makes it the one signal to
+   *  watch. Stopped, this does nothing: `tracker.play()` already loads on the way in.
+   *
+   *  `untrack` around the reload keeps the effect's dependency set to exactly the
+   *  version counter — `loadSong` reads the whole document, and subscribing to that
+   *  would re-run this on every keystroke of an edit it just published. */
+  $effect(() => {
+    void song.version
+    untrack(() => {
+      if (!tracker.playing) return
+      bridge().loadSong(song.doc)
+    })
+  })
 
   const songBpm = $derived(Math.round(bpm(song.doc.meta) * 10) / 10)
   const drvTone = $derived(

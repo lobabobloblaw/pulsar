@@ -314,6 +314,16 @@ export class TrackerDriver {
     this.compiled = compileSong(song)
     this.macros.setMacros(compileMacros(song))
     this.applySong(song)
+    // A document swap UNDER A RUNNING DRIVER is the everyday case now that an edit
+    // during playback reloads the song (§4.6 + S1): the new document may have fewer
+    // order frames or shorter patterns than the position the driver is standing on,
+    // and `latchRow` indexes both without a bound check because on every other path
+    // they cannot be out of range. Clamp here, once, rather than paying for a test
+    // per channel per row.
+    const frames = Math.max(1, this.compiled.frameCount)
+    if (this.orderIndex >= frames) this.orderIndex = frames - 1
+    if (this.row >= this.rowsPerPattern) this.row = Math.max(0, this.rowsPerPattern - 1)
+    this.publish()
   }
 
   private applySong(song: Song): void {
@@ -566,6 +576,7 @@ export class TrackerDriver {
     this.rowLogCount++
 
     const compiled = this.compiled
+    let handedBack = false
     for (let ch = 0; ch < this.channelCount; ch++) {
       this.pendNote[ch] = NOTE_NONE
       this.pendInst[ch] = -1
@@ -579,6 +590,7 @@ export class TrackerDriver {
         this.sounding[ch] = 0
         this.regs.setEnabled(ch, false)
         this.regs.invalidate(ch)
+        handedBack = true
       }
 
       const slot = compiled.order[this.orderIndex * compiled.channelCount + ch]
@@ -607,6 +619,13 @@ export class TrackerDriver {
       this.pendVol[ch] = vol
       if (note !== NOTE_NONE || inst >= 0 || vol >= 0) this.pendTick[ch] = delay
     }
+
+    // Clearing the enable bit in the image is not silence — silence is the BYTE going
+    // out. Without this the handed-back lane keeps sounding the live note until the
+    // song happens to trigger that channel again, which on a lane with nothing left to
+    // play is never: a live audition released during playback hung the channel. Write-
+    // on-change, so a row where nothing was stolen still costs one comparison.
+    if (handedBack) this.regs.status(this.sink, this.lastCycleHint, false)
   }
 
   /** Effect memory (§3.5). Recorded for all eight memory letters; consulted on a `00`
@@ -1154,6 +1173,11 @@ export class PlaybackCoordinator {
   private readonly scheduler: CoordinatorScheduler
   readonly driver: TrackerDriver
 
+  /** Does the DRIVER own the timeline right now? Not the same question as
+   *  `driver.playing`: a `Cxx` self-halt stops the driver while ownership is still
+   *  outstanding, and a `stop()` that never followed a `start()` never had it. */
+  #owned = false
+
   constructor(engine: CoordinatorEngine, scheduler: CoordinatorScheduler, driver: TrackerDriver) {
     this.engine = engine
     this.scheduler = scheduler
@@ -1164,10 +1188,18 @@ export class PlaybackCoordinator {
     return this.driver.playing
   }
 
+  /** True between a `start()` and its matching `stop()`. */
+  get owns(): boolean {
+    return this.#owned
+  }
+
   /** Steps 1–5 of §2.6's handoff, in order. Returns the cycle playback was anchored
    *  at, so a caller (or a test) can assert the ordering. */
   start(mode: PlayMode, from?: { order: number; row: number }, lookaheadCycles = 0): NesCycle {
-    if (this.driver.playing) this.stop()
+    // Gated on OWNERSHIP, not on `driver.playing`: a driver that halted itself on a
+    // `Cxx` is not playing but has not handed the timeline back either, and starting
+    // over it would leave the scheduler's clamp behind the driver's last write.
+    if (this.#owned) this.stop()
     this.scheduler.allNotesOff()
     const start = Math.max(
       this.engine.nowCycle() + msToCycles(this.engine.clockRate, START_LATENCY_MS),
@@ -1176,6 +1208,7 @@ export class PlaybackCoordinator {
     this.scheduler.reset(start)
     this.driver.play(mode, from)
     this.driver.originCycle = start
+    this.#owned = true
     if (lookaheadCycles > 0) this.driver.runTo(start + lookaheadCycles)
     this.engine.flush()
     return start
@@ -1183,8 +1216,17 @@ export class PlaybackCoordinator {
 
   /** The driver emits its final all-channels-off writes at horizon H, then the
    *  scheduler's monotonic clamp resumes from H + 1 — so the first live note after a
-   *  stop can never be scheduled behind a write the driver already queued. */
+   *  stop can never be scheduled behind a write the driver already queued.
+   *
+   *  A stop the driver never owned does NOTHING. `scheduler.reset()` drops the held
+   *  stack and the sounding note without emitting a write, so calling it while the
+   *  scheduler is the owner strands whatever is sounding: the note-off that follows
+   *  finds nothing to cut and the key is stuck until the next note steals it. Escape
+   *  in the grid, closing the panel and every preset click all reach here with the
+   *  driver stopped, which is exactly how that happened. */
   stop(): NesCycle {
+    if (!this.#owned) return this.scheduler.lastScheduledCycle
+    this.#owned = false
     const h = this.driver.horizonCycle
     this.driver.stop()
     const after = Math.max(h, this.driver.lastWriteCycle) + 1

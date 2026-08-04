@@ -44,6 +44,14 @@ function heldNote() {
   })
 }
 
+/** The `$4015` byte as it stands after everything written so far, or −1 if the driver
+ *  has not written one. The whole byte, because that is how the driver writes it. */
+function lastStatus(sink: ArrayWriteSink): number {
+  let v = -1
+  for (let i = 0; i < sink.length; i++) if (sink.addrs[i] === REG.STATUS) v = sink.values[i]
+  return v
+}
+
 describe('write-on-change', () => {
   it('writes $4003 exactly once for a ten-second held note', () => {
     const song = heldNote()
@@ -352,6 +360,108 @@ describe('Rule L — one owner of the timeline at a time', () => {
     // ...and the song has the lane back by the next row boundary.
     expect(driver.position.playing).toBe(true)
   })
+
+  it('SILENCES the stolen lane on handback — the $4015 bit actually clears', () => {
+    // The lane the live note steals has nothing left to play, which is the case that
+    // hung: clearing the enable bit in the register IMAGE is not silence, and until
+    // the byte goes out the channel sounds the live note forever. The triangle keeps
+    // the song running so the run is not just a stop in disguise.
+    const song = buildSong({
+      meta: { speed: 4, rowsPerPattern: 4 },
+      patterns: {
+        'pulse1:0': [{ r: 0, note: 60, vol: 15 }],
+        'triangle:0': [{ r: 0, note: 48 }],
+      },
+    })
+    const sink = new ArrayWriteSink()
+    const driver = new TrackerDriver(sink, CLOCK, { song })
+    driver.setLiveChannel(0)
+    driver.play('song')
+    driver.runTo(cycleOfTick(0, 3, NTSC_CPU_HZ, 60))
+
+    driver.liveNoteOn(0, 84, 127)
+    driver.runTo(cycleOfTick(0, 7, NTSC_CPU_HZ, 60))
+    const statusAtSteal = lastStatus(sink)
+    expect(statusAtSteal & 0x01).toBe(0x01)
+
+    driver.liveNoteOff(0, 84)
+    driver.runTo(cycleOfTick(0, 15, NTSC_CPU_HZ, 60))
+    const statusAfter = lastStatus(sink)
+    // Pulse 1 is off; the triangle, which nobody stole, is untouched.
+    expect(statusAfter & 0x01).toBe(0)
+    expect(statusAfter & 0x04).toBe(0x04)
+    expect(driver.position.playing).toBe(true)
+    expect(driver.position.levels[0]).toBe(0)
+  })
+
+  it('does not touch the live scheduler on a stop it never started', () => {
+    // Escape in the grid, closing the panel and every preset click call stop() with
+    // nothing playing. `scheduler.reset()` drops the held stack and the sounding note
+    // WITHOUT emitting a write, so doing it here strands whatever the user is holding:
+    // the note-off that follows finds nothing to cut and the key is stuck.
+    const engine = new FakeEngine()
+    const scheduler = new LiveScheduler(engine, { adaptive: false })
+    const driver = new TrackerDriver(engine, engine, { song: buildSong() })
+    const coordinator = new PlaybackCoordinator(engine, scheduler, driver)
+
+    engine.now = 100_000
+    scheduler.noteOn(60, 127)
+    expect(scheduler.sounding).toBe(60)
+
+    coordinator.stop()
+    expect(scheduler.sounding).toBe(60)
+    expect(scheduler.heldNotes).toBe(1)
+    expect(coordinator.owns).toBe(false)
+
+    const before = engine.sink.length
+    scheduler.noteOff(60)
+    let cleared = false
+    for (let i = before; i < engine.sink.length; i++) {
+      if (engine.sink.addrs[i] === REG.STATUS) cleared = (engine.sink.values[i] & 0x01) === 0
+    }
+    expect(cleared, 'the key coming up must still silence pulse 1').toBe(true)
+  })
+
+  it('hands the timeline back after the driver halts ITSELF on a Cxx', () => {
+    const engine = new FakeEngine()
+    const scheduler = new LiveScheduler(engine, { adaptive: false })
+    const song = buildSong({
+      meta: { speed: 1, rowsPerPattern: 4 },
+      patterns: {
+        'pulse1:0': [
+          { r: 0, note: 60, vol: 15 },
+          { r: 1, fx: [{ cmd: 'C', param: 0 }] },
+        ],
+      },
+    })
+    const driver = new TrackerDriver(engine, engine, { song })
+    const coordinator = new PlaybackCoordinator(engine, scheduler, driver)
+
+    engine.now = 10_000
+    coordinator.start('song', undefined, msToCycles(NTSC_CPU_HZ, 120))
+    // The halt is inside the first lookahead: stopped, but still the owner.
+    expect(coordinator.playing).toBe(false)
+    expect(coordinator.owns).toBe(true)
+    const halted = driver.lastWriteCycle
+    expect(halted).toBeGreaterThan(0)
+
+    // Play again straight away — what a user does when a song halts on them. The
+    // driver is not playing, but it never handed the timeline back either, so a start
+    // gated on `driver.playing` re-anchors at the scheduler's stale clamp and writes
+    // BEHIND everything the halted run already queued.
+    coordinator.start('song', undefined, msToCycles(NTSC_CPU_HZ, 120))
+    const cycles = engine.sink.cycles
+    for (let i = 1; i < engine.sink.length; i++) {
+      expect(cycles[i], `write ${i}`).toBeGreaterThanOrEqual(cycles[i - 1])
+    }
+
+    // ...and an explicit stop after a self-halt still hands back, so the live
+    // scheduler resumes strictly past every write the driver queued.
+    const resume = coordinator.stop()
+    expect(coordinator.owns).toBe(false)
+    expect(scheduler.lastScheduledCycle).toBe(resume)
+    expect(resume).toBeGreaterThan(driver.lastWriteCycle)
+  })
 })
 
 describe('mute and solo', () => {
@@ -468,6 +578,38 @@ describe('transport state machine', () => {
     expect(driver.position.orderIndex).toBe(0)
     expect(countWrites(sink, REG.P1_LO)).toBe(0)
     expect(driver.stats.loops).toBeGreaterThanOrEqual(3)
+  })
+
+  it('clamps its position when a shorter document is loaded UNDER it', () => {
+    // An edit during playback reloads the driver (the panel's `song.version` effect),
+    // and the new document can be shorter than the position the driver is standing on.
+    // `latchRow` indexes the order list and the pattern without a bound check, so an
+    // unclamped reload walks off both — a TypeError inside the pump timer, i.e. audio
+    // that stops with no visible cause.
+    const long = buildSong({
+      meta: { speed: 1, rowsPerPattern: 64 },
+      order: [
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0],
+      ],
+      patterns: { 'pulse1:0': [{ r: 0, note: 60, vol: 15 }] },
+    })
+    const sink = new ArrayWriteSink()
+    const driver = new TrackerDriver(sink, CLOCK, { song: long })
+    driver.play('song', { order: 2, row: 60 })
+    expect(driver.position.orderIndex).toBe(2)
+
+    driver.loadSong(
+      buildSong({
+        meta: { speed: 1, rowsPerPattern: 16 },
+        patterns: { 'pulse1:0': [{ r: 0, note: 60, vol: 15 }] },
+      }),
+    )
+    expect(driver.position.orderIndex).toBe(0)
+    expect(driver.position.row).toBeLessThan(16)
+    expect(() => driver.runTo(cycleOfTick(0, 40, NTSC_CPU_HZ, 60))).not.toThrow()
+    expect(driver.position.playing).toBe(true)
   })
 
   it('stop() silences everything at or after the last write it emitted', () => {

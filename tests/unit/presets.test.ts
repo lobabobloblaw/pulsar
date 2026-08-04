@@ -35,7 +35,8 @@
  *     as §7.1's `percussionGap` amendment, for the same reason.
  */
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parseSong, serializeSong, type Diagnostic } from '../../src/tracker/model/validate'
@@ -620,6 +621,27 @@ describe('the shared instrument bank', () => {
     // far from its preload permanently ducks the triangle and the noise (§1).
     for (const s of printed) expect(Math.abs(s.finalLevel - 8), s.name).toBeLessThanOrEqual(4)
     expect(BANK.samples.map((s) => [s.name, s.data])).toEqual(printed.map((s) => [s.name, s.data]))
+  })
+
+  it('generates the same samples from a path with a space in it', () => {
+    // `import.meta.url === \`file://${process.argv[1]}\`` is a string comparison against
+    // something that is not a URL: any path component needing percent-encoding — a
+    // space is the everyday one, "My Project", "Google Drive" — makes the check false,
+    // and the script then silently prints nothing at all. The pin test above would
+    // still pass, because THIS repository's path happens to have no spaces.
+    const dir = join(mkdtempSync(join(tmpdir(), 'pulsar-')), 'a dir with spaces')
+    mkdirSync(dir, { recursive: true })
+    const copied = join(dir, 'makeDpcm.mjs')
+    copyFileSync(join(ROOT, 'tools', 'songs', 'makeDpcm.mjs'), copied)
+    try {
+      const out = execFileSync(process.execPath, [copied, '--json'], { encoding: 'utf8' })
+      expect(out.trim(), 'the script printed nothing — it did not recognise itself').not.toBe('')
+      const printed = JSON.parse(out) as { name: string; data: string }[]
+      expect(printed.map((s) => s.name)).toEqual(['dpcm-kick', 'dpcm-snare'])
+      expect(printed.map((s) => s.data)).toEqual(BANK.samples.map((s) => s.data))
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
 

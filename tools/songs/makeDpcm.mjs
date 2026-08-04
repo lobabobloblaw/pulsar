@@ -31,6 +31,9 @@
  *  tail requirement above for free.
  */
 
+import { realpathSync } from 'node:fs'
+import { pathToFileURL } from 'node:url'
+
 const CPU_HZ = 1789773
 /** $4010 rate index → CPU cycles per output bit. Index 12 = 106, index 15 = 54. */
 const DMC_RATE_NTSC = [428, 380, 340, 320, 286, 254, 226, 214, 190, 160, 142, 128, 106, 84, 72, 54]
@@ -195,4 +198,22 @@ function main() {
   process.stdout.write(`${lines.join('\n')}\n`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main()
+/** Was this file run, rather than imported?
+ *
+ *  Comparing `import.meta.url` against "file://" + `process.argv[1]` is a string test
+ *  against something that is not a URL, and it is false for two everyday paths: one containing
+ *  a character a URL must percent-encode (a space — "My Project", "Google Drive"), and
+ *  one reached through a symlink (`/tmp` and `/var` on macOS both are). Either way the
+ *  script prints NOTHING and exits 0, which looks exactly like success. `import.meta.url`
+ *  is built by node from the resolved real path, so both sides are normalised here. */
+function invokedDirectly() {
+  const entry = process.argv[1]
+  if (entry === undefined) return false
+  try {
+    return import.meta.url === pathToFileURL(realpathSync(entry)).href
+  } catch {
+    return false
+  }
+}
+
+if (invokedDirectly()) main()

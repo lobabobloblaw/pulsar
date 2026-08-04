@@ -1110,6 +1110,18 @@ piece renders to a listenable file.
 - Renders are ~1–2 s of CPU per song (faster than realtime through the same core), so the
   whole album previews in well under a minute.
 
+**One level caveat, stated once so nobody re-derives it from a listening test.** Previews —
+and every gate measurement in `presets.test.ts` — render at `masterGain 2.0`, the offline
+renderer's default. That is the unity-full-scale mapping and it is exactly the master
+knob's maximum: the app's taper is `2.0 · v²`, so the knob at its top is the same gain
+these files were rendered at. The app's *default* knob position is 0.72, which is
+`2.0 · 0.72² = 1.0368` — about **5.7 dB quieter** than the preview of the same song.
+Nothing about the mix changes with it: relative channel levels, the clipping margin and
+every dBFS *difference* the gates assert are all gain-invariant, and no gate threshold is
+affected. It only means an auditioner comparing a preview against the running app should
+put the master knob at maximum first, or they will hear the app as the quieter of the two
+and blame the arrangement.
+
 ### 7.3 the loop, end to end
 
 1. **Director** hands each composer agent this document plus its batch's briefs.

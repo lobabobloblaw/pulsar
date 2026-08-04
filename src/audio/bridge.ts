@@ -189,6 +189,15 @@ class RealBridge implements AudioBridge {
   #lookaheadMs = LOOKAHEAD_MS
   #visibilityHandler: (() => void) | null = null
   #lastDropped = 0
+  /** Bumped by every `play()` and by every `stopPlayback()`. `#playAsync` re-reads it
+   *  after each await and abandons the start if it moved — a stop pressed during the
+   *  ~100 ms cold-page engine start would otherwise be swallowed and playback would
+   *  begin after the user asked for silence. */
+  #playSeq = 0
+  /** The DPCM image the current song needs, kept because `loadSong` almost always
+   *  runs BEFORE the engine exists (the store loads the document at mount; the engine
+   *  waits for a gesture). Posted again from `#run()`, or the kit is silent all session. */
+  #dpcmMemory: Uint8Array | null = null
 
   #status: BridgeStatus
   #subs = new Set<(s: BridgeStatus) => void>()
@@ -273,6 +282,11 @@ class RealBridge implements AudioBridge {
         return
       }
       this.#engine = engine
+
+      // The song was loaded long before this gesture; its sample memory has to be
+      // handed to the freshly built worklet or every DPCM note is silently dropped.
+      const dpcm = this.#dpcmMemory
+      if (dpcm !== null) engine.node.port.postMessage({ t: 'dpcm', mem: dpcm })
 
       // The scheduler starts from whatever the knobs already say — the UI has been
       // authoritative since before the audio thread existed.
@@ -390,6 +404,7 @@ class RealBridge implements AudioBridge {
     this.#driver.loadSong(song)
     const image = buildDpcmImage(song)
     this.#driver.dpcmLayout = image === null ? null : image.layout
+    this.#dpcmMemory = image === null ? null : image.memory
     if (image !== null) this.#engine?.node.port.postMessage({ t: 'dpcm', mem: image.memory })
   }
 
@@ -398,20 +413,25 @@ class RealBridge implements AudioBridge {
   }
 
   async #playAsync(mode: PlayMode, from?: { order: number; row: number }): Promise<void> {
+    const seq = ++this.#playSeq
     await this.start()
+    if (seq !== this.#playSeq) return
     const engine = this.#engine
     const coordinator = this.#coordinator
     if (engine === null || coordinator === null || this.#disposed) return
     // The known phase-1 gap — notes pressed during the ~100 ms engine start are
     // dropped — becomes load-bearing here, so playback waits for the clock anchor.
     await engine.ready()
-    if (this.#disposed) return
+    // Two awaits, two chances for the user to change their mind. A stop (or a second
+    // play) taken during either one wins: it moved the token, so this start abandons.
+    if (seq !== this.#playSeq || this.#disposed) return
     this.#applyVisibility()
     coordinator.start(mode, from, msToCycles(engine.clockRate, this.#lookaheadMs))
     this.#startPump()
   }
 
   stopPlayback(): void {
+    this.#playSeq++
     this.#stopPump()
     this.#coordinator?.stop()
   }
@@ -475,7 +495,14 @@ class RealBridge implements AudioBridge {
       this.#lastDropped = dropped
       this.#diag.droppedWrites = dropped
     }
-    if (!coordinator.playing) this.#stopPump()
+    if (!coordinator.playing) {
+      // The driver stopped itself — a `Cxx` halt, or the end of a non-looping song.
+      // Stopping the pump is not enough: the timeline is still the driver's until it
+      // is handed back, so the live scheduler would keep clamping behind it and the
+      // next `play()` would start over an owner that never let go (S3).
+      this.#stopPump()
+      coordinator.stop()
+    }
   }
 
   /** Native units. Remembered even before the engine exists, so the knobs' state
