@@ -36,6 +36,7 @@
   const audio = bridge()
   const frame = useFrame()
 
+  let wrap = $state<HTMLDivElement | null>(null)
   let well = $state<HTMLDivElement | null>(null)
   let canvas = $state<HTMLCanvasElement | null>(null)
   /** The live half of the song page's text mirror. Written from the frame loop
@@ -176,9 +177,13 @@
    *  picked a dot one too large — the canvas then hit reset.css's
    *  `max-width: 100%` and the lattice resampled at 2.036 device px per CSS px
    *  instead of overflowing loudly. */
-  function wellContentWidth(box: HTMLElement): number {
-    const cs = getComputedStyle(box)
-    return box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+  /** The width the lattice may take: the full screen row minus the module's
+   *  bezel padding. Measured on the WRAPPER — the well hugs the canvas like a
+   *  fitted display module, so measuring the well itself would chase its own
+   *  content around. */
+  function latticeWidthBudget(wrapEl: HTMLElement, wellEl: HTMLElement): number {
+    const cs = getComputedStyle(wellEl)
+    return wrapEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
   }
 
   /** Vertical room the live shell keeps around the canvas — stage padding,
@@ -197,20 +202,21 @@
   $effect(() => {
     const el = canvas
     const box = well
-    if (!el || !box) return
+    const outer = wrap
+    if (!el || !box || !outer) return
 
     const matrix = new DotMatrix(el)
-    matrix.resize(wellContentWidth(box), canvasHeightBudget())
+    matrix.resize(latticeWidthBudget(outer, box), canvasHeightBudget())
 
-    // ResizeObserver sees the well's width change; a purely vertical window
+    // ResizeObserver sees the row's width change; a purely vertical window
     // resize moves only the viewport budget, so the window listener is not
     // redundant with it.
     const ro = new ResizeObserver(() => {
-      matrix.resize(wellContentWidth(box), canvasHeightBudget())
+      matrix.resize(latticeWidthBudget(outer, box), canvasHeightBudget())
     })
-    ro.observe(box)
+    ro.observe(outer)
     const onWindowResize = (): void => {
-      matrix.resize(wellContentWidth(box), canvasHeightBudget())
+      matrix.resize(latticeWidthBudget(outer, box), canvasHeightBudget())
     }
     window.addEventListener('resize', onWindowResize)
 
@@ -284,8 +290,10 @@
 </script>
 
 <div class="screen">
-  <div class="well" bind:this={well}>
-    <canvas bind:this={canvas} aria-hidden="true"></canvas>
+  <div class="wellwrap" bind:this={wrap}>
+    <div class="well" bind:this={well}>
+      <canvas bind:this={canvas} aria-hidden="true"></canvas>
+    </div>
   </div>
 
   <p class="sr" aria-live="off">{screenText}<span bind:this={posEl}></span></p>
@@ -312,13 +320,46 @@
     gap: var(--s-3);
   }
 
+  .wellwrap {
+    display: grid;
+    justify-items: center;
+  }
+
+  /* The well hugs the lattice like a fitted display module: a machined rim
+     around dark glass, not a tray of empty screen. */
   .well {
+    position: relative;
+    width: fit-content;
     display: grid;
     place-items: center;
     padding: var(--s-3);
     background: var(--screen-bg);
     border-radius: var(--r-3);
-    box-shadow: var(--sh-well);
+    box-shadow:
+      var(--sh-well),
+      0 0 0 1px rgb(0 0 0 / 0.4);
+  }
+
+  /* Glass: one faint diagonal sheet reflection. Decoration, so it dies under
+     prefers-contrast and never intercepts the pointer. */
+  .well::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      rgb(255 255 255 / 0.06),
+      rgb(255 255 255 / 0.015) 30%,
+      transparent 46%
+    );
+  }
+
+  @media (prefers-contrast: more) {
+    .well::after {
+      background: none;
+    }
   }
 
   canvas {
@@ -330,9 +371,12 @@
     max-width: none;
   }
 
+  /* The page dots belong to the display module above them, so they centre
+     with it rather than hanging off the row's left edge. */
   .pager {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: var(--s-2);
   }
 

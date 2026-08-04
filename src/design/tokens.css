@@ -121,9 +121,19 @@
   --r-4: 20px;
   --r-max: 50%;
 
-  /* ---- exactly two shadows --------------------------------------------- */
+  /* ---- the shadow vocabulary — three, each with one job ----------------- */
+  /* inset: a control emboss · well: a recessed display · slab: the enclosure
+     itself as an OBJECT — chamfer light along the top edge, shade under the
+     bottom edge, a tight contact shadow and an ambient drop onto the desk.
+     (This section said "exactly two shadows" until the materials pass; the
+     discipline stands — a new shadow needs a new physical story.) */
   --sh-inset: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(0 0 0 / 0.12);
   --sh-well: inset 0 3px 8px rgb(0 0 0 / 0.55), 0 1px 0 rgb(255 255 255 / 0.55);
+  --sh-slab:
+    inset 0 1px 0 rgb(255 255 255 / 0.65),
+    inset 0 -2px 0 rgb(0 0 0 / 0.1),
+    0 2px 3px rgb(0 0 0 / 0.18),
+    0 18px 40px -16px rgb(0 0 0 / 0.4);
 
   /* ---- focus: one double ring, used verbatim everywhere ----------------- */
   --focus: 0 0 0 2px var(--n-000), 0 0 0 4px var(--a-blue);
@@ -162,6 +172,11 @@
 :root[data-room='night'] {
   --page-bg: #7d7d7d;
   --enclosure-bg: var(--n-500);
+  --sh-slab:
+    inset 0 1px 0 rgb(255 255 255 / 0.22),
+    inset 0 -2px 0 rgb(0 0 0 / 0.18),
+    0 2px 3px rgb(0 0 0 / 0.3),
+    0 18px 40px -16px rgb(0 0 0 / 0.55);
   --enclosure-ink: #0d0d0d; /* 6.01:1 on #8f8f8f */
   --enclosure-ink-2: var(--n-800); /* 5.44:1 on #8f8f8f */
   --enclosure-hairline: var(--n-600);
@@ -259,15 +274,21 @@ body {
   height: 24px;
   padding: 0;
   color: var(--enclosure-ink);
-  background: var(--chip-bg);
+  background-color: var(--chip-bg);
+  /* Top light on the cap face + a hairline of contact under it: raised, not
+     printed. */
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 45%);
   border: 0;
   border-radius: var(--r-1);
-  box-shadow: var(--sh-inset);
+  box-shadow:
+    var(--sh-inset),
+    0 1px 1px rgb(0 0 0 / 0.2);
   cursor: pointer;
 }
 
 .key:active {
   transform: translateY(0.5px);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.28);
 }
 
 .key:focus-visible {

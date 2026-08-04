@@ -203,6 +203,12 @@
       {/each}
 
       <circle class="cap" cx="28" cy="28" r="18" />
+      <!-- Dome light: a soft shade along the lower curve, a sheen along the
+           upper. Static on purpose — the light does not rotate with the
+           indicator, and the one animated transform stays the rotation
+           (D-U1). -->
+      <path class="shade" d="M14 32.5 A16.5 16.5 0 0 0 42 32.5" />
+      <path class="sheen" d="M15 22.5 A16 16 0 0 1 41 22.5" />
       <g transform="rotate({angle} 28 28)">
         <line class="indicator" x1="28" y1="13" x2="28" y2="24" />
       </g>
@@ -257,6 +263,34 @@
     fill: var(--key-face);
     stroke: var(--enclosure-hairline);
     stroke-width: 1;
+    /* The cap sits ON the face: a contact shadow where it meets the panel. */
+    filter: drop-shadow(0 1.5px 1px rgb(0 0 0 / 0.3));
+  }
+
+  .shade {
+    fill: none;
+    stroke: rgb(0 0 0 / 0.12);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    filter: blur(1.5px);
+  }
+
+  .sheen {
+    fill: none;
+    stroke: rgb(255 255 255 / 0.6);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    filter: blur(1.2px);
+  }
+
+  @media (prefers-contrast: more) {
+    .cap {
+      filter: none;
+    }
+    .shade,
+    .sheen {
+      display: none;
+    }
   }
 
   .indicator {

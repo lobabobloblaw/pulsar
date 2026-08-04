@@ -40,6 +40,12 @@
 
 <div class="stage">
   <div class="device" class:with-tracker={tracker !== undefined}>
+    <!-- Four machined screws, slots at the uneven angles assembly leaves
+         behind. Furniture, not information: hidden from the tree. -->
+    <span class="screw" aria-hidden="true"></span>
+    <span class="screw" aria-hidden="true"></span>
+    <span class="screw" aria-hidden="true"></span>
+    <span class="screw" aria-hidden="true"></span>
     <header class="area brand">{@render brand()}</header>
     <div class="area stat">{@render status()}</div>
     {#if tracker}
@@ -56,12 +62,19 @@
 </div>
 
 <style>
+  /* Light falls from above the desk, so the object below can cast a shadow
+     into something. */
   .stage {
     display: grid;
     place-items: start center;
     min-height: 100dvh;
     padding: var(--s-4) var(--s-3);
-    background: var(--page-bg);
+    background: radial-gradient(
+        120% 90% at 50% -10%,
+        rgb(255 255 255 / 0.07),
+        rgb(0 0 0 / 0.05) 70%
+      ),
+      var(--page-bg);
   }
 
   .device {
@@ -78,9 +91,12 @@
       'foot foot foot foot foot foot foot foot foot foot foot foot';
     gap: var(--s-4);
     padding: var(--s-5);
-    background: var(--enclosure-bg);
+    /* The faintest vertical sheen over the paint — machined face, not flat
+       fill. The grain layer in ::before does the micro texture. */
+    background-image: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(0 0 0 / 0.04));
+    background-color: var(--enclosure-bg);
     border-radius: var(--r-4);
-    box-shadow: var(--sh-inset);
+    box-shadow: var(--sh-slab);
     transition:
       background-color var(--dur-med) var(--ease),
       color var(--dur-med) var(--ease);
@@ -124,6 +140,54 @@
     .device::before {
       opacity: 0;
     }
+    .device,
+    .stage {
+      background-image: none;
+    }
+  }
+
+  .screw {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: var(--r-max);
+    background:
+      radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.75), rgb(0 0 0 / 0.1) 55%, rgb(0 0 0 / 0.4)),
+      var(--enclosure-bg);
+    box-shadow:
+      inset 0 1px 2px rgb(0 0 0 / 0.45),
+      0 1px 0 rgb(255 255 255 / 0.35);
+  }
+
+  .screw::after {
+    content: '';
+    position: absolute;
+    inset: 50% 1.5px auto;
+    height: 1.5px;
+    margin-top: -0.75px;
+    border-radius: 1px;
+    background: rgb(0 0 0 / 0.55);
+  }
+
+  .screw:nth-of-type(1) {
+    top: 10px;
+    left: 10px;
+    transform: rotate(23deg);
+  }
+  .screw:nth-of-type(2) {
+    top: 10px;
+    right: 10px;
+    transform: rotate(-64deg);
+  }
+  .screw:nth-of-type(3) {
+    bottom: 10px;
+    left: 10px;
+    transform: rotate(81deg);
+  }
+  .screw:nth-of-type(4) {
+    bottom: 10px;
+    right: 10px;
+    transform: rotate(-12deg);
   }
 
   .brand {

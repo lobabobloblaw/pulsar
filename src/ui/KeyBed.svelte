@@ -308,6 +308,18 @@
     touch-action: none;
   }
 
+  /* The lip of the enclosure shades the top of every key — the fallboard
+     shadow that makes the bed read as recessed under the panel. */
+  .bed::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 10px;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgb(0 0 0 / 0.2), transparent);
+  }
+
   .white {
     width: 40px;
     height: 140px;
@@ -315,12 +327,25 @@
     align-items: flex-end;
     justify-content: center;
     padding-bottom: var(--s-3);
-    background: var(--key-face);
+    background-color: var(--key-face);
+    /* Lit from above: bright shoulder, body, a shaded front lip at the foot. */
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.55),
+      rgb(255 255 255 / 0) 16%,
+      rgb(0 0 0 / 0) 88%,
+      rgb(0 0 0 / 0.07)
+    );
     border: 1px solid var(--enclosure-hairline);
     border-radius: 0 0 var(--r-2) var(--r-2);
-    box-shadow: var(--sh-inset);
+    box-shadow:
+      var(--sh-inset),
+      0 2px 2px rgb(0 0 0 / 0.16);
     color: var(--n-600);
     z-index: 0;
+    transition:
+      transform var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
   }
 
   .white.snap {
@@ -330,22 +355,48 @@
   .black {
     width: 26px;
     height: 88px;
-    background: var(--key-face-sharp);
+    background-color: var(--key-face-sharp);
+    background-image: linear-gradient(
+      180deg,
+      rgb(255 255 255 / 0.22),
+      rgb(255 255 255 / 0) 18%,
+      rgb(0 0 0 / 0.25)
+    );
     border-radius: 0 0 var(--r-1) var(--r-1);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 3px 4px rgb(0 0 0 / 0.38);
     z-index: 1;
+    transition:
+      transform var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
   }
 
-  /* Pressed state is never colour alone: the white key also drops 2px and its
-     legend flips, and aria-pressed carries it to assistive tech. */
+  /* Pressed state is never colour alone: the key also drops and swallows its
+     light, the white legend flips, and aria-pressed carries it to assistive
+     tech. */
   .white.pressed {
     background: var(--key-active);
     color: var(--n-000);
     transform: translateY(2px);
-    box-shadow: none;
+    box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25);
   }
 
   .black.pressed {
-    box-shadow: inset 0 -3px 0 0 var(--key-active);
+    transform: translateY(2px);
+    box-shadow:
+      inset 0 -3px 0 0 var(--key-active),
+      0 1px 2px rgb(0 0 0 / 0.3);
+  }
+
+  @media (prefers-contrast: more) {
+    .bed::before {
+      background: none;
+    }
+    .white,
+    .black {
+      background-image: none;
+    }
   }
 
   .key.cursor::after {
