@@ -97,12 +97,18 @@
 
     <span class="chip t-micro">sab {sabOn ? 'on' : 'off'}</span>
 
-    <!-- The tracker panel is opt-in from here (design §4.1). -->
+    <!-- The tracker panel is opt-in from here (design §4.1). Opening it also
+         turns the screen to the song page — the panel hosts the screen beside
+         the grid, and a giant params readout narrates nothing there. Closing
+         restores the live-play default. -->
     <button
       type="button"
       class="chip t-micro action"
       aria-pressed={tracker.open}
-      onclick={() => tracker.toggleOpen()}
+      onclick={() => {
+        tracker.toggleOpen()
+        transport.setPage(tracker.open ? 'song' : 'params')
+      }}
     >
       tracker
     </button>

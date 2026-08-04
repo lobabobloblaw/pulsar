@@ -917,6 +917,15 @@ live-play shell must still be usable on its own — that is the Phase-1 product 
 not regress). Below 720 px the tracker area collapses to a message pointing at a wider
 window: an 8-channel grid on a phone is a lie, and plan-file already said desktop-first.
 
+> **Amended 2026-08-04 (UI audit P3).** The between-screen-and-knobs placement stacked
+> six full-width rows and made the open-tracker page roughly twice a laptop viewport,
+> with the grid below the fold. The tracker area now **replaces** the `screen` and
+> `knobs` rows: the panel hosts the screen itself in its work row's left pane (above the
+> order list, at `DOT_MIN` — the song page beside the grid it narrates; the StatusBar
+> toggle switches the page on open/close), and the knob row returns when the panel
+> closes. Between 720 and 1080 px the work row stacks to one column. The closed shell is
+> untouched, so the no-regress rule above still holds as stated.
+
 ```
 src/ui/tracker/
   TrackerPanel.svelte      layout, transport buttons, preset bar slot, mode chips

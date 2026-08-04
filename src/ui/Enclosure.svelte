@@ -6,8 +6,12 @@
   page itself.
 
   12-column grid, areas: brand/stat -> screen -> knob-a..d -> keys -> foot.
-  Reflows at 720px (brand and status stack; the knob row goes 2x2) and at 560px
-  (the keybed scrolls one octave at a time — see KeyBed.svelte).
+  With the tracker open the panel REPLACES the screen and knob rows (§4.1 as
+  amended by the 2026-08-04 UI audit): the panel hosts the screen in its own
+  left pane and the knobs return when it closes — the stacked five-row shape
+  was ~2x a laptop viewport. Reflows at 720px (brand and status stack; the
+  knob row goes 2x2) and at 560px (the keybed scrolls one octave at a time —
+  see KeyBed.svelte).
 
   GRAIN: `.device::before` carries two background layers. The top layer is the
   generated tile at /textures/enclosure-grain-512.png; the bottom is an inline
@@ -38,11 +42,12 @@
   <div class="device" class:with-tracker={tracker !== undefined}>
     <header class="area brand">{@render brand()}</header>
     <div class="area stat">{@render status()}</div>
-    <div class="area screen">{@render screen()}</div>
     {#if tracker}
       <div class="area tracker">{@render tracker()}</div>
+    {:else}
+      <div class="area screen">{@render screen()}</div>
+      <div class="area knobs">{@render knobs()}</div>
     {/if}
-    <div class="area knobs">{@render knobs()}</div>
     <div class="area keys">{@render keys()}</div>
     <footer class="area foot">
       {#if foot}{@render foot()}{/if}
@@ -82,16 +87,17 @@
   }
 
   /* The tracker turns the instrument into a workbench: the slab keeps its
-     Phase-1 width until the panel opens, then takes the room an 8-channel grid
-     plus its two plain-DOM editors actually needs. Width is not transitioned —
-     a slab that eases open reads as a webpage, not as a device. */
+     Phase-1 width until the panel opens, then takes the room the grid and its
+     two plain-DOM editors actually need — and the panel row REPLACES the
+     screen and knob rows, because the workbench has to fit the viewport the
+     live shell fits (the screen re-homes into the panel's left pane; the
+     knobs return on close). Width is not transitioned — a slab that eases
+     open reads as a webpage, not as a device. */
   .device.with-tracker {
     width: min(100% - 24px, 1240px);
     grid-template-areas:
       'brand brand brand brand brand brand stat stat stat stat stat stat'
-      'screen screen screen screen screen screen screen screen screen screen screen screen'
       'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
-      'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
       'keys keys keys keys keys keys keys keys keys keys keys keys'
       'foot foot foot foot foot foot foot foot foot foot foot foot';
   }
@@ -149,18 +155,25 @@
   }
 
   @media (max-width: 720px) {
-    .device,
-    .device.with-tracker {
+    .device {
       grid-template-areas:
         'brand brand brand brand brand brand brand brand brand brand brand brand'
         'stat stat stat stat stat stat stat stat stat stat stat stat'
         'screen screen screen screen screen screen screen screen screen screen screen screen'
-        'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
         'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
         'keys keys keys keys keys keys keys keys keys keys keys keys'
         'foot foot foot foot foot foot foot foot foot foot foot foot';
       padding: var(--s-4);
       gap: var(--s-4) var(--s-3);
+    }
+
+    .device.with-tracker {
+      grid-template-areas:
+        'brand brand brand brand brand brand brand brand brand brand brand brand'
+        'stat stat stat stat stat stat stat stat stat stat stat stat'
+        'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
+        'keys keys keys keys keys keys keys keys keys keys keys keys'
+        'foot foot foot foot foot foot foot foot foot foot foot foot';
     }
   }
 

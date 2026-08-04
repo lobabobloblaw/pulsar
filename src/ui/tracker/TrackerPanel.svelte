@@ -41,8 +41,14 @@
      *  (a test, an embed) renders the placeholder instead. The slot keeps its
      *  size and position either way, so the panel's layout does not move. */
     presetBar?: Snippet | undefined
+    /** The dot-matrix screen, re-homed into the work row's left pane while the
+     *  panel is open (§4.1 as amended): the song page sits beside the grid it
+     *  narrates, and the enclosure's screen row is gone for the duration —
+     *  that row is why the open tracker never fit a laptop viewport. App
+     *  passes the SAME snippet it gives the enclosure. */
+    screen?: Snippet | undefined
   }
-  let { announce, presetBar }: Props = $props()
+  let { announce, presetBar, screen }: Props = $props()
 
   /** The driver holds a COMPILED copy of the document, so an edit made while the
    *  transport is running is inert until the song is handed over again — you type a
@@ -125,18 +131,22 @@
       {/if}
     </div>
 
-    <div class="group" role="group" aria-label="driver diagnostics">
-      <!-- §7.2: a main-thread driver's failure mode IS late writes. Shipping
-           them published-but-unread would be shipping a blind spot on purpose. -->
-      <span class="chip t-micro">
-        <span class="dot {drvTone}" aria-hidden="true"></span>
-        drv late {tracker.drv.late} · drop {tracker.drv.dropped} · under {tracker.drv.underruns}
-      </span>
-    </div>
+    <!-- §7.2: a main-thread driver's failure mode IS late writes. The chip
+         appears the moment a counter moves and not before: a permanently
+         green row of zeros is chrome, but a hidden non-zero is a blind spot. -->
+    {#if tracker.drv.late > 0 || tracker.drv.dropped > 0 || tracker.drv.underruns > 0}
+      <div class="group" role="group" aria-label="driver diagnostics">
+        <span class="chip t-micro">
+          <span class="dot {drvTone}" aria-hidden="true"></span>
+          drv late {tracker.drv.late} · drop {tracker.drv.dropped} · under {tracker.drv.underruns}
+        </span>
+      </div>
+    {/if}
   </div>
 
   <div class="work">
     <div class="side">
+      {#if screen}{@render screen()}{/if}
       <OrderList {announce} />
     </div>
     <PatternGrid {announce} />
@@ -146,16 +156,19 @@
   </div>
 
   <p class="narrow t-body">
-    the pattern grid needs a wider window — around 720 pixels. open pulsar on a larger screen to
-    edit; the keyboard and the knobs above work at any size.
+    the pattern grid needs a wider window — around 720 pixels. close the tracker to get the live
+    instrument back, or open pulsar on a larger screen to edit.
   </p>
 
-  <p class="help t-micro">
-    space toggles edit · enter plays from the cursor · shift-enter loops the pattern · escape stops
-    · tab moves between channels · 1 writes a note cut, ` writes a release · ctrl-z undoes.
-    screen readers get cell-level navigation and editing, not a spoken pattern — no tracker solves
-    that honestly.
-  </p>
+  <details class="help">
+    <summary class="t-micro">keyboard reference</summary>
+    <p class="t-micro">
+      space toggles edit · enter plays from the cursor · shift-enter loops the pattern · escape
+      stops · tab moves between channels · 1 writes a note cut, ` writes a release · ctrl-z undoes.
+      screen readers get cell-level navigation and editing, not a spoken pattern — no tracker
+      solves that honestly.
+    </p>
+  </details>
 </section>
 
 <style>
@@ -250,14 +263,19 @@
     background: var(--st-bad);
   }
 
+  /* The left pane is sized by the screen it now hosts: DOT_MIN puts the
+     lattice at 384 CSS px, plus the well's padding. */
   .work {
     display: grid;
-    grid-template-columns: minmax(160px, 200px) minmax(0, 1fr) minmax(200px, 260px);
+    grid-template-columns: minmax(408px, 448px) minmax(0, 1fr) minmax(200px, 260px);
     gap: var(--s-3);
     align-items: start;
   }
 
   .side {
+    display: grid;
+    gap: var(--s-3);
+    align-content: start;
     min-width: 0;
   }
 
@@ -274,12 +292,27 @@
     line-height: 1.6;
   }
 
+  .help summary {
+    width: fit-content;
+    color: var(--chip-accent);
+    cursor: pointer;
+  }
+
+  .help summary:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  .help[open] summary {
+    margin-block-end: var(--s-1);
+  }
+
+  /* Between the phone cutoff and the three-pane width, the work row stacks:
+     a grid pane squeezed beside a 408px screen pane is too narrow for five
+     lanes, and a full-width grid that scrolls beats a sliver that does not. */
   @media (max-width: 1080px) {
     .work {
-      grid-template-columns: minmax(150px, 180px) minmax(0, 1fr);
-    }
-    .work .side:last-child {
-      grid-column: 1 / -1;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 

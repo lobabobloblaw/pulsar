@@ -320,11 +320,14 @@
     ></div>
   </div>
 
-  <p class="t-micro help">
-    arrows edit · shift for bigger steps · + and − change length · l sets the loop point · r sets
-    the release point. macros are shared by index, so two instruments on the same slot share the
-    envelope.
-  </p>
+  <details class="help">
+    <summary class="t-micro">editing reference</summary>
+    <p class="t-micro">
+      arrows edit · shift for bigger steps · + and − change length · l sets the loop point · r
+      sets the release point. macros are shared by index, so two instruments on the same slot
+      share the envelope.
+    </p>
+  </details>
 </section>
 
 <style>
@@ -435,6 +438,21 @@
   .help {
     color: var(--enclosure-ink-2);
     line-height: 1.5;
+  }
+
+  .help summary {
+    width: fit-content;
+    color: var(--chip-accent);
+    cursor: pointer;
+  }
+
+  .help summary:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  .help[open] summary {
+    margin-block-end: var(--s-1);
   }
 
   .chip {

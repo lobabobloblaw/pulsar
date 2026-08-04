@@ -171,11 +171,22 @@
      block wrapper is inert visually and satisfies axe's landmark-one-main/region. -->
 <!-- The tracker area only exists while the panel is open, so the enclosure keeps
      its Phase-1 shape (and its Phase-1 width) when it is closed. -->
+<!-- The screen is ONE component with two homes: the enclosure's screen area in
+     live mode, the tracker panel's left pane while tracking (§4.1 as amended —
+     the workbench replaces the screen and knob rows so the open panel fits a
+     laptop viewport). One snippet, so the two mounts cannot drift. -->
 <!-- The preset browser fills TrackerPanel's `presetBar` seam from here (design §5.6),
      and gets the SAME LiveRegion route as the panel: a preset that fails to load says
      so out loud, and that message has nowhere else to go. -->
+{#snippet screenView()}
+  <Screen {boot} />
+{/snippet}
+
 {#snippet trackerArea()}
   <TrackerPanel announce={announceText}>
+    {#snippet screen()}
+      {@render screenView()}
+    {/snippet}
     {#snippet presetBar()}
       <PresetBar announce={announceText} />
     {/snippet}
@@ -183,17 +194,13 @@
 {/snippet}
 
 <main aria-label="pulsar">
-<Enclosure tracker={tracker.open ? trackerArea : undefined}>
+<Enclosure tracker={tracker.open ? trackerArea : undefined} screen={screenView}>
   {#snippet brand()}
     <Brand />
   {/snippet}
 
   {#snippet status()}
     <StatusBar onStartAudio={startAudio} onConnectMidi={connectMidi} />
-  {/snippet}
-
-  {#snippet screen()}
-    <Screen {boot} />
   {/snippet}
 
   {#snippet knobs()}

@@ -1,9 +1,12 @@
 <!--
   pulsar — the preset browser (design §5.6, preset-suite §7.3 step 9).
 
-  A row of chips, one per registered song, filling `TrackerPanel`'s documented
-  `presetBar` seam. Chips are `<button>`s, so keyboard operation, focus order and
-  screen-reader semantics come free — a preset browser is not a place to invent a
+  One chip-styled native `<select>`, one option per registered song, filling
+  `TrackerPanel`'s documented `presetBar` seam. It was a row of chips until the
+  2026-08-04 UI audit: fourteen songs wrapped the transport bar to three rows,
+  and the album will only grow — a picker costs one chip of space forever.
+  Native `<select>`, so keyboard operation, focus order and screen-reader
+  semantics still come free — a preset browser is not a place to invent a
   widget. Styling is the StatusBar's chip vocabulary verbatim (`--chip-bg`,
   `--chip-accent`, `--t-micro`, lowercase); tokens only, no literal colours.
 
@@ -34,6 +37,20 @@
   let failed = $state<string | null>(null)
   let pending = $state<PresetEntry | null>(null)
   let confirmEl = $state<HTMLDialogElement | null>(null)
+  let selectEl = $state<HTMLSelectElement | null>(null)
+
+  /** The select's value is bound to `active`, but a cancelled dialog or a
+   *  failed load leaves `active` unchanged — no reactive update fires, and the
+   *  select would keep showing the song that never loaded. Put it back. */
+  function syncSelect(): void {
+    if (selectEl) selectEl.value = active ?? ''
+  }
+
+  function onPick(e: Event): void {
+    const id = (e.currentTarget as HTMLSelectElement).value
+    const entry = PRESETS.find((p) => p.id === id)
+    if (entry) pick(entry)
+  }
 
   function apply(entry: PresetEntry): void {
     try {
@@ -50,6 +67,7 @@
       announce?.(`loaded ${entry.title}${warnings > 0 ? `, ${warnings} warnings` : ''}`)
     } catch (e) {
       failed = entry.id
+      syncSelect()
       announce?.(`${entry.title} failed to load: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
@@ -73,24 +91,26 @@
   function cancelDiscard(): void {
     pending = null
     confirmEl?.close()
+    syncSelect()
   }
 </script>
 
 {#if PRESETS.length > 0}
   <div class="presets" role="group" aria-label="preset songs">
-    <span class="chip t-micro muted">songs</span>
-    {#each PRESETS as entry (entry.id)}
-      <button
-        type="button"
-        class="chip action"
-        class:bad={failed === entry.id}
-        aria-pressed={active === entry.id}
-        data-song={entry.id}
-        onclick={() => pick(entry)}
+    <label class="chip t-micro picker">
+      <span class="muted">songs</span>
+      <select
+        bind:this={selectEl}
+        value={active ?? ''}
+        class:bad={failed !== null}
+        onchange={onPick}
       >
-        {entry.title}
-      </button>
-    {/each}
+        <option value="" disabled>load…</option>
+        {#each PRESETS as entry (entry.id)}
+          <option value={entry.id} data-song={entry.id}>{entry.title}</option>
+        {/each}
+      </select>
+    </label>
   </div>
 
   <dialog bind:this={confirmEl} class="confirm" aria-label="discard unsaved changes">
@@ -134,18 +154,33 @@
     cursor: pointer;
   }
 
-  .action[aria-pressed='true'] {
-    color: var(--n-000);
-    background: var(--chip-accent);
-    box-shadow: none;
+  .muted {
+    color: var(--enclosure-ink-2);
   }
 
-  .bad {
+  .picker {
+    gap: var(--s-1);
+  }
+
+  /* The select inherits the chip's type and carries the accent; the chip
+     around it carries the ground. Native popup, native semantics. */
+  .picker select {
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: var(--chip-accent);
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .picker select.bad {
     color: var(--st-bad);
   }
 
-  .muted {
-    color: var(--enclosure-ink-2);
+  .picker select:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
   }
 
   .confirm {
