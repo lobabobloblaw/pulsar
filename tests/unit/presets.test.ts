@@ -566,11 +566,21 @@ describe('the preset registry', () => {
 })
 
 describe('the shared instrument bank', () => {
-  it('is at rev 1 and holds the 23 named entries of preset-suite §3', () => {
-    expect(BANK.rev).toBe(1)
-    expect(BANK.instruments).toHaveLength(23)
+  it('is at rev 2: §3’s 23 named entries plus §10.3’s 6 tropic ones, appended', () => {
+    expect(BANK.rev).toBe(2)
+    expect(BANK.instruments).toHaveLength(29)
     expect(BANK.instruments.map((i) => i.name)).toContain('lead-bright')
     expect(BANK.instruments.map((i) => i.name)).toContain('dpcm-kit')
+    // §10.3 appends; it never rewrites. The first 23 are still §3's, in §3's order,
+    // which is what keeps the drift check over songs 01-12 meaningful.
+    expect(BANK.instruments.slice(23).map((i) => i.name)).toEqual([
+      'steel-lead',
+      'steel-comp',
+      'steel-roll',
+      'skank',
+      'bubble',
+      'rim',
+    ])
   })
 
   it('every pitch and hiPitch sequence ends on 0, and every loop segment sums to 0', () => {

@@ -25,7 +25,8 @@ const PRESET_DIR = join(ROOT, 'src', 'assets', 'songs')
 const TINY = join(ROOT, 'tests', 'fixtures', 'songs', 'tiny.json')
 
 /** The four technique demos design §5.2 commits to, plus the eight album pieces
- *  `docs/preset-suite.md` §4 adds to the same directory. Any of them may be absent while
+ *  `docs/preset-suite.md` §4 adds to the same directory and the two `docs/preset-suite.md`
+ *  §10.4 adds after them (`green-flash`, `harbour-echo`). Any of them may be absent while
  *  its composer batch is mid-flight; nothing OUTSIDE the list may ever appear. Album
  *  files carry a two-digit play-order prefix (`07-rust-and-neon.json`), which
  *  `src/assets/songs/index.ts` strips to form the id. */
@@ -42,6 +43,8 @@ const EXPECTED_PRESETS = [
   'switch-cutter',
   'rust-and-neon',
   'long-division',
+  'green-flash',
+  'harbour-echo',
 ]
 
 function presetFiles(): string[] {

@@ -1,7 +1,7 @@
 {
   "kind": "pulsar-shared-bank",
-  "rev": 1,
-  "note": "preset-suite.md §3 — the album bank, frozen. NOT a playable Song: it holds only sequences, instruments and samples, and its sequences carry a `name` the song format does not have. Songs embed only the entries they use, densely renumbered, NAMES PRESERVED — tests/unit/presets.test.ts resolves every canonical instrument name in every album song back to these values and fails on any drift. Copy from here; do not retype.",
+  "rev": 2,
+  "note": "rev 2 = rev 1 plus preset-suite.md §10.3's tropic family (vol-steel, vol-steel-short, vol-steel-roll, vol-skank, vol-bubble, vol-rim, arp-steel-ping, pit-steel-attack, dut-steel; steel-lead, steel-comp, steel-roll, skank, bubble, rim), APPENDED — every rev-1 entry keeps its name, its values and its index, so songs 01-12 are untouched and the drift check still pins them. ONE DEVIATION FROM §10.3's TABLE, forced by the verify-in-preview pass §10.1 asks for: arp-steel-ping is [12,0,7,0,0,0,0,0] loop 7, not [0,12,0,12,0,7,0,0] loop 7. Measured through renderSong at 48 kHz, the written form puts the OCTAVE on tick 1, which is vol-steel's 15 — the loudest instant of the note sounded an octave above the written pitch (+1246 cents) and 42% of the attack's amplitude-weighted energy sat off the fundamental, so the ping read as a grace note rather than as timbre. Re-phasing puts the octave on tick 0 (vol 10, the soft front), the fundamental on the vol-15 peak and the fifth on one 16.7 ms tick: off-fundamental energy 28%, pitch at the peak +23 cents. Same length, same loop index, same two tuned partials [S6] — only the phase moves. preset-suite.md §3 — the album bank, frozen. NOT a playable Song: it holds only sequences, instruments and samples, and its sequences carry a `name` the song format does not have. Songs embed only the entries they use, densely renumbered, NAMES PRESERVED — tests/unit/presets.test.ts resolves every canonical instrument name in every album song back to these values and fails on any drift. Copy from here; do not retype.",
   "samples": [
     {
       "name": "dpcm-kick",
@@ -269,6 +269,95 @@
         ],
         "loop": -1,
         "release": -1
+      },
+      {
+        "name": "vol-steel",
+        "values": [
+          10,
+          15,
+          13,
+          11,
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-steel-short",
+        "values": [
+          12,
+          15,
+          12,
+          9,
+          6,
+          3,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-steel-roll",
+        "values": [
+          15,
+          12,
+          9,
+          14,
+          15,
+          11,
+          8,
+          13
+        ],
+        "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "vol-skank",
+        "values": [
+          15,
+          14,
+          12,
+          9,
+          6,
+          3,
+          1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-bubble",
+        "values": [
+          11,
+          9,
+          6,
+          3,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "vol-rim",
+        "values": [
+          14,
+          8,
+          3,
+          0
+        ],
+        "loop": -1,
+        "release": -1
       }
     ],
     "arpeggio": [
@@ -360,6 +449,21 @@
           2
         ],
         "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "arp-steel-ping",
+        "values": [
+          12,
+          0,
+          7,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "loop": 7,
         "release": -1
       }
     ],
@@ -462,6 +566,18 @@
           -1,
           -1,
           -1,
+          0
+        ],
+        "loop": -1,
+        "release": -1
+      },
+      {
+        "name": "pit-steel-attack",
+        "values": [
+          -6,
+          3,
+          2,
+          1,
           0
         ],
         "loop": -1,
@@ -579,6 +695,18 @@
           1
         ],
         "loop": 0,
+        "release": -1
+      },
+      {
+        "name": "dut-steel",
+        "values": [
+          0,
+          0,
+          1,
+          1,
+          1
+        ],
+        "loop": 4,
         "release": -1
       }
     ]
@@ -826,6 +954,66 @@
           "loop": false,
           "delta": 8
         }
+      }
+    },
+    {
+      "name": "steel-lead",
+      "macros": {
+        "volume": 15,
+        "arpeggio": 9,
+        "pitch": 6,
+        "hiPitch": -1,
+        "duty": 9
+      }
+    },
+    {
+      "name": "steel-comp",
+      "macros": {
+        "volume": 16,
+        "arpeggio": 9,
+        "pitch": 6,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    },
+    {
+      "name": "steel-roll",
+      "macros": {
+        "volume": 17,
+        "arpeggio": 5,
+        "pitch": 6,
+        "hiPitch": -1,
+        "duty": 9
+      }
+    },
+    {
+      "name": "skank",
+      "macros": {
+        "volume": 18,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    },
+    {
+      "name": "bubble",
+      "macros": {
+        "volume": 19,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 2
+      }
+    },
+    {
+      "name": "rim",
+      "macros": {
+        "volume": 20,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 8
       }
     }
   ]
