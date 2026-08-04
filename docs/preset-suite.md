@@ -1599,3 +1599,416 @@ beat); axis 4 ≥ 4 via the bridge's chromatic inner voice and the frame-10 susp
   per bar summed across all five lanes**, and **never more than two lanes running 16ths at
   once**. If a piece needs to get busier to sound better, the fix is almost always a
   different rhythm in an existing voice, not another voice.
+
+---
+
+## 10. the tropical annex — two tracks in a documented island idiom
+
+### 10.0 the line, restated before anything else
+
+These two tracks are **directly inspired by the documented stylistic language of Koji Kondo
+and Hirokazu "Hip" Tanaka**. That means, and is limited to: the *devices* those composers are
+documented as using — Kondo's Caribbean rhythmic reference and modal-mixture/secondary-dominant
+harmony, Tanaka's dub-reggae bass-and-drums arrangement, echo, and sparseness.
+
+**We compose ORIGINAL music in that language. Never their melodies, never their progressions
+as wholes, never a recognisable phrase.** §0.1 is unchanged and applies at full strength: no
+brief here names a piece of music as a model, and no composer may reach for remembered
+material. If a listener could name the source, it is a defect.
+
+**Fan and community material is a TECHNIQUE reference only.** Fan compositions, covers and
+arrangements found online are themselves copyrighted, and most of them are covers of
+copyrighted works. They are consulted for *how people do a thing on this hardware* — how a
+skank is voiced on a pulse channel, how a steel drum is faked on a 2A03, how a one-drop kit
+is built in a tracker — and cited by URL in §10.6. **They are never a melodic or harmonic
+source.** Nothing in §10 was transcribed from any recording or module.
+
+Everything in §§0–9 still binds: the 5-rule loop convention (§2.9), the mix-discipline floors
+(§2.8), the deterministic gates (§7.1), and every §9 prestige floor — including the two
+written dissonances, the ≥ 2 distinct non-diatonic devices in different sections, one
+structural polyrhythmic device cited at `frame:row`, and one metric surprise per piece.
+Complexity is line independence, never clutter (§9.8): reggae is a *sparse* idiom and these
+two tracks are where the density ceiling matters most.
+
+### 10.1 the tropical / reggae 2A03 technique sheet
+
+**What the research actually supports**, before the recipes (full citations in §10.6):
+
+- Kondo is documented as having "had in mind the sounds of Caribbean music like reggae, soca
+  and calypso"; the analysis of his best-known theme identifies a **clave figure described as
+  "two dotted quarter notes plus a quarter"** — that is **3+3+2** — plus **swung drums under
+  straight-note melodies**, **modal mixture** (a ♭VI–♭VII–I cadence borrowed from the parallel
+  minor), **secondary dominants**, and a bass that **moves from being the third voice of the
+  harmony to an independent counterpoint line**. [S1]
+- Tanaka is documented, in his own words, as dub-obsessed: *"In the essence, it's strictly
+  driven by drums and bass. That's what I love about it the most."* And, crucially for us, he
+  describes the arrangement move as **a hardware strategy**: *"some parts are drum and bass
+  only. So that turned out to be an idea for working around the limitations in the game
+  hardware… I'd play the melody in some parts, then cut it off and insert a part with just
+  drums and bass, and vice versa."* He also cites **echo and delay** as what first caught him,
+  and **high-speed arpeggios to make three channels sound fuller**. [S2]
+- The **one drop** is documented precisely: **beat 1 is dropped**, kick and a cross-stick
+  snare land **together on beat 3**, hats keep steady 8ths or 16ths, notated at ~80 BPM;
+  **rockers** = the same with a steady kick on every quarter, **steppers** = a steady kick on
+  every eighth. [S3]
+- The organ **bubble** is documented as a low, *felt-more-than-heard* left-hand pattern of
+  **upbeats**, with the right hand playing the **chop/skank on beats 2 and 4**; the bubble is
+  what decides whether the tune reads straight-8th or swung. [S4] The commonly-taught
+  formulation is **"every eighth note except the downbeats, one and three."** [S5, snippet]
+- Steel pan acoustics: the tuned overtones a pan is hammered to are the **octave and the
+  fifth** above the fundamental; the balance of partials is the timbre, and notes decay
+  quickly. [S6, snippet]
+- **Community pickings are thin.** There is no findable 2A03/FamiTracker steel-pan instrument
+  recipe, and no findable reggae-specific FamiTracker tutorial; searches returned general
+  chiptune drum-synthesis advice and general reggae drum-programming articles, plus the
+  existence of a chip-adjacent digital-dub scene (Jahtari) as a proof that the combination is
+  a real practice rather than a novelty. [S7, S8, snippet] **The steel-drum recipes below are
+  therefore derived** from the pan-acoustics source plus this album's existing macro
+  vocabulary, and they are flagged **verify-in-preview**: they are the first thing to audition
+  and the first thing to change if the user's ear disagrees.
+
+#### skank comping — which rows, exactly
+
+Three distinct comping patterns, at **4 rows/beat, 16 rows/bar** (multiply every row by 2 for
+`harbour-echo`'s 8 rows/beat, 32-row bar):
+
+| pattern | rows in a 16-row bar | what it is |
+|---|---|---|
+| **offbeat skank** | **2, 6, 10, 14** | the guitar chop on all the "ands" — the default, the most identifiable |
+| **chop (2 and 4)** | **4, 12** | the organ/piano right-hand chop; sparser, heavier, pairs with a busy bass |
+| **bubble** | **2, 4, 6, 10, 12, 14** | every 8th except the downbeats of beats 1 and 3 [S5]; six attacks, low register, *felt* |
+| **tresillo bubble** | **3, 6, 11, 14** | the 3+3+2 clave with its two downbeats removed — Kondo's rhythmic reference [S1] crossed with the bubble |
+
+Voicing and articulation:
+
+- **Lane:** pulse 2. This is the one place the album's default (pulse 2 = independent line,
+  §9.2) is satisfied *by* the comp — a skank has its own rhythm and its own register and never
+  doubles the lead, so it counts as independence, **but only if the comp is not the whole of
+  pulse 2's job**: each of these two pieces must still give pulse 2 a genuine counter-line for
+  at least one full section.
+- **Chord:** `0xy` on the row (decimal params — §2.4's table). At 7–8 ticks/row a 3-step arp
+  cycles twice inside one skank stab, which is exactly enough to read as a chord rather than a
+  ripple. Below 6 ticks/row, drop to a two-note stab (`007` fifth, or a written dyad).
+- **Staccato:** by **volume macro, not by `Sxx`** — the `skank` instrument's 8-tick envelope
+  self-cuts, so the pattern stays one note per row with no cut rows. Reserve `Sxx` for the
+  *deliberate* choke (a skank cut to 2 ticks reads as a mute-strum accent); one or two per
+  section, not as the default mechanism.
+- **Register:** skank around MIDI 60–72, bubble a fifth to an octave lower (MIDI 52–62) — the
+  bubble is documented as low and felt [S4], and low is also where it stops fighting the lead.
+
+#### noise kit — one drop vs rockers vs steppers
+
+At **16 rows/bar** (double every row for a 32-row bar):
+
+| kit | kick | snare / rim | hats | use |
+|---|---|---|---|---|
+| **one drop** | **row 8 only** (beat 3) — **row 0 is empty, that is the whole idea** [S3] | rim on **row 8**, with the kick | 8ths: rows 0,2,4,6,8,10,12,14 | slow, spacious, dub |
+| **rockers** | rows **0, 4, 8, 12** (every beat) [S3] | rim/snare on **8** | 8ths, open hat on row 14 of alternate bars | brighter, danceable, calypso/soca-leaning |
+| **steppers** | documented as every eighth [S3]; **on the 2A03 use every beat plus the "and" of 4** (rows 0, 4, 8, 12, 14) | snare on 8 | 16ths for two bars, 8ths for two | driving; a true 8th-note kick eats the whole noise lane |
+
+- **The rim/cross-stick** is the sound the noise channel is worst at and most needs here: use
+  **noise mode 1 (short LFSR)** at note 44 with a 4-tick envelope — tonal, woody, dry. That is
+  the `rim` instrument in §10.3. A mode-0 snare on beat 3 is the alternative and sounds
+  wetter; both are correct, pick per piece.
+- **Ghosts** (§9.4) matter more in this idiom than any other: vol 3–6 ticks scattered on
+  off-16ths keep the lane alive while the kit stays sparse.
+- **Hat shuffle:** if the piece is swung by fractional tempo, the hats inherit the lilt for
+  free — do **not** also write an uneven hat pattern, or the two shuffles fight.
+
+#### bass doctrine — the triangle is the co-lead here
+
+Reggae is bass-led; Tanaka says so in as many words [S2]. On this hardware that is a
+promotion, not a metaphor:
+
+- **Rootsy and syncopated**, MIDI 28–45, phrases of 1–2 bars that *repeat* and are answered.
+- **Space is the engine.** A reggae bass line is defined by its rests: aim for **40–60 % of
+  the bar sounding**, and put the silence where the kick isn't. A bass that plays through is
+  the single fastest way to make this idiom sound wrong.
+- **The dotted-8th + 16th figure** (3 rows + 1 row at 4 rows/beat) is a documented Tanaka
+  rhythmic fingerprint [S9, snippet] and the natural bass cell here; it is also a 3-row unit,
+  so it hands you §9.1's 3-against-4 for free.
+- **Octave doubling** — jump the root up an octave for one note at the end of a two-bar phrase
+  — is the idiom's cadence, not a texture. Once per phrase at most.
+- **Triangle attack latency** (§1, ≤ 4.17 ms to the next quarter-frame clock) is *useful*
+  here: the bass front is soft, which is what a reggae bass sounds like. Let the rim define
+  the transient.
+
+#### steel drums — the recipe family (**verify in preview**)
+
+Derived, not found (see above). The physical target: a struck-metal attack with a bright
+inharmonic front that settles into a clean fundamental, with the pan's tuned **octave and
+fifth** partials [S6] and a fast decay.
+
+Three ingredients, all in the album's existing vocabulary:
+
+1. **Pitch drop-and-settle** — a `pitch` macro that starts sharp and lands in tune. Pitch
+   macros accumulate (§1), so the values must sum to 0: `[-6, 3, 2, 1, 0]` gives a running
+   offset of −6, −3, −1, 0, 0 — a 5-tick metallic ping that settles exactly in tune.
+   At c5 (timer ≈ 253) six raw units is ≈ 40 cents.
+2. **The partial ping** — an `arpeggio` macro spelling the pan's tuned overtones on the attack
+   and then getting out of the way: `[0, 12, 0, 12, 0, 7, 0, 0]` with `loop: 7` (the last
+   index, value 0, so it holds the fundamental forever after 8 ticks).
+3. **Soft attack bump + fast decay** — a volume macro that starts one step below the peak,
+   bumps, then decays: `[10,15,13,11,10,9,8,7,6,5,4,3,2,1,0]`.
+
+Duty stays thin (`[0,0,1,1,1]`, loop 4): 12.5 % opening to 25 % is struck metal; 50 % is a
+clarinet and kills the illusion. The **pan roll** — how a real pan sustains, by rapid
+restriking — is a looping volume ripple, `[15,12,9,14,15,11,8,13]` with `loop: 0`, giving a
+~7.5 Hz pulse at 8 ticks. Use `7xy` tremolo on top only if the roll needs to be slower than
+the macro allows.
+
+#### dub moments — one per piece, maximum
+
+Tanaka's documented move: **cut the melody and leave drums and bass**, then bring it back
+[S2]. Rules:
+
+- **One dub section per piece**, 1–3 frames (the bright track needs one, the dub track earns
+  three), texture reduced to triangle + noise (+ DPCM if
+  the piece has it). This is also the §2.8 "two or more voices resting" requirement, paid in
+  full.
+- **Echo throws:** on the last note of a phrase, hand the note to pulse 2 via the existing
+  `echo-thin` / `echo-round` instruments at 3 rows' delay and 55–60 % volume (§2.2), then a
+  second, quieter repeat 3 rows after that if the space allows. **A throw is an event** — two
+  or three per dub section, placed at phrase ends, never a running echo.
+- **Do not** try to fake a filter sweep with duty automation during a dub section; the
+  restraint *is* the effect.
+
+#### tempo guidance and the row arithmetic
+
+The one drop reads slow — **72–92 BPM** is the pocket [S3]. Two ways to get there:
+
+- **Half-time rows (direct):** `tempo 150`, `speed 11`, `rowHighlight 4` → **81.8 BPM**,
+  11 ticks/row, 16 rows/bar. Simple, but 11 ticks/row makes every macro feel sluggish against
+  the grid.
+- **Double-time rows (preferred, and what `harbour-echo` uses):** `tempo 150`, `speed 6`,
+  **`rowHighlight 8`**, `rowHighlight2 32` → the BPM readout is `24·150/(6·8)` = **75 BPM**,
+  which *is* the felt tempo, with **8 rows per beat and 32 rows per bar**. You get 32nd-note
+  resolution for hats, ghosts and echo throws at a genuinely slow tempo, and 6 ticks/row keeps
+  every macro in the album's normal timing. `rowsPerPattern: 64` = two bars per frame.
+- **Bright / calypso-soca side:** 115–130 BPM with a rockers kit. A **fractional swing** is
+  idiomatic here — the bubble is documented as what decides straight vs shuffle [S4] — so
+  `tempo 160, speed 8` gives ticks/row 7.5, rows alternating **8, 7, 8, 7…**, and
+  `24·160/(8·4)` = **120 BPM**. A gentle 53/47 lilt: present, never a triplet gimmick.
+
+### 10.2 the two pieces
+
+Both are ≈ 2:20, both loop, both carry every §9 floor. `extra.qa` per §5 plus §9's `frame:row`
+citations for axes 7 and 11.
+
+#### 10.2.1 `13-green-flash.json` — bright island, Kondo register
+
+- **energy** sunlit, buoyant, generous; the feeling of a good day that keeps getting better.
+- **meta** `tempo 160 · speed 8 · rowHighlight 4 · rowHighlight2 16 · rowsPerPattern 64`
+  → **120 BPM**, ticksPerRow 7.5, rows alternating **8, 7**, **8.00 s/frame**,
+  16 rows/bar, 4 bars/frame. `evenTempo: false`.
+- **key** **G major with a lydian ♯4 (c♯) inflection** — the bright pole of the album.
+  Two non-diatonic devices, in different sections: **(1) chained secondaries A7 → D7 → G**
+  (V/V → V → I) at the top of B; **(2) chromatic mediant B♭ major** against G, at the A″ turn.
+  Both are devices Kondo's analysed practice supports [S1] and neither is a progression taken
+  from anything.
+- **form** song form, **18 frames ≈ 144 s**, loop @ frame 2.
+
+  | frames | section | content |
+  |---|---|---|
+  | 0–1 | intro | `steel-lead` figure alone, then triangle + rockers kit underneath |
+  | 2–5 | A | melody on `steel-lead`; **offbeat skank** (rows 2, 6, 10, 14) on pulse 2; bass rootsy with rests |
+  | 6–7 | A′ | melody varied; comp switches to the **bubble** (rows 2, 4, 6, 10, 12, 14) |
+  | 8–11 | B | chained secondaries; comp becomes the **3-row polymetric cell** (below) |
+  | 12 | dub moment | drums + bass only, two echo throws; ends with the metric surprise |
+  | 13–17 | A″ | melody plus a genuine pulse-2 counter-line; B♭ chromatic mediant at the turn; `steel-roll` on the final phrase |
+- **owns** (1) **the steel-drum family** as the lead voice — this is the album's steel-pan
+  piece; (2) **skank → bubble → polymetric cell** as a three-stage comp development, so the
+  comping is the form; (3) **rockers kit + swung rows**, the lilt coming from the tempo
+  fraction rather than from written unevenness.
+- **§9 floors.** *Structural polyrhythm:* a **3-row dotted-8th comp cell on pulse 2 across
+  frames 8–10**, phase-carried with entry rows **0, 2, 1** (§9.1 recipe A) — three new
+  patterns, resolving onto the downbeat at frame 11. Cite `frame 8:0 → frame 10:61`.
+  *Metric surprise:* `D00` on **row 59 of frame 12** — one dropped beat, so A″ arrives early.
+  *Two written dissonances:* a 4–3 suspension held across the chord change at `frame 11:48`
+  resolving down by step at `frame 11:52`, and an appoggiatura on the melody's peak at
+  `frame 15:16` resolving by step within 2 rows.
+- **kit** rockers: `kick`(36) on rows 0, 4, 8, 12 · `rim`(44, mode 1) on row 8 ·
+  `hat-closed`(45) 8ths with `hat-open`(46) on row 14 of alternate bars · ghosts vol 4–6 ·
+  `metal`(44) tick as a section accent. Per-section variation per §9.4: A = 8th hats;
+  A′ = 16th hats for the first two bars; B = hats on offbeats only; A″ = open hat on every
+  bar's row 14.
+- **mood direction** Warm, unhurried, *generous* — write like the sun is out and nothing is
+  chasing you. The steel-drum attack should sparkle without being shrill: let the octave-plus-
+  fifth ping do the work and keep the sustained part of every note plain. The skank is the
+  piece's heartbeat, so give it room — a lead phrase that ends early is a lead phrase that
+  lets you hear the groove. When the comp turns polymetric in B, the argument with the bar
+  should feel playful rather than clever.
+- **declare** `channels ["pulse1","pulse2","triangle","noise"]` ·
+  `effects ["0","S","A","4","G","D","B"]` · `bpmRange [119,121]` · `durationSec [138,152]` ·
+  `key "g-major"` · `loopFrame 2` ·
+  `notes: "fractional tempo — rows alternate 8/7 by design; 047 = param 71"`.
+
+#### 10.2.2 `14-harbour-echo.json` — dub, Tanaka register
+
+- **energy** night water, patient, weightless-heavy; space with something moving in it.
+- **meta** `tempo 150 · speed 6 · **rowHighlight 8** · rowHighlight2 32 · rowsPerPattern 64`
+  → **75 BPM felt**, 6 ticks/row, **8 rows/beat, 32 rows/bar, 2 bars/frame**,
+  **6.40 s/frame**. Even ticks (T = 2.5·E), so the groove is dead straight — dub does not
+  swing, it hangs.
+- **key** **E dorian** (e f♯ g a b c♯ d) — darker-modal, with dorian's bright sixth keeping it
+  off the album's minor-key floor. Two non-diatonic devices, in different sections:
+  **(1) a chromatic bass descent e → d♯ → d → c♯** under a held tonic in B; **(2) chromatic
+  mediant C major (♭VI)** in section C. Neither duplicates `rust-and-neon`'s phrygian ♭II.
+- **form** arch, **22 frames ≈ 141 s**, loop @ frame 2.
+
+  | frames | section | content |
+  |---|---|---|
+  | 0–1 | intro | bass + one drop only — the piece states its subject first, as Tanaka describes [S2] |
+  | 2–5 | A | melody enters on `lead-thin`, echo throws at phrase ends; **chop comp** (rows 8, 24) |
+  | 6–9 | B | **bubble** (rows 4, 8, 12, 20, 24, 28) over the chromatic bass descent |
+  | 10–12 | dub | **the dub moment**: melody cut, drums + bass only, three echo throws, hats out |
+  | 13–16 | A′ | melody returns an octave down; `steel-comp` takes the offbeats (rows 4, 12, 20, 28) |
+  | 17–19 | C | chromatic mediant C major; **triangle phase cell** (below); **pulse 2 drops the comp entirely and plays a genuine counter-line here** — this is the piece's §9.2 independence section |
+  | 20–21 | turnaround | back to bass + drums, a two-bar turn into the loop |
+- **owns** (1) **the dub arrangement doctrine** — the melody is *absent* for three frames and
+  the piece is better for it; (2) **bass as co-lead**, using the dotted-8th + 16th cell
+  (6 rows + 2 rows at this grid) as its rhythmic signature [S9]; (3) **echo throws** as
+  punctuation, using the existing `echo-thin`/`echo-round` instruments rather than any new
+  machinery.
+- **§9 floors.** *Structural polyrhythm:* a **6-row triangle cell across frames 17–19**,
+  phase-carried with entry rows **0, 2, 4** (§9.1, 64-row frames) — at 8 rows/beat a 6-row
+  cell is a dotted-8th against the beat, so the bass argues with the bar for three frames and
+  resolves at frame 20. Cite `frame 17:0 → frame 19:58`. *Metric surprise:* `D00` on **row 55
+  of frame 12** — one dropped beat (8 rows at this grid) at the end of the dub section, so A′
+  lands early. *Two written dissonances:* a suspension held across the chord change at
+  `frame 9:32` resolving down by step at `frame 9:40`, and an appoggiatura at `frame 16:16`.
+- **kit** strict one drop: **row 0 empty**, `kick`(36) + `rim`(44, mode 1) together on
+  **row 16** of each 32-row bar, `hat-closed`(45) on 8ths (every 4 rows), `hat-open`(46) on
+  row 28, ghosts vol 3–5 at rows 6, 22, 30. Section variation: B adds 16th hats for one bar
+  per four; the **dub frames drop hats entirely** — kick + rim + two ghosts only, which is why
+  this piece declares `percussionGap 32`; C returns the hats an octave of noise-index higher.
+- **mood direction** Restraint is the composition. Write the bass line first and let it be the
+  thing the listener follows; the melody's job is to appear, say one thing, and leave an echo
+  behind. The dub section should feel like the room got bigger, not like the track stopped —
+  which means the bass phrase there must be the most interesting one in the piece. Keep the
+  timbres unusual and slightly cold: thin duties, low register, nothing bright until section C.
+- **declare** `channels ["pulse1","pulse2","triangle","noise"]` ·
+  `effects ["0","S","A","P","4","D","B"]` · `bpmRange [74,76]` · `durationSec [134,148]` ·
+  `key "e-dorian"` · `loopFrame 2` · `percussionGap 32` ·
+  `notes: "8 rows per beat, 32 rows per bar — one drop kick+rim on row 16 of each bar"`.
+
+### 10.3 instrument mechanics — a "tropic" addition to the shared bank
+
+**Decision: these timbres extend the shared bank (§3), they do not live as per-song `x-`
+instruments.** The reason is cohesion, which is the whole point of §3: the two tracks must
+sound like siblings, and a steel drum defined twice is a steel drum that drifts. It also costs
+nothing — §3.1 already identifies bank entries **by name**, and each song carries only the
+entries it uses, so songs 01–12 are entirely unaffected.
+
+**The pin test tolerates additions.** §7.1's bank-drift check resolves every instrument whose
+`name` is canonical and compares it to `tests/fixtures/songs/shared-bank.json`. Appending new
+named entries **cannot** fail it; only changing an existing name's values can. So the composer
+**appends** to the bank fixture, bumps `extra.qa.bank.rev` to **2** in the two new songs, and
+the pin stays green with no edit to any existing song.
+
+**§10 amendment to §3.1:** the per-song cap on piece-specific `x-<songid>-*` instruments is
+raised from 3 to **4**, for `13-green-flash` and `14-harbour-echo` only, so each piece can
+afford one local colour on top of the shared tropic family. Every other piece stays at 3.
+
+**New sequences** (appended; `loop`/`release` are indices, `−1` = none):
+
+| kind | name | values | loop | rel |
+|---|---|---|---|---|
+| volume | `vol-steel` | `[10,15,13,11,10,9,8,7,6,5,4,3,2,1,0]` | −1 | −1 |
+| volume | `vol-steel-short` | `[12,15,12,9,6,3,0]` | −1 | −1 |
+| volume | `vol-steel-roll` | `[15,12,9,14,15,11,8,13]` | **0** | −1 |
+| volume | `vol-skank` | `[15,14,12,9,6,3,1,0]` | −1 | −1 |
+| volume | `vol-bubble` | `[11,9,6,3,0]` | −1 | −1 |
+| volume | `vol-rim` | `[14,8,3,0]` | −1 | −1 |
+| arpeggio | `arp-steel-ping` | `[0,12,0,12,0,7,0,0]` | **7** | −1 |
+| pitch | `pit-steel-attack` | `[-6,3,2,1,0]` | −1 | −1 |
+| duty | `dut-steel` | `[0,0,1,1,1]` | **4** | −1 |
+
+Three things about those values, each load-bearing:
+
+- `pit-steel-attack` **accumulates to exactly 0** (−6, −3, −1, 0, 0) — it starts ≈ 40 cents
+  sharp at c5 and settles dead in tune by tick 4. Change any value and you must re-check the
+  sum, or every steel note drifts (§1).
+- `arp-steel-ping` loops on its **last index**, whose value is 0, so the octave-and-fifth ping
+  [S6] lasts 8 ticks and then the fundamental holds forever. It is an attack transient
+  spelled as an arpeggio, not a chord.
+- `vol-steel-roll` **loops forever** (`loop: 0`). A note on `steel-roll` sustains until it is
+  cut or replaced — write the `---`. And none of these volume macros has a release point, so
+  `===` on any of them degrades to a cut (§3.4), which is the correct behaviour for struck
+  metal and for a skank.
+
+**New instruments** (appended; `—` = no macro of that kind):
+
+| name | volume | arpeggio | pitch | duty | notes |
+|---|---|---|---|---|---|
+| `steel-lead` | `vol-steel` | `arp-steel-ping` | `pit-steel-attack` | `dut-steel` | the lead pan; MIDI 64–84 |
+| `steel-comp` | `vol-steel-short` | `arp-steel-ping` | `pit-steel-attack` | `dut-12` | short pan stab for offbeat comping |
+| `steel-roll` | `vol-steel-roll` | `arp-oct` | `pit-steel-attack` | `dut-steel` | the pan roll — sustains until cut |
+| `skank` | `vol-skank` | — | — | `dut-12` | 8-tick self-cutting chop; chord comes from `0xy` on the row |
+| `bubble` | `vol-bubble` | — | — | `dut-50` | low, round, *felt more than heard* [S4]; MIDI 52–62 |
+| `rim` | `vol-rim` | — | — | `dut-noise-short` | cross-stick: noise **mode 1**, note **44**, 4 ticks |
+
+`skank` and `bubble` deliberately carry no arpeggio macro: the comp's chord changes every
+row or two, so it belongs in the `0xy` effect column where the composer can see it, not baked
+into an instrument. **Verify the whole family in preview before writing 140 seconds against
+it** — §10.1 flags the steel recipes as derived rather than sourced.
+
+### 10.4 registration mechanics
+
+- **Files:** `src/assets/songs/13-green-flash.json` and `src/assets/songs/14-harbour-echo.json`.
+- **Registry:** two entries appended to `src/assets/songs/index.ts`, ids `green-flash` and
+  `harbour-echo`.
+- **The one sanctioned test edit:** `tests/unit/presetFormat.test.ts`'s `EXPECTED_PRESETS`
+  array must be **widened from twelve ids to fourteen** (adding `green-flash` and
+  `harbour-echo`). That array is a names-only allowlist — the test asserts that every preset
+  file present is in it, that there are no duplicates, and that no more files exist than the
+  list names — so it must be widened **before or in the same commit as** the songs landing, or
+  both new tracks fail on arrival. **This is the only test file this work may touch**, and it
+  is named here so the edit is sanctioned rather than a surprise.
+- **Numbering:** the demo tracks currently occupy `09`–`12`, so the album lands as 01–08 plus
+  13–14 and is not contiguous. That is fine — the registry sorts by filename prefix, so play
+  order is `01…08, 09…12 (demos), 13, 14`. **A ship-time renumber to make all album tracks
+  contiguous is the lead's call, not the composer's**: it renames every file at once and
+  changes play order, and doing it mid-flight would collide with concurrent work. Do not
+  renumber as part of this task.
+- **Gates:** `tests/unit/presets.test.ts` iterates the registry, so both tracks are picked up
+  by Gates A–D with no edit. The `effects` lists in §10.2 are the *expected* sets: Gate B
+  requires every declared letter to occur at least once, so a composer who ends up not using
+  one **removes it from `extra.qa.effects`** rather than forcing it into the music. Both need
+  `renderChecksum` pinned in the commit that lands them
+  (§7.1), and `pnpm preview:songs` renders `previews/green-flash.wav` and
+  `previews/harbour-echo.wav` for the user's ears (§7.2).
+- **Concurrency.** A polish pass is editing songs 01–12 at the same time. The §10 composer
+  **touches none of those files.** The only two shared touch-points are
+  `src/assets/songs/index.ts` and `tests/fixtures/songs/shared-bank.json`, and both edits here
+  are **append-only** — the lead should still sequence them so two agents do not write the same
+  file in the same minute.
+
+### 10.5 ownership
+
+| agent | writes |
+|---|---|
+| **batch D** (this work) | `src/assets/songs/13-green-flash.json`, `src/assets/songs/14-harbour-echo.json`; **appends** to `src/assets/songs/index.ts` and `tests/fixtures/songs/shared-bank.json`; widens `EXPECTED_PRESETS` in `tests/unit/presetFormat.test.ts` |
+
+Both tracks then go through the §7.3 loop unchanged: gates → critic (§6 as amended by §9.5,
+eleven axes out of 55) → preview render → user audition → one revision round → ship.
+
+### 10.6 sources
+
+Every URL below was consulted for **technique, documented influence, or acoustics**. None was
+used as a melodic or harmonic source, and no recording, module or transcription was analysed
+bar-by-bar. Items marked **[snippet]** were read via search-result summaries rather than a
+successful page fetch, following the same honesty convention as `phase2-design.md` §3.
+
+| id | source | what it contributed |
+|---|---|---|
+| **S1** | [Video Game Music Shrine — *Inside the Score: The Super Mario Bros Theme*](https://videogamemusicshrine.com/inside-the-score-the-super-mario-bros-theme/) | Kondo's documented Caribbean intent (reggae, soca, calypso); the clave described as "two dotted quarter notes plus a quarter" = **3+3+2**; swung drums under straight melodies; modal mixture (a ♭VI–♭VII–I cadence borrowed from the parallel minor); secondary dominants; the bass moving from third-voice-of-the-harmony to independent counterpoint |
+| **S2** | [Red Bull Music Academy — Hip Tanaka lecture](https://www.redbullmusicacademy.com/lectures/hip-tanaka) | Tanaka in his own words: dub discovery via echo/delay; *"In the essence, it's strictly driven by drums and bass"*; **drum-and-bass-only sections as a deliberate hardware-limitation strategy**; cutting the melody in and out; high-speed arpeggios to make three channels sound fuller |
+| **S3** | [Wikipedia — *One drop rhythm*](https://en.wikipedia.org/wiki/One_drop_rhythm) | The exact kit definition: beat 1 dropped, kick + cross-stick together on beat 3, steady 8th/16th hats, notated ~80 BPM; **rockers** = steady kick on every quarter; **steppers** = steady kick on every eighth |
+| **S4** | [Berklee Today — *The Woodshed: Bubblin'*](https://www.berklee.edu/berklee-today/spring-2015/The-Woodshed-Bubblin) | The organ **bubble**: a low left-hand upbeat pattern, "*felt* more than heard", with the right hand's chop/skank on beats 2 and 4; the bubble is what decides straight-8th vs shuffle feel; its origin in ska "cut in half" |
+| **S5** | [Audiolover — *How To Do The Bubble Organ Effect In Reggae*](https://audiolover.com/genres/reggae/how-to-do-the-bubble-organ-effect-in-reggae/) · [how-to-play-reggae.com — *the reggae bubble sound*](http://www.how-to-play-reggae.com/Learn-the-secret-of-the-reggae-bubble-sound.php) **[snippet]** | The commonly-taught formulation used for the row table: **"every eighth note except the downbeats, one and three"**, right-hand chords on 2 and 4 |
+| **S6** | [Stockholm Steel Band — *Acoustic function of the steel pan* / *Tone generation in steel pans*](https://stockholmsteelband.se/pan/tuning/theory19_acoustics.php) **[snippet]** | Steel-pan tuning aligns the **octave and the fifth** as the supporting overtones; partial balance is the timbre; notes decay quickly — the basis for `arp-steel-ping` and the fast `vol-steel` decay |
+| **S7** | [MusicRadar — *How to program a typical one drop reggae beat and add fills*](https://www.musicradar.com/how-to/how-to-program-a-typical-one-drop-reggae-beat-and-add-fills) **[snippet]** | Corroborates the one-drop programming layout and that the guitar/keyboard skank sits on all the "ands" — the `offbeat skank` row set |
+| **S8** | [Woolyss chipmusic directory](https://www.woolyss.com/chipmusic.php) · Jahtari digital-dub netlabel (Pupajim, *I Am A Robot*) **[snippet]** | The only community pointer found for chip-adjacent reggae/dub as a real practice. **No 2A03/FamiTracker steel-pan recipe and no reggae-specific FamiTracker tutorial exists that we could find** — hence §10.1's derived-and-flagged steel recipes |
+| **S9** | Search-surfaced summaries of Tanaka coverage (Japan Times, *The music you didn't realize you grew up with*, 2017 — **page returned HTTP 402, paywalled, not read**) **[snippet]** | The attributed rhythmic fingerprint of **dotted eighth followed by sixteenth** figures, used as the bass cell in §10.1. Flagged because the primary page could not be fetched; treat as unconfirmed and drop it if it does not sound right |
+| — | [btothethree ch.6](https://btothethree.tumblr.com/post/109306979202/how-to-use-famitracker-chapter-6-wrangling-the) · [Ozzed](https://ozzed.net/how-to-make-8-bit-music.shtml) · [DDRKirby(ISQ)](https://ddrkirby.com/articles/nes-chiptunes-unlock-everything/nes-chiptunes-unlock-everything.html) | Already cited in §8; the noise-kit shapes, duty language and echo technique §10 builds on come from there |
