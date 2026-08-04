@@ -171,16 +171,26 @@
     else drawParams(m, now)
   }
 
+  /** The sizing rule needs the width the canvas can actually occupy.
+   *  `clientWidth` includes the well's padding, and feeding that here once
+   *  picked a dot one too large — the canvas then hit reset.css's
+   *  `max-width: 100%` and the lattice resampled at 2.036 device px per CSS px
+   *  instead of overflowing loudly. */
+  function wellContentWidth(box: HTMLElement): number {
+    const cs = getComputedStyle(box)
+    return box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+  }
+
   $effect(() => {
     const el = canvas
     const box = well
     if (!el || !box) return
 
     const matrix = new DotMatrix(el)
-    matrix.resize(box.clientWidth)
+    matrix.resize(wellContentWidth(box))
 
     const ro = new ResizeObserver(() => {
-      matrix.resize(box.clientWidth)
+      matrix.resize(wellContentWidth(box))
     })
     ro.observe(box)
 
@@ -293,6 +303,10 @@
   canvas {
     border-radius: var(--r-0);
     image-rendering: pixelated;
+    /* Opt out of reset.css's `canvas { max-width: 100% }`: a squeezed lattice
+       resamples every dot to a non-integer size. A sizing bug must overflow
+       the well visibly, never distort silently. */
+    max-width: none;
   }
 
   .pager {

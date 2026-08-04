@@ -223,11 +223,14 @@ class Boot implements BootSequence {
     }
   }
 
-  /** The prompt sits in a cleared band at the foot of the lattice. It has to
-   *  clear, not overlay: the underlay page owns that band too, and a prompt
-   *  printed through a status line is unreadable on a dot matrix. */
+  /** The prompt takes over the underlay's footer band (`oct · rate` and the
+   *  page dots), cleared first: a prompt printed through a status line is
+   *  unreadable on a dot matrix. The band must start no higher than row
+   *  `rows - GLYPH_H - 1`: the params page's fourth row ends at row 54, and a
+   *  band that reaches it slices the glyphs' bottom row — "vol 72%" reads
+   *  "vnl 77%" for as long as the prompt waits. */
   #drawPrompt(dm: DotMatrix, now: number, dim: boolean): void {
-    const top = LATTICE.rows - GLYPH_H - 2
+    const top = LATTICE.rows - GLYPH_H
     for (let y = top - 1; y < LATTICE.rows; y++) {
       for (let x = 0; x < LATTICE.cols; x++) dm.set(x, y, SCREEN.bg)
     }

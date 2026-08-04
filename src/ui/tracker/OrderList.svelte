@@ -80,7 +80,9 @@
 <section class="order" aria-labelledby="order-title">
   <div class="head">
     <h2 id="order-title" class="t-label">order</h2>
-    <span class="t-micro count">{song.doc.order.length} frames</span>
+    <span class="t-micro count"
+      >{song.doc.order.length} {song.doc.order.length === 1 ? 'frame' : 'frames'}</span
+    >
   </div>
 
   <div class="scroll">
