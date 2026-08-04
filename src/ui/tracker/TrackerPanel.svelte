@@ -22,6 +22,7 @@
   import { song } from '../../state/song.svelte'
   import { tracker } from '../../state/tracker.svelte'
   import { transport } from '../../state/transport.svelte'
+  import Icon from '../Icon.svelte'
   import InstrumentEditor from './InstrumentEditor.svelte'
   import OrderList from './OrderList.svelte'
   import PatternGrid from './PatternGrid.svelte'
@@ -76,41 +77,59 @@
 <section class="tracker" aria-label="tracker">
   <div class="bar">
     <div class="group" role="group" aria-label="transport">
-      <button
-        type="button"
-        class="chip action"
-        aria-pressed={tracker.playing}
-        onclick={() => tracker.togglePlay('row')}
-      >
-        {tracker.playing ? 'stop' : 'play'}
-      </button>
-      <button type="button" class="chip action" onclick={() => tracker.play('pattern')}>
-        loop pattern
-      </button>
-      <span class="chip t-micro">{songBpm} bpm</span>
-      <span class="chip t-micro">frame {tracker.frame} · row {tracker.row}</span>
+      <span class="keyed">
+        <button
+          type="button"
+          class="key"
+          aria-pressed={tracker.playing}
+          aria-label={tracker.playing ? 'stop' : 'play'}
+          onclick={() => tracker.togglePlay('row')}
+        >
+          {#if tracker.playing}<Icon name="stop" />{:else}<Icon name="play" />{/if}
+        </button>
+        <span class="silk">{tracker.playing ? 'stop' : 'play'}</span>
+      </span>
+      <span class="keyed">
+        <button
+          type="button"
+          class="key"
+          aria-label="loop pattern"
+          onclick={() => tracker.play('pattern')}
+        >
+          <Icon name="loop" />
+        </button>
+        <span class="silk">loop</span>
+      </span>
     </div>
 
     <div class="group" role="group" aria-label="edit modes">
-      <button
-        type="button"
-        class="chip action"
-        aria-pressed={tracker.editing}
-        onclick={() => tracker.toggleEdit()}
-      >
-        edit
-      </button>
-      <button
-        type="button"
-        class="chip action"
-        aria-pressed={tracker.follow}
-        onclick={() => tracker.toggleFollow()}
-      >
-        follow
-      </button>
-      <label class="chip t-micro step">
-        step
+      <span class="keyed">
+        <button
+          type="button"
+          class="key rec"
+          aria-pressed={tracker.editing}
+          aria-label="edit mode"
+          onclick={() => tracker.toggleEdit()}
+        >
+          <Icon name="record" />
+        </button>
+        <span class="silk">edit</span>
+      </span>
+      <span class="keyed">
+        <button
+          type="button"
+          class="key"
+          aria-pressed={tracker.follow}
+          aria-label="follow playhead"
+          onclick={() => tracker.toggleFollow()}
+        >
+          <Icon name="follow" />
+        </button>
+        <span class="silk">follow</span>
+      </span>
+      <span class="keyed">
         <input
+          class="stepwin"
           type="number"
           min="0"
           max="16"
@@ -118,9 +137,15 @@
           aria-label="edit step, rows advanced after each note"
           onchange={(e) => tracker.setEditStep(Number(e.currentTarget.value))}
         />
-      </label>
-      <span class="chip t-micro">oct {transport.octave}</span>
+        <span class="silk">step</span>
+      </span>
     </div>
+
+    <!-- Position and tempo are printed on the slab, not boxed: readouts are
+         not controls, and a chip promises a control. -->
+    <p class="readout silk">
+      {songBpm} bpm · frame {tracker.frame} · row {tracker.row} · oct {transport.octave}
+    </p>
 
     <!-- PresetBar mount seam — see the `presetBar` prop above. -->
     <div class="group preset" data-slot="preset-bar">
@@ -174,17 +199,19 @@
 <style>
   .tracker {
     display: grid;
-    gap: var(--s-3);
+    gap: var(--s-2);
     padding: var(--s-3);
     background: var(--enclosure-bg);
     border-radius: var(--r-3);
     box-shadow: var(--sh-inset);
   }
 
+  /* flex-end lines every silkscreen label and the readout up on one printed
+     baseline under the caps. */
   .bar {
     display: flex;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-end;
     gap: var(--s-1) var(--s-4);
   }
 
@@ -192,7 +219,7 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--s-1);
+    gap: var(--s-2);
   }
 
   .preset {
@@ -215,35 +242,32 @@
     white-space: nowrap;
   }
 
-  .action {
-    color: var(--chip-accent);
-    cursor: pointer;
-  }
-
-  .action[aria-pressed='true'] {
-    color: var(--n-000);
-    background: var(--chip-accent);
-    box-shadow: none;
-  }
-
   .muted {
     color: var(--enclosure-ink-2);
   }
 
-  .step input {
-    /* `appearance: textfield` first: Chrome's number spinners eat a 4ch box and
-       leave the digit with nowhere to render. */
+  /* The step count is a value window the size of a cap. `appearance: textfield`
+     first: Chrome's number spinners eat the box and leave the digit with
+     nowhere to render. */
+  .stepwin {
     appearance: textfield;
-    width: 3ch;
-    margin-inline-start: var(--s-1);
-    padding: 0 2px;
+    width: 26px;
+    height: 24px;
+    padding: 0;
     text-align: center;
     font-family: var(--font-ui);
     font-size: var(--t-micro-size);
-    color: var(--chip-ink);
-    background: transparent;
-    border: 1px solid var(--grid-hairline);
+    font-weight: var(--t-micro-weight);
+    color: var(--enclosure-ink);
+    background: var(--chip-bg);
+    border: 0;
     border-radius: var(--r-1);
+    box-shadow: var(--sh-inset);
+  }
+
+  .readout {
+    margin: 0;
+    padding-block-end: 1px;
   }
 
   .dot {

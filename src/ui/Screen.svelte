@@ -128,7 +128,7 @@
     } else if (midi.permission === 'denied') {
       lines.push('denied', 'reload and allow', 'midi access')
     } else if (midi.permission === 'unknown') {
-      lines.push('not connected', 'press the midi chip', 'to connect a device')
+      lines.push('not connected', 'press the midi key', 'to connect a device')
     } else if (midi.ports.length === 0) {
       lines.push('no devices', 'plug one in, it is', 'picked up live')
     } else {

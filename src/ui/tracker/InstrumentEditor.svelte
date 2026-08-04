@@ -22,6 +22,7 @@
   } from '../../state/songModel'
   import { resolvePalette, watchRoom, deviceRatio } from '../canvas/gridMetrics'
   import type { GridPalette } from '../canvas/patternRenderer'
+  import Icon from '../Icon.svelte'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
@@ -252,7 +253,12 @@
 <section class="inst" aria-labelledby="inst-title">
   <div class="head">
     <h2 id="inst-title" class="t-label">instrument</h2>
-    <button type="button" class="chip t-micro" onclick={addInstrument}>add</button>
+    <span class="keyed">
+      <button type="button" class="key mini" aria-label="add instrument" onclick={addInstrument}>
+        <Icon name="plus" size={10} />
+      </button>
+      <span class="silk">add</span>
+    </span>
   </div>
 
   <div class="row">
@@ -295,10 +301,22 @@
           {instrument.macros[kind] < 0 ? 'none' : `slot ${instrument.macros[kind]}`}
         </span>
         {#if instrument.macros[kind] < 0}
-          <button type="button" class="chip t-micro" onclick={() => newSequence(kind)}>new</button>
+          <button
+            type="button"
+            class="key mini"
+            aria-label="new {kind} sequence"
+            onclick={() => newSequence(kind)}
+          >
+            <Icon name="plus" size={10} />
+          </button>
         {:else}
-          <button type="button" class="chip t-micro" onclick={() => setMacroSlot(kind, -1)}>
-            clear
+          <button
+            type="button"
+            class="key mini"
+            aria-label="clear {kind} macro"
+            onclick={() => setMacroSlot(kind, -1)}
+          >
+            <Icon name="clear" size={10} />
           </button>
         {/if}
       </li>
@@ -455,14 +473,11 @@
     margin-block-end: var(--s-1);
   }
 
-  .chip {
-    padding: 3px var(--s-2);
-    color: var(--chip-accent);
-    background: var(--chip-bg);
-    border: 0;
-    border-radius: var(--r-1);
-    box-shadow: var(--sh-inset);
-    cursor: pointer;
+  /* Editor caps run smaller than the transport's: they sit inside dense rows
+     the row label already names. */
+  .key.mini {
+    width: 18px;
+    height: 18px;
   }
 
   button:focus-visible,

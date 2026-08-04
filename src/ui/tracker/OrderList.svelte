@@ -14,6 +14,7 @@
   import { song } from '../../state/song.svelte'
   import { CHANNEL_LABELS, newFrame, type Frame } from '../../state/songModel'
   import { tracker } from '../../state/tracker.svelte'
+  import Icon from '../Icon.svelte'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
@@ -135,11 +136,36 @@
   </div>
 
   <div class="ops">
-    <button type="button" class="chip t-micro" onclick={() => addFrame(false)}>add</button>
-    <button type="button" class="chip t-micro" onclick={() => addFrame(true)}>clone</button>
-    <button type="button" class="chip t-micro" onclick={removeFrame}>remove</button>
-    <button type="button" class="chip t-micro" onclick={() => moveFrame(-1)}>up</button>
-    <button type="button" class="chip t-micro" onclick={() => moveFrame(1)}>down</button>
+    <span class="keyed">
+      <button type="button" class="key" aria-label="add frame" onclick={() => addFrame(false)}>
+        <Icon name="plus" />
+      </button>
+      <span class="silk">add</span>
+    </span>
+    <span class="keyed">
+      <button type="button" class="key" aria-label="clone frame" onclick={() => addFrame(true)}>
+        <Icon name="clone" />
+      </button>
+      <span class="silk">clone</span>
+    </span>
+    <span class="keyed">
+      <button type="button" class="key" aria-label="remove frame" onclick={removeFrame}>
+        <Icon name="minus" />
+      </button>
+      <span class="silk">remove</span>
+    </span>
+    <span class="keyed">
+      <button type="button" class="key" aria-label="move frame up" onclick={() => moveFrame(-1)}>
+        <Icon name="up" />
+      </button>
+      <span class="silk">up</span>
+    </span>
+    <span class="keyed">
+      <button type="button" class="key" aria-label="move frame down" onclick={() => moveFrame(1)}>
+        <Icon name="down" />
+      </button>
+      <span class="silk">down</span>
+    </span>
   </div>
 </section>
 
@@ -239,17 +265,7 @@
   .ops {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--s-1);
-  }
-
-  .chip {
-    padding: 3px var(--s-2);
-    color: var(--chip-accent);
-    background: var(--chip-bg);
-    border: 0;
-    border-radius: var(--r-1);
-    box-shadow: var(--sh-inset);
-    cursor: pointer;
+    gap: var(--s-2);
   }
 
   .sr {

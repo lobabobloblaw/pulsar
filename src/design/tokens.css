@@ -244,6 +244,85 @@ body {
 
 /* Only for dynamic strings we do not author (MIDI port names). A global
    text-transform would mangle them in the other direction. */
+/* ---- device controls ---------------------------------------------------- */
+/* The hardware vocabulary (plan-file §10, UI audit follow-up): a control is a
+   CAP — a physical button carrying one geometric glyph — with its label
+   silkscreened on the slab beneath it, never on the cap. Passive state is an
+   LED next to a printed name. Chips survive only where the text itself is the
+   control (the songs picker) or a rare warning tag. */
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--enclosure-ink);
+  background: var(--chip-bg);
+  border: 0;
+  border-radius: var(--r-1);
+  box-shadow: var(--sh-inset);
+  cursor: pointer;
+}
+
+.key:active {
+  transform: translateY(0.5px);
+}
+
+.key:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
+}
+
+.key[aria-pressed='true'] {
+  color: var(--n-000);
+  background: var(--chip-accent);
+  box-shadow: none;
+}
+
+/* Record-style latch: edit mode is the one place red means engaged, the way
+   it does on every piece of recording hardware ever made. */
+.key.rec[aria-pressed='true'] {
+  background: var(--st-bad);
+}
+
+/* A cap and the label printed under it. */
+.keyed {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.silk {
+  font-size: var(--t-micro-size);
+  font-weight: var(--t-micro-weight);
+  letter-spacing: var(--t-micro-track);
+  line-height: 1;
+  color: var(--enclosure-ink-2);
+  white-space: nowrap;
+}
+
+.led {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--r-max);
+  background: var(--a-gray);
+}
+
+.led.ok {
+  background: var(--st-ok);
+}
+
+.led.warn {
+  background: var(--st-warn);
+}
+
+.led.bad {
+  background: var(--st-bad);
+}
+
 .u-lc {
   text-transform: lowercase;
 }

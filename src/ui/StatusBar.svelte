@@ -1,17 +1,21 @@
 <!--
-  pulsar — StatusBar (plan C10).
+  pulsar — StatusBar (plan C10, device-controls pass 2026-08-04).
 
-  Chips carry live capability state: audio · midi · sab · room · model · [dev] fps.
-  Every chip is set on a white ground, which is the only place blue text clears
-  4.5:1 in this palette (5.20:1). No state is ever colour alone — the 6px status
-  dot always sits next to words that say the same thing.
+  Hardware logic, not web chips: a capability you can still act on is a CAP
+  (start audio, connect midi); once resolved it is an LED with a silkscreened
+  name (audio · midi · sab). The tracker and room are latching caps, the
+  console model is a two-position slide switch printed nes/fc. Labels sit on
+  the slab under each control, the way an enclosure is printed.
 
-  Capability copy is lowercase, does not apologise, and names the fix. A dead
-  control with no explanation is worse than no control.
+  The words did not leave — they moved where each audience needs them: sr-only
+  text mirrors every LED's state, `title` carries it for a hovering pointer,
+  and the note below still explains any problem in full sentences and names
+  the fix. A dead control with no explanation is worse than no control.
 -->
 <script lang="ts">
   import { tracker } from '../state/tracker.svelte'
   import { transport } from '../state/transport.svelte'
+  import Icon from './Icon.svelte'
   import Meter from './Meter.svelte'
 
   interface Props {
@@ -73,71 +77,108 @@
   const audioTone = $derived(
     transport.audio.state === 'running' ? 'ok' : transport.audio.state === 'error' ? 'bad' : 'idle',
   )
+
+  const midiTone = $derived.by(() => {
+    const m = transport.midi
+    if (!m.supported) return 'idle'
+    if (m.permission === 'granted') return m.ports.length > 0 ? 'ok' : 'warn'
+    if (m.permission === 'blocked' || m.permission === 'denied') return 'bad'
+    return 'idle'
+  })
 </script>
 
 <div class="status">
-  <div class="chips">
-    {#if transport.audio.state === 'running' || transport.audio.state === 'starting'}
-      <span class="chip t-micro">
-        <span class="dot {audioTone}" aria-hidden="true"></span>
-        {audioChip}
+  <div class="controls">
+    {#if transport.audio.state !== 'running' && transport.audio.state !== 'starting'}
+      <span class="keyed">
+        <button type="button" class="key" onclick={onStartAudio} aria-label="start audio">
+          <Icon name="power" />
+        </button>
+        <span class="silk">start</span>
       </span>
-    {:else}
-      <button type="button" class="chip t-micro action" onclick={onStartAudio}>
-        <span class="dot {audioTone}" aria-hidden="true"></span>
-        {audioChip} · start
-      </button>
     {/if}
 
     {#if transport.midi.supported && transport.midi.permission === 'unknown'}
-      <button type="button" class="chip t-micro action" onclick={onConnectMidi}>{midiChip}</button>
-    {:else}
-      <span class="chip t-micro">{midiChip}</span>
+      <span class="keyed">
+        <button type="button" class="key" onclick={onConnectMidi} aria-label="connect midi">
+          <Icon name="midi" />
+        </button>
+        <span class="silk">midi</span>
+      </span>
     {/if}
-
-    <span class="chip t-micro">sab {sabOn ? 'on' : 'off'}</span>
 
     <!-- The tracker panel is opt-in from here (design §4.1). Opening it also
          turns the screen to the song page — the panel hosts the screen beside
          the grid, and a giant params readout narrates nothing there. Closing
          restores the live-play default. -->
-    <button
-      type="button"
-      class="chip t-micro action"
-      aria-pressed={tracker.open}
-      onclick={() => {
-        tracker.toggleOpen()
-        transport.setPage(tracker.open ? 'song' : 'params')
-      }}
-    >
-      tracker
-    </button>
+    <span class="keyed">
+      <button
+        type="button"
+        class="key"
+        aria-pressed={tracker.open}
+        aria-label="tracker"
+        onclick={() => {
+          tracker.toggleOpen()
+          transport.setPage(tracker.open ? 'song' : 'params')
+        }}
+      >
+        <Icon name="grid" />
+      </button>
+      <span class="silk">tracker</span>
+    </span>
 
-    <button
-      type="button"
-      class="chip t-micro action"
-      aria-pressed={transport.room === 'night'}
-      onclick={() => transport.toggleRoom()}
-    >
-      room: {transport.room}
-    </button>
+    <span class="keyed">
+      <button
+        type="button"
+        class="key"
+        aria-pressed={transport.room === 'night'}
+        aria-label="room: {transport.room}"
+        onclick={() => transport.toggleRoom()}
+      >
+        {#if transport.room === 'night'}<Icon name="moon" />{:else}<Icon name="sun" />{/if}
+      </button>
+      <span class="silk">room</span>
+    </span>
 
-    <button
-      type="button"
-      class="chip t-micro action"
-      aria-pressed={transport.consoleModel === 'famicom'}
-      onclick={() => transport.toggleModel()}
-    >
-      model: {transport.consoleModel}
-    </button>
+    <span class="keyed">
+      <button
+        type="button"
+        class="switch"
+        aria-pressed={transport.consoleModel === 'famicom'}
+        aria-label="console model: {transport.consoleModel}"
+        onclick={() => transport.toggleModel()}
+      >
+        <span class="silk" class:on={transport.consoleModel === 'nes'}>nes</span>
+        <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+        <span class="silk" class:on={transport.consoleModel === 'famicom'}>fc</span>
+      </button>
+      <span class="silk">model</span>
+    </span>
 
-    {#if dev}
-      <span class="chip t-micro">fps {transport.fps}</span>
-    {/if}
-  </div>
+    <div class="leds">
+      <span class="ledgroup" title={audioChip}>
+        <span class="led {audioTone}" aria-hidden="true"></span>
+        <span class="silk">audio</span>
+        <span class="sr">{audioChip}</span>
+      </span>
+      <span class="ledgroup" title={midiChip}>
+        <span class="led {midiTone}" aria-hidden="true"></span>
+        <span class="silk">midi</span>
+        <span class="sr">{midiChip}</span>
+      </span>
+      <span class="ledgroup" title="sharedarraybuffer transport {sabOn ? 'on' : 'off'}">
+        <span class="led" class:ok={sabOn} aria-hidden="true"></span>
+        <span class="silk">sab</span>
+        <span class="sr">sab {sabOn ? 'on' : 'off'}</span>
+      </span>
+      {#if dev}
+        <span class="silk">fps {transport.fps}</span>
+      {/if}
+    </div>
 
-  <div class="meter">
-    <Meter mode="level" label="out" />
+    <div class="meter">
+      <Meter mode="level" label="out" />
+    </div>
   </div>
 
   {#if note}
@@ -152,59 +193,92 @@
     justify-items: end;
   }
 
-  .chips {
+  /* One row on the wide (tracker) device; on the Phase-1 width the LED line
+     wraps under the caps as its own thin printed row. */
+  .controls {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: var(--s-1);
+    align-items: flex-start;
+    gap: var(--s-1) var(--s-3);
   }
 
-  .chip {
+  .leds {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    gap: var(--s-3);
+  }
+
+  .ledgroup {
     display: inline-flex;
     align-items: center;
-    gap: var(--s-1);
-    padding: 3px var(--s-2);
+    gap: 4px;
+  }
+
+  /* The slide switch: a recessed track, a moving mark, printed endpoints. */
+  .switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+  }
+
+  .switch .track {
+    position: relative;
+    width: 22px;
+    height: 12px;
     background: var(--chip-bg);
-    color: var(--chip-ink);
     border-radius: var(--r-1);
     box-shadow: var(--sh-inset);
-    white-space: nowrap;
   }
 
-  /* Blue text is legal here and nowhere else on the enclosure: 5.20:1 on white. */
-  .action {
-    color: var(--chip-accent);
+  .switch .thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--enclosure-mark);
+    transition: left var(--dur-fast) var(--ease);
   }
 
-  .action:focus-visible {
+  .switch[aria-pressed='true'] .thumb {
+    left: 12px;
+  }
+
+  .switch:focus-visible {
     outline: none;
+  }
+
+  .switch:focus-visible .track {
     box-shadow: var(--focus);
   }
 
-  .action[aria-pressed='true'] {
-    background: var(--chip-accent);
-    color: var(--n-000);
-    box-shadow: none;
+  /* The active endpoint is printed in ink; position says the same thing. */
+  .switch .silk.on {
+    color: var(--enclosure-ink);
   }
 
-  .dot {
-    width: 6px;
-    height: 6px;
-    border-radius: var(--r-max);
-    background: var(--a-gray);
+  .sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
-  .dot.ok {
-    background: var(--st-ok);
-  }
-
-  .dot.bad {
-    background: var(--st-bad);
-  }
-
+  /* The meter sits on the LED line. */
   .meter {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    align-self: center;
   }
 
   .note {
