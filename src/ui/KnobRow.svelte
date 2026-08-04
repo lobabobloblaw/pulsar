@@ -3,8 +3,11 @@
 
   Four knobs, left to right, in registry order. The row is a labelled group so a
   screen-reader rotor lists "voice controls" once rather than four orphan
-  sliders. Reflows to 2x2 at 720px — the knobs stay 56px at every size because a
-  control that changes size changes feel.
+  sliders. The knobs stay 56px AND stay one row at every size — a control that
+  changes size changes feel, and four 56px dials fit even a 320px phone. The
+  old 2x2 reflow at 720px cost ~126px of height, which on a real iPhone (where
+  Safari's chrome already eats ~180px) was exactly the difference between the
+  instrument fitting the first screen and scrolling.
 -->
 <script lang="ts">
   import { params } from '../state/params.svelte'
@@ -40,10 +43,7 @@
 
   @media (max-width: 720px) {
     .knobs {
-      grid-template-areas:
-        'knob-a knob-b'
-        'knob-c knob-d';
-      grid-template-columns: repeat(2, 1fr);
+      gap: var(--s-3) var(--s-2);
     }
   }
 </style>
