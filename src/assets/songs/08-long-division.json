@@ -302,8 +302,8 @@
       { "r": 20, "note": 52, "vol": 12, "fx": [{"cmd": "0", "param": 74}] },
       { "r": 30, "note": 59, "vol": 11 },
       { "r": 36, "note": 57, "vol": 12, "fx": [{"cmd": "0", "param": 55}] },
-      { "r": 46, "note": 60, "vol": 11 },
-      { "r": 52, "note": 57, "vol": 12 },
+      { "r": 46, "note": 60, "vol": 11, "fx": [{ "cmd": "0", "param": 0 }] },
+      { "r": 52, "note": 59, "vol": 12 },
       { "r": 62, "note": -2, "fx": [{"cmd": "0", "param": 0}] }
     ] },
     { "channel": "pulse2", "index": 8, "rows": [
@@ -345,7 +345,7 @@
       { "r": 36, "note": 38 },
       { "r": 40, "note": 45 },
       { "r": 44, "note": 38 },
-      { "r": 48, "note": 40 },
+      { "r": 48, "note": 35 },
       { "r": 52, "note": 40 },
       { "r": 56, "note": 47 },
       { "r": 60, "note": 40 }
@@ -363,7 +363,7 @@
       { "r": 36, "note": 41 },
       { "r": 40, "note": 48 },
       { "r": 44, "note": 41 },
-      { "r": 48, "note": 43 },
+      { "r": 48, "note": 38 },
       { "r": 52, "note": 43 },
       { "r": 56, "note": 50 },
       { "r": 60, "note": 43 }
@@ -412,7 +412,7 @@
       { "r": 16, "note": 40 },
       { "r": 24, "note": 44 },
       { "r": 32, "note": 45 },
-      { "r": 40, "note": 45 },
+      { "r": 40, "note": 41 },
       { "r": 48, "note": 40 },
       { "r": 56, "note": 45 }
     ] },
@@ -439,7 +439,7 @@
       { "r": 36, "note": 38 },
       { "r": 40, "note": 45 },
       { "r": 44, "note": 40 },
-      { "r": 48, "note": 40 },
+      { "r": 48, "note": 46 },
       { "r": 52, "note": 40 },
       { "r": 56, "note": 47 },
       { "r": 60, "note": 40 }
@@ -1394,11 +1394,8 @@
         150,
         175
       ],
-      "rmsRange": [
-        -27,
-        -19
-      ],
-      "renderChecksum": 415041320,
+      "rmsRange": [-22.3, -19.3],
+      "renderChecksum": 3588401799,
       "loopFrame": 2,
       "form": [
         "intro",
@@ -1458,7 +1455,7 @@
         "rev": 1
       },
       "percussionGap": 8,
-      "notes": "PRESTIGE PASS (\u00a79.7). 150 BPM, 6 ticks/row, 16 rows to the bar; the bridge runs at speed 7 = 128.6 BPM. AXIS 11 EVIDENCE. (a) Polymetric cell: a 6-row dotted-quarter cell on pulse 2 under the whole A theme, phase-carried by hand across three patterns per \u00a79.1's table - frame 2 : rows 0,6,12,18,24,30,36,42,48,54,60 (entry 0); frame 3 : rows 2,8,14,20,26,32,38,44,50,56,62 (entry 2); frame 4 : rows 4,10,16,22,28,34,40,46,52,58 (entry 4). It resolves onto the downbeat exactly at frame 5, which keeps its aligned pattern, so the device has a beginning and an end. Cite: frame 2 : row 0 -> frame 4 : row 58. (b) Hemiola into the tempo drop: the last three bars of frame 10 accent every 6 rows - frame 10 : rows 16, 22, 28, 34, 40, 46, 52, 58 - eight groups closing exactly on the barline, carried by pulse 2 and by the kit (snare on the odd groups, tom with pit-tom-drop on the even ones) over a triangle that holds its bar root as a pedal from frame 10 : row 16. 4/4 dissolves and the beat returns at frame 11 : row 0, where F07 drops the tempo. (c) Displaced re-entries, one per modulation: frame 7 : row 2 re-enters C major an 8th late (frame 8 keeps the undisplaced pattern, so the displacement reads as an entry gesture); frame 11 : row 4 re-enters D minor a full beat late, leaving the bridge's first beat to the triangle alone, with F07 still on row 0 because the tempo architecture is identity; frame 16 anticipates A' by 2 rows, its head written into frame 15 : row 62. (d) Metric surprise, exactly one: D00 at frame 20 : row 59, so the last A' frame runs 60 rows and the coda arrives a beat early. It sits on pulse1 p12, which frame 20 alone references. AXIS 4 EVIDENCE. The 6-row cell gives pulse 2 its own metre for the whole of A (frames 2-4). In the bridge it has an independent chromatic line (below). WRITTEN SUSPENSIONS, two: (1) cadential 4-3 - c4 is prepared at frame 10 : row 46 as the fifth of F, held THROUGH the chord change to G7 at row 48, and resolves down by step to b3 at frame 10 : row 52; (2) the appoggiatura at frame 24 : row 56, g sharp 4 attacked on the strong beat over E7 and resolving up to a across the loop seam. NON-DIATONIC DEVICES, three distinct, in different sections: (1) chained secondary dominant - E7 with its g sharp at frame 14 : row 4, the dominant bar that prepares the return to A minor; (2) CHROMATIC INNER VOICE - pulse 2 descends d -> c sharp -> c natural -> b natural -> b flat under the D-minor bridge, one step per bar, each chromatic tone resolving by step in the same direction within 2 rows (frame 11 : rows 12/14, 28/30, 44/46, 60/62, and the same shape inverted at frame 12 and closed at frame 13 : rows 60/62 with a g sharp lower neighbour that prepares the E7); (3) Neapolitan B flat major opening the coda at frame 21 : row 0. THREE MODULATIONS, three techniques: A minor -> C major by pivot chord (the shared Am held bare across frames 6/7); C major -> D minor by a bare unison lead-in plus F07 at frame 11 : row 0; D minor -> A minor by a whole bar of E7 with F06 at frame 14 : row 0. SECTION VARIATION. The B accompaniment is no longer four identical frames: the triangle takes a 6-row cell at frames 9 and 10 (entry 0 then entry 2) and pulse 2 gets its own pattern at frame 10. The bridge is no longer three identical frames: pulse 1 has two patterns across 11-13, pulse 2 three, the triangle two (the motif brackets a bare d pedal at frame 12), the tick lane two. ENGINE NOTES, both traps. 3xx is a PERSISTENT CHANNEL MODE in this driver and 300 only freezes it - a later note would still refuse to retrigger - so the bridge's portamento is cancelled with 200 (param 0, a documented off value that never consults effect memory), not with 300. A duty MACRO overrides Vxx from the next tick, so every Vxx here states a timbre the instrument's macro then holds; it is not per-row automation. DECIMAL PARAMS: F param 7 = speed 7, F param 6 = speed 6 (both below speedSplitPoint 32); B param 2 = loop to frame 2; D param 0 = end the frame after this row and enter the next at row 0; 0 param 71 = 047 = major triad, 74 = 04a = dominant seventh, 55 = 037 = minor triad; S param 4 cuts a 6-tick row after 4 ticks; G param 2 = a two-tick flam; A param 15 = A0f = a fast swell UP (the direction is inverted here), A param 0 cancels it.",
+      "notes": "PRESTIGE PASS (\u00a79.7). 150 BPM, 6 ticks/row, 16 rows to the bar; the bridge runs at speed 7 = 128.6 BPM. AXIS 11 EVIDENCE. (a) Polymetric cell: a 6-row dotted-quarter cell on pulse 2 under the whole A theme, phase-carried by hand across three patterns per \u00a79.1's table - frame 2 : rows 0,6,12,18,24,30,36,42,48,54,60 (entry 0); frame 3 : rows 2,8,14,20,26,32,38,44,50,56,62 (entry 2); frame 4 : rows 4,10,16,22,28,34,40,46,52,58 (entry 4). It resolves onto the downbeat exactly at frame 5, which keeps its aligned pattern, so the device has a beginning and an end. Cite: frame 2 : row 0 -> frame 4 : row 58. (b) Hemiola into the tempo drop: the last three bars of frame 10 accent every 6 rows - frame 10 : rows 16, 22, 28, 34, 40, 46, 52, 58 - eight groups closing exactly on the barline, carried by pulse 2 and by the kit (snare on the odd groups, tom with pit-tom-drop on the even ones) over a triangle that is still running its own 6-row cell at entry row 2 through the whole frame (frame 10 : rows 2, 8, 14, 20, 26, 32, 38, 44, 50, 56, 62), re-articulating each bar's root inside that cell rather than holding a pedal. 4/4 dissolves and the beat returns at frame 11 : row 0, where F07 drops the tempo. (c) Displaced re-entries, one per modulation: frame 7 : row 2 re-enters C major an 8th late (frame 8 keeps the undisplaced pattern, so the displacement reads as an entry gesture); frame 11 : row 4 re-enters D minor a full beat late, leaving the bridge's first beat to the triangle alone, with F07 still on row 0 because the tempo architecture is identity; frame 16 anticipates A' by 2 rows, its head written into frame 15 : row 62. (d) Metric surprise, exactly one: D00 at frame 20 : row 59, so the last A' frame runs 60 rows and the coda arrives a beat early. It sits on pulse1 p12, which frame 20 alone references. AXIS 4 EVIDENCE. The 6-row cell gives pulse 2 its own metre for the whole of A (frames 2-4). In the bridge it has an independent chromatic line (below). WRITTEN SUSPENSIONS, two: (1) cadential 4-3 - c4 is prepared at frame 10 : row 46 as the fifth of F, held THROUGH the chord change to G7 at row 48, and resolves down by step to b3 at frame 10 : row 52; (2) a 6-5 suspension at the coda's cadence - c4 is prepared at frame 21 : row 46 as the fifth of the F bar (the arpeggio is cancelled there with 0 param 0 so the suspension sounds as a single pitch), held through the change to E at frame 21 : row 48 where it is the flat sixth against the lead's b4, and resolved down by step to b3 at frame 21 : row 52; it recurs at frames 22 and 23, which share p2:7. The g sharp 4 at frame 24 : row 56 is E7's third and is claimed only as what it is - a leading-tone resolution into a4 at the loop seam - not as an appoggiatura. NON-DIATONIC DEVICES, three distinct, in different sections: (1) chained secondary dominant - E7 with its g sharp at frame 14 : row 4, the dominant bar that prepares the return to A minor; (2) CHROMATIC INNER VOICE - pulse 2 descends d -> c sharp -> c natural -> b natural -> b flat under the D-minor bridge, one step per bar, each chromatic tone resolving by step in the same direction within 2 rows (frame 11 : rows 12/14, 28/30, 44/46, 60/62, and the same shape inverted at frame 12 and closed at frame 13 : rows 60/62 with a g sharp lower neighbour that prepares the E7); (3) Neapolitan B flat major opening the coda at frame 21 : row 0. NO STOCK LOOP (9.3): each of the three surface loops takes a substitute or an applied chord at a phrase seam. The A theme's Am-F-Dm-E opens bar 4 on ii-diminished, bass b1 at frame 2 : row 48, before E at frame 2 : row 52 - and at frame 5, the seam where the 6-row cell resolves onto the downbeat, on the NEAPOLITAN B flat instead, bass a sharp 2 at frame 5 : row 48. B's C-Am-F-G opens bar 4 on D7, the applied dominant of G, bass d2 at frame 7 : row 48 with pulse 2 already arpeggiating d-f sharp-c there (0 param 74 at frame 7 : row 50), resolving to G at frame 7 : row 52; frames 7 and 8 share the triangle pattern, so the break falls at bars 4 and 8 of the section. The coda's Bb-E-Am-E substitutes F for the second half of the Am bar, bass f2 at frame 21 : row 40, which is also what prepares the suspension above. THREE MODULATIONS, three techniques: A minor -> C major by pivot chord (the shared Am held bare across frames 6/7); C major -> D minor by a bare unison lead-in plus F07 at frame 11 : row 0; D minor -> A minor by a whole bar of E7 with F06 at frame 14 : row 0. SECTION VARIATION. The B accompaniment is no longer four identical frames: the triangle takes a 6-row cell at frames 9 and 10 (entry 0 then entry 2) and pulse 2 gets its own pattern at frame 10. The bridge is no longer three identical frames: pulse 1 has two patterns across 11-13, pulse 2 three, the triangle two (the motif brackets a bare d pedal at frame 12), the tick lane two. ENGINE NOTES, both traps. 3xx is a PERSISTENT CHANNEL MODE in this driver and 300 only freezes it - a later note would still refuse to retrigger - so the bridge's portamento is cancelled with 200 (param 0, a documented off value that never consults effect memory), not with 300. A duty MACRO overrides Vxx from the next tick, so every Vxx here states a timbre the instrument's macro then holds; it is not per-row automation. The suite-wide rmsRange convention: the measured two-pass mix RMS +-1.5 dB, declared per song because the design's [-20,-9] window is unreachable on this engine and the floor is -30 dBFS. Measured -20.80 dBFS, declared [-22.3, -19.3]. DECIMAL PARAMS: F param 7 = speed 7, F param 6 = speed 6 (both below speedSplitPoint 32); B param 2 = loop to frame 2; D param 0 = end the frame after this row and enter the next at row 0; 0 param 71 = 047 = major triad, 74 = 04a = dominant seventh, 55 = 037 = minor triad; S param 4 cuts a 6-tick row after 4 ticks; G param 2 = a two-tick flam; A param 15 = A0f = a fast swell UP (the direction is inverted here), A param 0 cancels it.",
       "polymeter": {
         "device": "6-row dotted-quarter cell on pulse 2, phase-carried across three frames",
         "cite": "frame 2 : row 0 -> frame 4 : row 58 (entry rows 0, 2, 4; resolves onto the downbeat at frame 5)"
