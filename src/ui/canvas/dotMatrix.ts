@@ -23,6 +23,7 @@
 import { DOT_MAX, DOT_MIN, LATTICE, SCREEN } from '../../design/tokens'
 import { ADVANCE, GLYPH_H, GLYPH_W, glyph, textWidth } from './font5x7'
 import { GLYPH8, glyph8 as glyphRows8, type Glyph8Name } from './glyphs8'
+import { watchDevicePixelRatio } from './gridMetrics'
 
 /** Boot art is NES-quantised to <=16 colours; the live pages use three. */
 const MAX_COLOR_SLOTS = 20
@@ -59,6 +60,12 @@ export class DotMatrix {
   #latticeBitmap: ImageBitmap | null = null
   #slots: ColorSlot[] = []
   #used = 0
+  /** Forces the next `resize` past its early-out. See the constructor. */
+  #dprDirty = false
+  /** The last container width `resize` was given, so the DPR watcher can redo
+   *  the sizing itself — Meter sizes once at mount and never again. */
+  #lastWidth = 0
+  #unwatchDpr: () => void
 
   constructor(canvas: HTMLCanvasElement, opts: DotMatrixOptions = {}) {
     this.canvas = canvas
@@ -72,6 +79,19 @@ export class DotMatrix {
     const ctx = canvas.getContext('2d', { alpha: false })
     if (!ctx) throw new Error('pulsar: 2d context unavailable')
     this.#ctx = ctx
+
+    // DPR invalidation (phase-2 design §7.2 — the Phase-1 known-polish item).
+    // Dragging the window between a 1x and a 2x display fires NO resize and no
+    // ResizeObserver callback: the CSS box is identical, only the backing-store
+    // scale changed. The cached lattice then stays at the old device resolution
+    // and the dots go soft. `(resolution: Xdppx)` matches only while the ratio
+    // is exactly X, so the watcher re-arms itself after every change. It then
+    // redoes the sizing at the remembered container width — the meter sizes
+    // itself exactly once at mount, so waiting for a caller would never heal.
+    this.#unwatchDpr = watchDevicePixelRatio(() => {
+      this.#dprDirty = true
+      if (this.#lastWidth > 0) this.resize(this.#lastWidth)
+    })
   }
 
   /** The status-bar meter lives on the aluminium, not in the screen, so its
@@ -98,10 +118,12 @@ export class DotMatrix {
 
   /** Returns true when the geometry actually changed. Safe to call per frame. */
   resize(containerWidth: number): boolean {
+    this.#lastWidth = containerWidth
     const dpr = Math.max(1, Math.round(globalThis.devicePixelRatio || 1))
     const raw = Math.floor(containerWidth / this.cols)
     const dot = raw < this.#dotMin ? this.#dotMin : raw > this.#dotMax ? this.#dotMax : raw
-    if (dot === this.#dot && dpr === this.#dpr && this.#hasLattice()) return false
+    if (dot === this.#dot && dpr === this.#dpr && this.#hasLattice() && !this.#dprDirty) return false
+    this.#dprDirty = false
 
     this.#dot = dot
     this.#dpr = dpr
@@ -236,6 +258,7 @@ export class DotMatrix {
   }
 
   destroy(): void {
+    this.#unwatchDpr()
     this.#latticeBitmap?.close()
     this.#latticeBitmap = null
     this.#lattice = null

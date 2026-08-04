@@ -70,6 +70,34 @@
   --screen-accent: #ffc003; /* 10.82:1 */
   --screen-bezel: var(--n-600);
 
+  /* ---- surface roles: the pattern grid (phase-2 design §4.2) ------------
+   * The grid is a working surface laid ON the aluminium, not a second lit
+   * object — the screen stays the only lit thing on the page. It is the one
+   * canvas that must read its palette from THIS file at runtime rather than
+   * from a tokens.ts mirror, because enclosure tokens change with the room and
+   * the screen's do not (K5). gridMetrics.ts resolves these with one
+   * getComputedStyle at mount and again on a data-room change, which is why
+   * every value here is a plain colour: a var() or a color-mix() would reach
+   * the canvas unresolved.
+   *
+   * Measured, day room:  ink 17.75:1 · ink-dim 9.15:1 · ink-muted 3.03:1 (the
+   * empty-cell marks, non-text) · accent 4.61:1 on the field. The highlight
+   * bands are neutral luminance steps derived from --n-100 / --n-300, never
+   * colour: exactly one accent lives on this surface and it belongs to the
+   * cursor and the playhead. */
+  --grid-bg: #ffffff; /* --n-000 */
+  --grid-bg-alt: #f2f2f2; /* header + gutter ground, --n-100 at 25% */
+  --grid-bg-beat: #ebebeb; /* rowHighlight band, --n-100 at 40% */
+  --grid-bg-bar: #dcdcdc; /* rowHighlight2 band, --n-300 at 45% */
+  --grid-ink: #181818; /* note column */
+  --grid-ink-dim: #484848; /* instrument, volume, effects, row numbers */
+  --grid-ink-muted: #949494; /* '...' placeholders — --enclosure-hairline, one
+                                step darker so the marks still clear 3:1 */
+  --grid-hairline: #bdbdbd; /* column + channel rules */
+  --grid-accent: #1270b8; /* cursor + playhead, and nothing else */
+  --grid-selection: #d8e7f4; /* accent at 12% over the field */
+  --grid-focus: #1270b8;
+
   /* ---- status (always paired with text, never color alone) -------------- */
   --st-ok: var(--a-green);
   --st-warn: var(--a-amber);
@@ -138,6 +166,23 @@
   --enclosure-ink-2: var(--n-800); /* 5.44:1 on #8f8f8f */
   --enclosure-hairline: var(--n-600);
   --enclosure-mark: #0d0d0d;
+
+  /* The grid dims with the room like every other enclosure surface — a white
+   * field at night would out-shine the screen, which is the one thing the room
+   * dimmer exists to prevent. Measured on #b4b4b4: ink 9.39:1 · ink-dim 6.37:1
+   * · ink-muted 3.33:1 · accent 3.43:1 (the blue darkens rather than dropping
+   * to fill-only, because the playhead has to stay findable in motion). */
+  --grid-bg: #b4b4b4;
+  --grid-bg-alt: #a8a8a8;
+  --grid-bg-beat: #a8a8a8;
+  --grid-bg-bar: #9a9a9a;
+  --grid-ink: #0d0d0d;
+  --grid-ink-dim: #303030;
+  --grid-ink-muted: #5a5a5a;
+  --grid-hairline: #8f8f8f;
+  --grid-accent: #0d5b96;
+  --grid-selection: #9fb6c8;
+  --grid-focus: #0d5b96;
 }
 
 /* Reduced motion zeroes decorative durations everywhere at once. Canvas cannot

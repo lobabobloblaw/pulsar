@@ -176,6 +176,14 @@ export class EngineHandle implements WriteSink, LiveEngine {
 
   // --- LiveEngine ---------------------------------------------------------------
 
+  /** Writes queued but not yet drained. Diagnostic only, and the SECOND of the two
+   *  narrow additive host APIs phase 2 is allowed (design §2.6): the tracker's `[drv]`
+   *  chip shows ring occupancy so a main-thread stall is visible rather than
+   *  mysterious. `0` on the postMessage path, which hands its batch over whole. */
+  get pending(): number {
+    return this.producer === null ? 0 : this.producer.pending
+  }
+
   /** Late writes seen so far. The adaptive-lead controller samples this every 2 s. */
   lateWrites(): number {
     return this.diagnostics().lateWrites

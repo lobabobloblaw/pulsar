@@ -26,15 +26,22 @@
     knobs: Snippet
     keys: Snippet
     foot?: Snippet
+    /** Phase-2 design §4.1: one grid area, `tracker`, between the screen and
+     *  the knobs — present ONLY when the panel is open. The live-play shell is
+     *  the Phase-1 product and it does not regress when this is absent. */
+    tracker?: Snippet | undefined
   }
-  let { brand, status, screen, knobs, keys, foot }: Props = $props()
+  let { brand, status, screen, knobs, keys, foot, tracker }: Props = $props()
 </script>
 
 <div class="stage">
-  <div class="device">
+  <div class="device" class:with-tracker={tracker !== undefined}>
     <header class="area brand">{@render brand()}</header>
     <div class="area stat">{@render status()}</div>
     <div class="area screen">{@render screen()}</div>
+    {#if tracker}
+      <div class="area tracker">{@render tracker()}</div>
+    {/if}
     <div class="area knobs">{@render knobs()}</div>
     <div class="area keys">{@render keys()}</div>
     <footer class="area foot">
@@ -74,6 +81,21 @@
       color var(--dur-med) var(--ease);
   }
 
+  /* The tracker turns the instrument into a workbench: the slab keeps its
+     Phase-1 width until the panel opens, then takes the room an 8-channel grid
+     plus its two plain-DOM editors actually needs. Width is not transitioned —
+     a slab that eases open reads as a webpage, not as a device. */
+  .device.with-tracker {
+    width: min(100% - 24px, 1240px);
+    grid-template-areas:
+      'brand brand brand brand brand brand stat stat stat stat stat stat'
+      'screen screen screen screen screen screen screen screen screen screen screen screen'
+      'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
+      'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
+      'keys keys keys keys keys keys keys keys keys keys keys keys'
+      'foot foot foot foot foot foot foot foot foot foot foot foot';
+  }
+
   .device::before {
     content: '';
     position: absolute;
@@ -109,6 +131,9 @@
   .screen {
     grid-area: screen;
   }
+  .tracker {
+    grid-area: tracker;
+  }
   .knobs {
     grid-area: knobs;
   }
@@ -124,11 +149,13 @@
   }
 
   @media (max-width: 720px) {
-    .device {
+    .device,
+    .device.with-tracker {
       grid-template-areas:
         'brand brand brand brand brand brand brand brand brand brand brand brand'
         'stat stat stat stat stat stat stat stat stat stat stat stat'
         'screen screen screen screen screen screen screen screen screen screen screen screen'
+        'tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker tracker'
         'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
         'keys keys keys keys keys keys keys keys keys keys keys keys'
         'foot foot foot foot foot foot foot foot foot foot foot foot';

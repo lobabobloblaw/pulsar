@@ -92,6 +92,14 @@ export interface KeyboardOptions {
   gesture?: (e: KeyboardEvent) => boolean
   /** Announced by the live region, throttled by the caller. */
   onNote?: (note: number) => void
+  /** Focus guard (phase-2 design §4.5). While the tracker grid owns the
+   *  keyboard, this listener must not ALSO fire — the grid's own keymap is
+   *  responsible for note entry there. WP10 wires the grid's focus state in
+   *  here rather than adding a second window listener, which is why there is
+   *  still exactly one keydown handler in the product.
+   *
+   *  Guards keydown only; see the call site for why it must never panic. */
+  suppress?: () => boolean
 }
 
 function isTextTarget(target: EventTarget | null): boolean {
@@ -132,6 +140,14 @@ export function attachKeyboard(opts: KeyboardOptions): () => void {
     // delivers keyup, and Option+letter is how accented characters are typed.
     if ((e.metaKey || e.ctrlKey) && held.size > 0) panic()
 
+    // Focus guard: the tracker grid owns typing while it has focus. Only
+    // KEYDOWN is suppressed — `keyup` still runs, so a note this listener
+    // started before focus moved is released normally by its own key release.
+    // It deliberately does NOT panic: another source (a pointer on the keybed,
+    // a MIDI key) may be holding notes, and cutting those because the user
+    // clicked into the grid is exactly the bug §7.2's refcounts exist to end.
+    if (opts.suppress?.() === true) return
+
     if (e.metaKey || e.ctrlKey || e.altKey) return
 
     if (!gestureDone && opts.gesture) {
@@ -159,8 +175,8 @@ export function attachKeyboard(opts: KeyboardOptions): () => void {
 
     const note = noteForSemitone(semitone)
     held.set(e.code, note)
-    transport.noteOn(note)
-    bridge.noteOn(note, LOCAL_VELOCITY)
+    // Per-source refcount (§7.2): sound it only if nobody else already is.
+    if (transport.noteOn(note, 'qwerty')) bridge.noteOn(note, LOCAL_VELOCITY)
     opts.onNote?.(note)
   }
 
@@ -168,8 +184,9 @@ export function attachKeyboard(opts: KeyboardOptions): () => void {
     const note = held.get(e.code)
     if (note === undefined) return
     held.delete(e.code)
-    transport.noteOff(note)
-    bridge.noteOff(note)
+    // …and cut it only if this was the last hand on it. A keyup used to cut a
+    // note the pointer or the tracker was still holding.
+    if (transport.noteOff(note, 'qwerty')) bridge.noteOff(note)
   }
 
   function onVisibility(): void {

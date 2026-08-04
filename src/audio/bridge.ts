@@ -26,6 +26,24 @@ import { PARAMS, type ParamId } from './params'
 import { sabAvailable, startEngine, type EngineHandle } from './host/audioEngine'
 import { LiveScheduler } from './host/liveScheduler'
 import { newDiagnostics, type Diagnostics, type MutableDiagnostics } from './host/diagnostics'
+import { msToCycles } from './timeline/clockMap'
+import { NTSC_CPU_HZ } from './core/constants'
+import {
+  PlaybackCoordinator,
+  TrackerDriver,
+  type DriverPosition,
+  type DriverStats,
+  type PlayMode,
+} from '../tracker/driver/trackerDriver'
+import {
+  HIDDEN_PUMP_MS,
+  LOOKAHEAD_MS,
+  PUMP_MS,
+  hiddenLookaheadMs,
+} from '../tracker/driver/tempo'
+import { buildDpcmImage } from '../tracker/offlineRender'
+import { emptySong, type Song } from '../tracker/model/types'
+import type { NesCycle, RegAddr, WriteSink } from './timeline/types'
 
 export type BridgeState = 'idle' | 'starting' | 'running' | 'error'
 
@@ -59,6 +77,32 @@ export interface AudioBridge {
    *  adaptive-lead controller. Allocation-free either way. */
   tick(nowMs: number): void
   dispose(): void
+
+  // --- phase 2: the tracker transport (design §6.3) --------------------------------
+  // Additive only: every phase-1 member above keeps its exact signature and behaviour.
+
+  loadSong(song: Song): void
+  play(mode: PlayMode, from?: { order: number; row: number }): void
+  stopPlayback(): void
+  /** Plain object, mutated in place, read in rAF only — never `$state`. */
+  readonly playback: DriverPosition
+  /** Driver counters for the `[drv]` chip (§7.2). Null before the engine exists. */
+  readonly playbackStats: DriverStats | null
+  /** Which channel live input steals while playing (§2.6). */
+  setLiveChannel(channel: number): void
+  setChannelMute(channel: number, muted: boolean): void
+  setEditStep(rows: number): void
+  /** Recorded input while playing: returns the row it landed on, or −1. The row is
+   *  computed from the input event's OWN engine cycle, so quantization is unaffected
+   *  by the 120 ms lookahead — the note lands on the row the player heard themselves
+   *  play (§2.6). Null while stopped, where step record uses the cursor instead. */
+  readonly recordSink: RecordSink | null
+}
+
+export interface RecordSink {
+  onNote(note: number, velocity: number): number
+  /** The order frame that row belongs to, for the caller that writes the cell. */
+  readonly orderIndex: number
 }
 
 /** What the stub last did — surfaced in the dev chip so the shell is verifiably
@@ -104,9 +148,47 @@ function isolated(): boolean {
 
 // --- the real bridge ---------------------------------------------------------------
 
+/** The driver is constructed before the AudioContext exists, so `bridge.playback` is a
+ *  stable object the grid can read from its very first frame. Until `start()` resolves
+ *  the sink swallows writes and the clock reads 0 — and playback cannot begin anyway,
+ *  because `play()` awaits `engine.ready()` (the phase-1 polish item §7.2 makes
+ *  load-bearing the moment a user hits play on a cold page). */
+class DeferredEngine implements WriteSink {
+  engine: EngineHandle | null = null
+
+  get clockRate(): number {
+    const e = this.engine
+    return e === null ? NTSC_CPU_HZ : e.clockRate
+  }
+
+  nowCycle(): NesCycle {
+    const e = this.engine
+    return e === null ? 0 : e.nowCycle()
+  }
+
+  write(cycle: NesCycle, addr: RegAddr, value: number): void {
+    this.engine?.write(cycle, addr, value)
+  }
+
+  flush(): void {
+    this.engine?.flush()
+  }
+}
+
 class RealBridge implements AudioBridge {
   readonly meter = new Float32Array(4)
   readonly scope = new Float32Array(SCOPE_LENGTH)
+
+  /** Tracker transport. The driver exists from construction; the coordinator (Rule L)
+   *  needs the LiveScheduler and so appears at `start()`. */
+  readonly #timeline = new DeferredEngine()
+  readonly #driver = new TrackerDriver(this.#timeline, this.#timeline)
+  #coordinator: PlaybackCoordinator | null = null
+  #pumpTimer: ReturnType<typeof setInterval> | null = null
+  #pumpMs = PUMP_MS
+  #lookaheadMs = LOOKAHEAD_MS
+  #visibilityHandler: (() => void) | null = null
+  #lastDropped = 0
 
   #status: BridgeStatus
   #subs = new Set<(s: BridgeStatus) => void>()
@@ -200,6 +282,10 @@ class RealBridge implements AudioBridge {
       })
       this.#scheduler = scheduler
 
+      // Rule L: two callers, one owner at a time, one ring producer (§2.1/§2.6).
+      this.#timeline.engine = engine
+      this.#coordinator = new PlaybackCoordinator(this.#timeline, scheduler, this.#driver)
+
       // The tap: one analyser, fed from the worklet node. It needs no output
       // connection — an AnalyserNode captures whatever reaches its input.
       const analyser = engine.ctx.createAnalyser()
@@ -244,22 +330,152 @@ class RealBridge implements AudioBridge {
     }
   }
 
+  /** Rule L (§2.6): stopped -> `LiveScheduler` owns the timeline and phase-1 latency
+   *  is untouched; playing -> the driver owns it and the note steals the editor's
+   *  cursor channel. */
   noteOn(note: number, velocity: number, _channel = 0): void {
+    if (this.#driver.playing) {
+      this.#driver.liveNoteOn(this.#driver.liveChannelIndex, note, velocity)
+      return
+    }
     const s = this.#scheduler
     if (s === null) return
     s.noteOn(note, velocity)
   }
 
   noteOff(note: number, _channel = 0): void {
+    if (this.#driver.playing) {
+      this.#driver.liveNoteOff(this.#driver.liveChannelIndex, note)
+      return
+    }
     const s = this.#scheduler
     if (s === null) return
     s.noteOff(note)
   }
 
   allNotesOff(): void {
+    if (this.#driver.playing) this.#driver.liveAllOff()
     const s = this.#scheduler
     if (s === null) return
     s.allNotesOff()
+  }
+
+  // --- phase 2: the tracker transport (design §6.3) ----------------------------------
+
+  get playback(): DriverPosition {
+    return this.#driver.position
+  }
+
+  get playbackStats(): DriverStats | null {
+    return this.#driver.stats
+  }
+
+  get recordSink(): RecordSink | null {
+    if (!this.#driver.playing) return null
+    return this.#record
+  }
+
+  readonly #record: { onNote(note: number, velocity: number): number; orderIndex: number } = {
+    orderIndex: 0,
+    onNote: (_note: number, _velocity: number): number => {
+      const engine = this.#engine
+      if (engine === null || !this.#driver.playing) return -1
+      const cycle = engine.nowCycle()
+      this.#record.orderIndex = this.#driver.orderAtCycle(cycle)
+      return this.#driver.rowAtCycle(cycle)
+    },
+  }
+
+  loadSong(song: Song): void {
+    this.#driver.loadSong(song)
+    const image = buildDpcmImage(song)
+    this.#driver.dpcmLayout = image === null ? null : image.layout
+    if (image !== null) this.#engine?.node.port.postMessage({ t: 'dpcm', mem: image.memory })
+  }
+
+  play(mode: PlayMode, from?: { order: number; row: number }): void {
+    void this.#playAsync(mode, from)
+  }
+
+  async #playAsync(mode: PlayMode, from?: { order: number; row: number }): Promise<void> {
+    await this.start()
+    const engine = this.#engine
+    const coordinator = this.#coordinator
+    if (engine === null || coordinator === null || this.#disposed) return
+    // The known phase-1 gap — notes pressed during the ~100 ms engine start are
+    // dropped — becomes load-bearing here, so playback waits for the clock anchor.
+    await engine.ready()
+    if (this.#disposed) return
+    this.#applyVisibility()
+    coordinator.start(mode, from, msToCycles(engine.clockRate, this.#lookaheadMs))
+    this.#startPump()
+  }
+
+  stopPlayback(): void {
+    this.#stopPump()
+    this.#coordinator?.stop()
+  }
+
+  setLiveChannel(channel: number): void {
+    this.#driver.setLiveChannel(channel)
+  }
+
+  setChannelMute(channel: number, muted: boolean): void {
+    this.#driver.setChannelMute(channel, muted)
+  }
+
+  setEditStep(rows: number): void {
+    this.#driver.setEditStep(rows)
+  }
+
+  /** The pump (§2.5). `setInterval`, not `requestAnimationFrame`: rAF stops entirely
+   *  in a hidden tab and ties the audio timeline to the display refresh rate. */
+  #startPump(): void {
+    this.#stopPump()
+    this.#pumpTimer = setInterval(() => {
+      this.#pump()
+    }, this.#pumpMs)
+    if (this.#visibilityHandler === null && typeof document !== 'undefined') {
+      const handler = (): void => {
+        this.#applyVisibility()
+        if (this.#pumpTimer !== null) this.#startPump()
+      }
+      this.#visibilityHandler = handler
+      document.addEventListener('visibilitychange', handler)
+    }
+  }
+
+  #stopPump(): void {
+    if (this.#pumpTimer === null) return
+    clearInterval(this.#pumpTimer)
+    this.#pumpTimer = null
+  }
+
+  /** Hidden tabs pump at 250 ms with a lookahead bounded by ring occupancy, not by a
+   *  constant — see `hiddenLookaheadMs`. Nobody plays live into a hidden tab, so the
+   *  long lookahead is free. */
+  #applyVisibility(): void {
+    const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+    this.#pumpMs = hidden ? HIDDEN_PUMP_MS : PUMP_MS
+    this.#lookaheadMs = hidden
+      ? hiddenLookaheadMs(this.#driver.song.meta.engineSpeed)
+      : LOOKAHEAD_MS
+  }
+
+  #pump(): void {
+    const engine = this.#engine
+    const coordinator = this.#coordinator
+    if (engine === null || coordinator === null) return
+    coordinator.pump(msToCycles(engine.clockRate, this.#lookaheadMs))
+    // A main-thread driver's failure mode IS a full ring. Surface it immediately
+    // rather than waiting for the 10 Hz poll — shipping it unread would be shipping a
+    // blind spot on purpose (§7.2).
+    const dropped = engine.diagnostics().droppedWrites
+    if (dropped !== this.#lastDropped) {
+      this.#lastDropped = dropped
+      this.#diag.droppedWrites = dropped
+    }
+    if (!coordinator.playing) this.#stopPump()
   }
 
   /** Native units. Remembered even before the engine exists, so the knobs' state
@@ -346,6 +562,14 @@ class RealBridge implements AudioBridge {
       clearInterval(this.#diagTimer)
       this.#diagTimer = null
     }
+    this.#stopPump()
+    if (this.#visibilityHandler !== null && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.#visibilityHandler)
+      this.#visibilityHandler = null
+    }
+    if (this.#driver.playing) this.#driver.stop()
+    this.#coordinator = null
+    this.#timeline.engine = null
     const s = this.#scheduler
     const engine = this.#engine
     if (s !== null && engine !== null && engine.ctx.state === 'running') s.allNotesOff()
@@ -454,6 +678,35 @@ class StubBridge implements AudioBridge {
   #lastTick = 0
   #env = 0
 
+  /** The stub implements the whole tracker surface with a SYNTHETIC position advance,
+   *  so WP10 can build the entire grid against `?stub` with no audio thread — exactly
+   *  as WP2 did in phase 1. */
+  #song: Song = emptySong()
+  #playing = false
+  #rowMs = 0
+  #rowClock = 0
+  readonly #position = {
+    playing: false,
+    orderIndex: 0,
+    row: 0,
+    tick: 0,
+    tickIndex: 0,
+    bpm: 0,
+    levels: new Int32Array(5),
+  }
+  readonly #stats: DriverStats = {
+    ticksGenerated: 0,
+    writesEmitted: 0,
+    lateTicks: 0,
+    rowsPlayed: 0,
+    noteOns: 0,
+    loops: 0,
+  }
+  readonly #record: RecordSink = {
+    onNote: (): number => this.#position.row,
+    orderIndex: 0,
+  }
+
   get status(): BridgeStatus {
     return this.#status
   }
@@ -505,12 +758,85 @@ class StubBridge implements AudioBridge {
     }
   }
 
+  // --- phase 2: the tracker transport, synthetic ------------------------------------
+
+  get playback(): DriverPosition {
+    return this.#position
+  }
+
+  get playbackStats(): DriverStats | null {
+    return this.#stats
+  }
+
+  get recordSink(): RecordSink | null {
+    return this.#playing ? this.#record : null
+  }
+
+  loadSong(song: Song): void {
+    this.#song = song
+    const m = song.meta
+    this.#position.bpm = (24 * m.tempo) / (m.speed * Math.max(1, m.rowHighlight))
+    this.#rowMs = ((2.5 * m.engineSpeed * m.speed) / m.tempo) * (1000 / m.engineSpeed)
+    this.#note('setParam', `song=${m.name}`)
+  }
+
+  play(mode: PlayMode, from?: { order: number; row: number }): void {
+    if (this.#rowMs === 0) this.loadSong(this.#song)
+    this.#playing = true
+    this.#position.playing = true
+    this.#position.orderIndex = from === undefined ? 0 : from.order
+    this.#position.row = from === undefined ? 0 : from.row
+    this.#position.tickIndex = 0
+    this.#rowClock = 0
+    this.#note('start', `play/${mode}`)
+  }
+
+  stopPlayback(): void {
+    this.#playing = false
+    this.#position.playing = false
+    this.#position.levels.fill(0)
+    this.#note('allNotesOff', 'stop')
+  }
+
+  setLiveChannel(channel: number): void {
+    this.#note('setParam', `liveChannel=${channel}`)
+  }
+
+  setChannelMute(channel: number, muted: boolean): void {
+    this.#note('setParam', `mute${channel}=${muted}`)
+  }
+
+  setEditStep(rows: number): void {
+    this.#note('setParam', `editStep=${rows}`)
+  }
+
+  /** Advance the synthetic playhead at the song's real row rate. */
+  #advancePlayhead(dt: number): void {
+    if (!this.#playing || this.#rowMs <= 0) return
+    this.#rowClock += dt
+    while (this.#rowClock >= this.#rowMs) {
+      this.#rowClock -= this.#rowMs
+      this.#stats.rowsPlayed++
+      this.#position.tickIndex++
+      this.#position.row++
+      if (this.#position.row >= this.#song.meta.rowsPerPattern) {
+        this.#position.row = 0
+        this.#position.orderIndex =
+          (this.#position.orderIndex + 1) % Math.max(1, this.#song.order.length)
+      }
+    }
+    for (let i = 0; i < this.#position.levels.length; i++) {
+      this.#position.levels[i] = this.#held.size > 0 || i < 2 ? 9 : 4
+    }
+  }
+
   /** Synthetic but plausible: a slow breathing level that responds to held
    *  notes, and a ~440 Hz scope trace at the stub's nominal 48 kHz. Enough for
    *  the meter and the scope page to be visibly, verifiably alive. */
   tick(nowMs: number): void {
     const dt = this.#lastTick === 0 ? 16 : Math.min(64, nowMs - this.#lastTick)
     this.#lastTick = nowMs
+    this.#advancePlayhead(dt)
 
     if (this.#status.state !== 'running') {
       this.#env += (0 - this.#env) * 0.08

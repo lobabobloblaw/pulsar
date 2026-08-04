@@ -24,6 +24,7 @@
   import { attachKeyboard } from './input/keyboard'
   import { createMidi } from './input/midi'
   import { params } from './state/params.svelte'
+  import { tracker } from './state/tracker.svelte'
   import { transport } from './state/transport.svelte'
   import LiveRegion from './ui/a11y/LiveRegion.svelte'
   import Brand from './ui/Brand.svelte'
@@ -32,6 +33,7 @@
   import KnobRow from './ui/KnobRow.svelte'
   import Screen from './ui/Screen.svelte'
   import StatusBar from './ui/StatusBar.svelte'
+  import TrackerPanel from './ui/tracker/TrackerPanel.svelte'
   import { createBootSequence } from './ui/canvas/bootSequence'
   import { createFrameBus, provideFrame } from './ui/frame'
   import { noteName } from './state/transport.svelte'
@@ -49,6 +51,12 @@
 
   function announce(note: number | string): void {
     announcement = typeof note === 'number' ? noteName(note) : note
+  }
+
+  /** The tracker's LiveRegion route. Same region, same politeness — the panel
+   *  throttles its own cursor announcements (design §4.4). */
+  function announceText(message: string): void {
+    announcement = message
   }
 
   /** The user gesture. Idempotent, and safe to call from anywhere. */
@@ -86,6 +94,7 @@
     }
     params.attach(audio)
     transport.attach(audio)
+    tracker.attach(audio)
 
     const unsubscribe = audio.subscribe((s) => {
       transport.audio = s
@@ -99,6 +108,9 @@
         return true // the first key starts audio, it does not play a note
       },
       onNote: announce,
+      // While the tracker grid has focus its own keymap owns the keyboard. One
+      // window listener, one guard — never a second listener (design §4.5).
+      suppress: () => tracker.focused,
     })
 
     // Pointer-only and touch users need the same gesture path. Any press
@@ -115,6 +127,10 @@
     const loop = (now: number): void => {
       raf = requestAnimationFrame(loop)
       audio.tick(now)
+      // The driver's position is refreshed before the renderers read it, so the
+      // grid and the screen agree about the playhead within one frame. Cheap
+      // and inert when nothing is playing.
+      tracker.pump(now)
       emit(now)
       if (import.meta.env.DEV) {
         frames++
@@ -132,6 +148,7 @@
       window.removeEventListener('pointerdown', onPointerDown)
       detachKeys()
       unsubscribe()
+      tracker.detach()
       midi.dispose()
       audio.dispose()
       releaseBridge(audio)
@@ -151,8 +168,14 @@
 
 <!-- The one main landmark; the stage/device manage their own layout, so a plain
      block wrapper is inert visually and satisfies axe's landmark-one-main/region. -->
+<!-- The tracker area only exists while the panel is open, so the enclosure keeps
+     its Phase-1 shape (and its Phase-1 width) when it is closed. -->
+{#snippet trackerArea()}
+  <TrackerPanel announce={announceText} />
+{/snippet}
+
 <main aria-label="pulsar">
-<Enclosure>
+<Enclosure tracker={tracker.open ? trackerArea : undefined}>
   {#snippet brand()}
     <Brand />
   {/snippet}

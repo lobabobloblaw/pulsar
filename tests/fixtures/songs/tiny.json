@@ -1,0 +1,70 @@
+{
+  "format": "pulsar-song",
+  "version": 1,
+  "meta": {
+    "name": "tiny",
+    "author": "pulsar",
+    "engineSpeed": 60,
+    "tempo": 150,
+    "speed": 6,
+    "rowsPerPattern": 8,
+    "rowHighlight": 4,
+    "rowHighlight2": 16,
+    "region": "ntsc",
+    "speedSplitPoint": 32,
+    "evenTempo": false
+  },
+  "channels": ["pulse1", "pulse2", "triangle", "noise", "dpcm"],
+  "effectColumns": [1, 1, 1, 1, 1],
+  "order": [
+    [0, 0, 0, 0, 0],
+    [1, 0, 0, 0, 0]
+  ],
+  "patterns": [
+    {
+      "channel": "pulse1",
+      "index": 0,
+      "rows": [
+        { "r": 0, "note": 60, "inst": 0, "vol": 15 },
+        { "r": 2, "note": 64 },
+        { "r": 4, "note": 67, "fx": [{ "cmd": "0", "param": 71 }] },
+        { "r": 6, "note": -1 }
+      ]
+    },
+    {
+      "channel": "pulse1",
+      "index": 1,
+      "rows": [
+        { "r": 0, "note": 72, "vol": 10 },
+        { "r": 4, "note": -2 },
+        { "r": 7, "fx": [{ "cmd": "B", "param": 0 }] }
+      ]
+    },
+    {
+      "channel": "triangle",
+      "index": 0,
+      "rows": [
+        { "r": 0, "note": 36, "inst": 0 },
+        { "r": 4, "note": 43 }
+      ]
+    },
+    { "channel": "pulse2", "index": 0, "rows": [] },
+    { "channel": "noise", "index": 0, "rows": [] },
+    { "channel": "dpcm", "index": 0, "rows": [] }
+  ],
+  "instruments": [
+    {
+      "name": "lead",
+      "macros": { "volume": 0, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 0 }
+    }
+  ],
+  "sequences": {
+    "volume": [{ "values": [15, 13, 11, 9, 8], "loop": 4, "release": -1 }],
+    "arpeggio": [],
+    "pitch": [],
+    "hiPitch": [],
+    "duty": [{ "values": [2, 2, 1, 1], "loop": 2, "release": -1 }]
+  },
+  "samples": [],
+  "extra": { "notes": "param 71 = 0x47 = arpeggio +4/+7 = major triad" }
+}

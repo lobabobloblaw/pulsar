@@ -232,6 +232,19 @@ export class LiveScheduler {
     this.engine.flush()
   }
 
+  /** Rule L handoff (phase-2 design §2.6), the FIRST of the two narrow additive host
+   *  APIs phase 2 is allowed: drop every held and sounding note and move the monotonic
+   *  clamp to `cycle`, **without emitting a single write**. The tracker driver owns the
+   *  `$4015` byte from here, so the two owners cannot both believe they own it, and the
+   *  clamp survives the handoff in both directions. Nothing in phase-1 behaviour
+   *  changes — no existing caller reaches this method. */
+  reset(cycle: NesCycle): void {
+    this.heldCount = 0
+    this.soundingNote = -1
+    this.enableMask = 0
+    this.lastCycle = cycle
+  }
+
   /** The stuck-note guard (plan C8) and the MIDI hot-plug path both land here. */
   allNotesOff(): void {
     this.heldCount = 0

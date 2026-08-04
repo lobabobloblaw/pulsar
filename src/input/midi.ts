@@ -112,13 +112,13 @@ export function createMidi(bridge: AudioBridge, onNote?: (note: number) => void)
 
     if (type === 0x90 && velocity > 0) {
       sounding.add(note)
-      transport.noteOn(note)
-      bridge.noteOn(note, velocity)
+      // Per-source refcount (design §7.2): sound it only if nobody else is, and
+      // cut it only when this was the last hand on it.
+      if (transport.noteOn(note, 'midi')) bridge.noteOn(note, velocity)
       onNote?.(note)
     } else {
       sounding.delete(note)
-      transport.noteOff(note)
-      bridge.noteOff(note)
+      if (transport.noteOff(note, 'midi')) bridge.noteOff(note)
     }
   }
 

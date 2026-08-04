@@ -127,8 +127,8 @@
     if (transport.notes.has(note)) return null
 
     owned.set(note, 1)
-    transport.noteOn(note)
-    audio.noteOn(note, LOCAL_VELOCITY)
+    // Per-source refcount (design §7.2): true only for the first holder.
+    if (transport.noteOn(note, 'pointer')) audio.noteOn(note, LOCAL_VELOCITY)
     return note
   }
 
@@ -141,8 +141,7 @@
       return
     }
     owned.delete(note)
-    transport.noteOff(note)
-    audio.noteOff(note)
+    if (transport.noteOff(note, 'pointer')) audio.noteOff(note)
   }
 
   function onPointerDown(e: PointerEvent, semitone: number): void {
@@ -184,8 +183,7 @@
     cursorNote = null
     pointers.clear()
     for (const note of owned.keys()) {
-      transport.noteOff(note)
-      audio.noteOff(note)
+      if (transport.noteOff(note, 'pointer')) audio.noteOff(note)
     }
     owned.clear()
   }

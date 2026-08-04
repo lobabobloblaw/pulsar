@@ -4,6 +4,19 @@
  * union of ALL note sources (QWERTY, pointer, MIDI) so the keybed lights the
  * same way no matter what played the note — and so a single allNotesOff() can
  * truthfully clear it.
+ *
+ * PER-SOURCE REFCOUNTS (phase-2 design §7.2, absorbed Phase-1 polish item).
+ * A set of note numbers cannot answer "is anyone else still holding this?", so
+ * the first source to release used to cut a note a second source still had
+ * down: hold c4 on the keybed with the mouse, tap `z`, release `z`, and the
+ * pointer's note died. The tracker makes that worse, not better — step record
+ * is a third source and record-while-playing a fourth.
+ *
+ * The model: every note keeps the SET of sources holding it. `noteOn` returns
+ * true only for the first holder and `noteOff` only for the last, and callers
+ * dispatch to the bridge on that answer. Source identity rather than a plain
+ * counter, so a repeated note-on from one source is idempotent — which is what
+ * a MIDI controller with a sticky key sends.
  */
 
 import { SvelteSet } from 'svelte/reactivity'
@@ -25,9 +38,14 @@ export interface MidiState {
 
 export type ConsoleModel = 'nes' | 'famicom'
 export type Room = 'day' | 'night'
-export type ScreenPage = 'boot' | 'params' | 'scope' | 'midi'
+/** `song` is the tracker's page on the lattice (design §5.6). */
+export type ScreenPage = 'boot' | 'params' | 'scope' | 'midi' | 'song'
 
-export const SCREEN_PAGES: readonly ScreenPage[] = ['params', 'scope', 'midi']
+export const SCREEN_PAGES: readonly ScreenPage[] = ['params', 'scope', 'song', 'midi']
+
+/** Everything that can hold a note down. Step record and record-while-playing
+ *  are the two the tracker adds (§7.2). */
+export type NoteSource = 'qwerty' | 'pointer' | 'midi' | 'tracker' | 'record'
 
 const ROOM_KEY = 'pulsar.room'
 
@@ -51,8 +69,12 @@ class TransportState {
 
   midi = $state<MidiState>({ supported: false, permission: 'unknown', ports: [] })
 
-  /** Every sounding note number, from every source. */
+  /** Every sounding note number, from every source — the keybed highlight. */
   readonly notes = new SvelteSet<number>()
+
+  /** note -> the sources currently holding it. Never exposed directly; the two
+   *  booleans `noteOn`/`noteOff` return are the whole contract. */
+  readonly #holders = new Map<number, Set<NoteSource>>()
 
   /** Base octave for the QWERTY keybed; `KeyZ` plays C at this octave. */
   octave = $state(4)
@@ -111,15 +133,44 @@ class TransportState {
     this.octave = n < 0 ? 0 : n > 8 ? 8 : n
   }
 
-  noteOn(note: number): void {
-    this.notes.add(note)
+  /** Register `source` as holding `note`.
+   *  @returns true when this is the FIRST holder — i.e. the caller should send
+   *  the note-on. A second source joining an already-sounding note gets false
+   *  and must not retrigger it. */
+  noteOn(note: number, source: NoteSource = 'qwerty'): boolean {
+    let held = this.#holders.get(note)
+    if (held === undefined) {
+      held = new Set()
+      this.#holders.set(note, held)
+    }
+    const first = held.size === 0
+    held.add(source)
+    if (first) this.notes.add(note)
+    return first
   }
 
-  noteOff(note: number): void {
+  /** Release `source`'s hold on `note`.
+   *  @returns true when the LAST holder let go — i.e. the caller should send the
+   *  note-off. This is the whole fix: a QWERTY keyup on a note the pointer or
+   *  the tracker still holds returns false and nothing is cut. */
+  noteOff(note: number, source: NoteSource = 'qwerty'): boolean {
+    const held = this.#holders.get(note)
+    if (held === undefined || !held.delete(source)) return false
+    if (held.size > 0) return false
+    this.#holders.delete(note)
     this.notes.delete(note)
+    return true
   }
 
+  /** How many sources hold `note`. For tests and the dev readout. */
+  holdCount(note: number): number {
+    return this.#holders.get(note)?.size ?? 0
+  }
+
+  /** The panic path. Every source loses every note at once, which is exactly
+   *  what `bridge.allNotesOff()` does on the audio side. */
   clearNotes(): void {
+    this.#holders.clear()
     this.notes.clear()
   }
 }

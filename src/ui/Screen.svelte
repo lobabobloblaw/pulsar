@@ -18,6 +18,9 @@
   import { bridge } from '../audio/bridge'
   import { LATTICE, SCREEN } from '../design/tokens'
   import { params } from '../state/params.svelte'
+  import { song } from '../state/song.svelte'
+  import { bpm as bpmOf } from '../state/songModel'
+  import { tracker } from '../state/tracker.svelte'
   import { SCREEN_PAGES, transport, type ScreenPage } from '../state/transport.svelte'
   import type { BootSequence } from './canvas/bootSequence'
   import { DotMatrix } from './canvas/dotMatrix'
@@ -35,6 +38,11 @@
 
   let well = $state<HTMLDivElement | null>(null)
   let canvas = $state<HTMLCanvasElement | null>(null)
+  /** The live half of the song page's text mirror. Written from the frame loop
+   *  at 4 Hz — never read in the template, so nothing invalidates. */
+  let posEl = $state<HTMLSpanElement | null>(null)
+  let lastPosText = ''
+  let lastPosAt = 0
 
   /* ---- lattice geometry, all in dots ---------------------------------- */
   const TITLE_Y = 2
@@ -132,9 +140,34 @@
     }
   }
 
+  /** The tracker's presence, made visible on the instrument itself (design
+   *  §5.6): name, author, bpm and the playing position, in the 5x7 font on the
+   *  lattice we already have. Four text() calls and one hline — no new canvas
+   *  primitive was needed, which is why the page is worth having. */
+  function drawSongPage(m: DotMatrix): void {
+    drawChrome(m, 'song')
+    const meta = song.doc.meta
+    m.text(screenSafe(meta.name || 'untitled').slice(0, 21), 2, 15, SCREEN.ink)
+    m.text(screenSafe(meta.author || 'no author').slice(0, 21), 2, 24, SCREEN.dim)
+
+    const beats = Math.round(bpmOf(meta) * 10) / 10
+    m.text(`${beats} bpm`, 2, 36, SCREEN.accent)
+    m.textRight(`s${meta.speed} t${meta.tempo}`, RIGHT, 36, SCREEN.dim)
+
+    const p = tracker.position
+    m.text(p.playing ? 'play' : 'stop', 2, 47, p.playing ? SCREEN.accent : SCREEN.dim)
+    m.textRight(
+      `${p.orderIndex.toString(16).padStart(2, '0')}/${p.row.toString(16).padStart(2, '0')}`,
+      RIGHT,
+      47,
+      SCREEN.ink,
+    )
+  }
+
   function renderPage(m: DotMatrix, page: ScreenPage, now: number): void {
     if (page === 'scope') drawScopePage(m)
     else if (page === 'midi') drawMidiPage(m)
+    else if (page === 'song') drawSongPage(m)
     else drawParams(m, now)
   }
 
@@ -159,6 +192,10 @@
       matrix.beginFrame()
       renderPage(matrix, transport.page, now)
       matrix.endFrame()
+      if (now - lastPosAt > 250) {
+        lastPosAt = now
+        updatePositionMirror()
+      }
     })
 
     return () => {
@@ -167,6 +204,22 @@
       matrix.destroy()
     }
   })
+
+  /** The half of the song page's mirror that moves. Text is written straight to
+   *  the node, never through `$state`, because the frame loop must not
+   *  invalidate anything (plan C2). Off the song page it is emptied once. */
+  function updatePositionMirror(): void {
+    const el = posEl
+    if (el === null) return
+    const p = tracker.position
+    const next =
+      transport.page === 'song'
+        ? ` ${p.playing ? 'playing' : 'stopped'} at frame ${p.orderIndex} row ${p.row}.`
+        : ''
+    if (next === lastPosText) return
+    lastPosText = next
+    el.textContent = next
+  }
 
   /** Text mirror of the screen for assistive tech. */
   const screenText = $derived.by(() => {
@@ -177,6 +230,17 @@
       if (!m.supported) return 'midi page. midi unavailable in this browser.'
       if (m.ports.length === 0) return `midi page. ${m.permission}. no devices.`
       return `midi page. ${m.ports.map((p) => p.name).join(', ')}.`
+    }
+    if (transport.page === 'song') {
+      const meta = song.doc.meta
+      // The position is NOT in this string: `tracker.position` is a plain object
+      // read in rAF (design §2.4), so a $derived over it would never invalidate
+      // and the mirror would silently freeze at whatever row it first saw. The
+      // live half is written to `posEl` from the frame loop instead, the same
+      // way Meter.svelte writes its readout.
+      return `song page. ${meta.name || 'untitled'} by ${meta.author || 'no author'}, ${
+        Math.round(bpmOf(meta))
+      } bpm.`
     }
     return `params page. ${params.knobs
       .map((id) => `${params.descriptor(id).label} ${params.format(id)}`)
@@ -193,7 +257,7 @@
     <canvas bind:this={canvas} aria-hidden="true"></canvas>
   </div>
 
-  <p class="sr" aria-live="off">{screenText}</p>
+  <p class="sr" aria-live="off">{screenText}<span bind:this={posEl}></span></p>
 
   <div class="pager" role="group" aria-label="screen pages">
     {#each SCREEN_PAGES as p (p)}

@@ -10,6 +10,7 @@
   control with no explanation is worse than no control.
 -->
 <script lang="ts">
+  import { tracker } from '../state/tracker.svelte'
   import { transport } from '../state/transport.svelte'
   import Meter from './Meter.svelte'
 
@@ -95,6 +96,16 @@
     {/if}
 
     <span class="chip t-micro">sab {sabOn ? 'on' : 'off'}</span>
+
+    <!-- The tracker panel is opt-in from here (design §4.1). -->
+    <button
+      type="button"
+      class="chip t-micro action"
+      aria-pressed={tracker.open}
+      onclick={() => tracker.toggleOpen()}
+    >
+      tracker
+    </button>
 
     <button
       type="button"
