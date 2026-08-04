@@ -262,6 +262,18 @@ function newBatch(): WriteBatch {
  *  `sampleRate` is deliberately NOT passed: forcing it inserts Chrome's resampler
  *  (deviation D8). The worklet reads the real rate and derives everything from it. */
 export async function startEngine(opts: StartEngineOptions = {}): Promise<EngineHandle> {
+  // iOS routes Web Audio through the AMBIENT session by default, which the
+  // ringer switch silences — an instrument that mutes with the ringer reads as
+  // broken. Where the Audio Session API exists (iOS 16.4+), ask for playback.
+  // Best-effort on purpose: unknown elsewhere, and never worth failing over.
+  if (typeof navigator !== 'undefined') {
+    const nav = navigator as Navigator & { audioSession?: { type: string } }
+    try {
+      if (nav.audioSession !== undefined) nav.audioSession.type = 'playback'
+    } catch {
+      /* the session keeps its default */
+    }
+  }
   const ctx = new AudioContext({ latencyHint: 'interactive' })
   const sep = APU_WORKLET_URL.includes('?') ? '&' : '?'
   await ctx.audioWorklet.addModule(`${APU_WORKLET_URL}${sep}v=${Date.now()}`)

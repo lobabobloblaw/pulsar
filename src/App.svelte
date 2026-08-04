@@ -60,12 +60,14 @@
     announcement = message
   }
 
-  /** The user gesture. Idempotent, and safe to call from anywhere. */
+  /** The user gesture. Idempotent, and safe to call from anywhere. ALWAYS
+   *  forwarded to the bridge: after iOS suspends the context (lock screen,
+   *  phone call, ringer), a later gesture must arrive there as a resume — a
+   *  one-shot latch here once made the reappearing start cap a dead button
+   *  and stranded the phone in silence until a reload. */
   function startAudio(): void {
-    if (!started) {
-      started = true
-      void audio.start()
-    }
+    started = true
+    void audio.start()
     if (!boot.done) {
       boot.dismiss()
       transport.booted = true

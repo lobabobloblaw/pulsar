@@ -188,6 +188,8 @@ class RealBridge implements AudioBridge {
   #pumpMs = PUMP_MS
   #lookaheadMs = LOOKAHEAD_MS
   #visibilityHandler: (() => void) | null = null
+  #wakeHandler: (() => void) | null = null
+  #resumePending = false
   #lastDropped = 0
   /** Bumped by every `play()` and by every `stopPlayback()`. `#playAsync` re-reads it
    *  after each await and abandons the start if it moved — a stop pressed during the
@@ -258,9 +260,19 @@ class RealBridge implements AudioBridge {
 
   /** Idempotent: the first call owns the start, every later one waits on it. Resolves
    *  once the context is running AND the worklet has published its clock anchor, so a
-   *  note played immediately after it lands on a real timeline. */
+   *  note played immediately after it lands on a real timeline.
+   *
+   *  On a LIVE engine a later call is a RESUME, not a re-create: iOS suspends
+   *  the context behind the page's back (lock, phone call, Siri, ringer, route
+   *  change) and often honours only a gesture-borne resume — and this method is
+   *  exactly where the gestures arrive. A one-shot latch here once made the
+   *  reappearing start cap a dead button on iOS. */
   start(): Promise<void> {
     if (this.#disposed) return Promise.resolve()
+    if (this.#engine !== null) {
+      this.#resume()
+      return this.#startPromise ?? Promise.resolve()
+    }
     const pending = this.#startPromise
     if (pending !== null) return pending
     const run = this.#run()
@@ -322,6 +334,20 @@ class RealBridge implements AudioBridge {
         this.#onContextState()
       }
 
+      // WebKit rarely fires statechange for ITS interruptions — after a lock
+      // screen or a phone call the state just sits suspended (or the non-spec
+      // 'interrupted'). The reliable wake signals are the page coming back;
+      // any one of them may be the moment the audio session is grantable again.
+      if (typeof document !== 'undefined') {
+        const wake = (): void => {
+          if (document.visibilityState !== 'hidden') this.#resume()
+        }
+        this.#wakeHandler = wake
+        document.addEventListener('visibilitychange', wake)
+        window.addEventListener('pageshow', wake)
+        window.addEventListener('focus', wake)
+      }
+
       const anchor = await Promise.race([
         engine.ready(),
         new Promise<null>((r) => setTimeout(() => r(null), READY_TIMEOUT_MS)),
@@ -348,6 +374,10 @@ class RealBridge implements AudioBridge {
    *  is untouched; playing -> the driver owns it and the note steals the editor's
    *  cursor channel. */
   noteOn(note: number, velocity: number, _channel = 0): void {
+    // Note-ons ride real gestures (keydown, pointerdown, MIDI). If iOS
+    // silenced the context since the last one, this activation is the one that
+    // can legally bring it back — "press any key" stays a true promise.
+    this.#gestureKick()
     if (this.#driver.playing) {
       this.#driver.liveNoteOn(this.#driver.liveChannelIndex, note, velocity)
       return
@@ -594,6 +624,12 @@ class RealBridge implements AudioBridge {
       document.removeEventListener('visibilitychange', this.#visibilityHandler)
       this.#visibilityHandler = null
     }
+    if (this.#wakeHandler !== null && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this.#wakeHandler)
+      window.removeEventListener('pageshow', this.#wakeHandler)
+      window.removeEventListener('focus', this.#wakeHandler)
+      this.#wakeHandler = null
+    }
     if (this.#driver.playing) this.#driver.stop()
     this.#coordinator = null
     this.#timeline.engine = null
@@ -640,13 +676,12 @@ class RealBridge implements AudioBridge {
     }
   }
 
-  /** The browser can suspend a context out from under us (device change, sleep).
-   *  Resume it ourselves: the page already has its gesture, and the StatusBar's start
-   *  affordance is one-shot, so waiting for another click would strand the user. */
+  /** The browser can suspend a context out from under us (device change, sleep,
+   *  and on iOS a lock screen, phone call, Siri or the ringer switch). */
   #onContextState(): void {
     const engine = this.#engine
     if (engine === null || this.#disposed) return
-    const state = engine.ctx.state
+    const state: string = engine.ctx.state
     if (state === 'running') {
       this.#publish(this.#statusFor('running'))
       return
@@ -659,11 +694,43 @@ class RealBridge implements AudioBridge {
       this.#publish({ ...this.#statusFor('error'), error: 'audio device lost' })
       return
     }
+    this.#resume()
+  }
+
+  /** One resume attempt, deduplicated. Called from the statechange handler,
+   *  from the wake signals, from `start()` on a live engine and from every
+   *  note-on — whichever of them is the gesture WebKit will accept. A refusal
+   *  (typically an interruption still in progress) publishes 'idle', which is
+   *  the state that puts the start cap back on the panel; the next gesture or
+   *  wake signal retries. `state` is compared as a string because WebKit
+   *  reports the non-spec 'interrupted'. */
+  #resume(): void {
+    const engine = this.#engine
+    if (engine === null || this.#disposed || this.#resumePending) return
+    const state: string = engine.ctx.state
+    if (state === 'running' || state === 'closed') return
+    this.#resumePending = true
     this.#publish(this.#statusFor('starting'))
-    void engine.ctx.resume().catch((e: unknown) => {
-      const message = e instanceof Error ? e.message : String(e)
-      this.#publish({ ...this.#statusFor('error'), error: message })
-    })
+    engine.ctx
+      .resume()
+      .then(() => {
+        this.#resumePending = false
+        if (this.#disposed) return
+        const now: string = engine.ctx.state
+        if (now === 'running') this.#publish(this.#statusFor('running'))
+      })
+      .catch(() => {
+        this.#resumePending = false
+        if (!this.#disposed) this.#publish(this.#statusFor('idle'))
+      })
+  }
+
+  /** See noteOn. Cheap: one string compare on the hot path. */
+  #gestureKick(): void {
+    const engine = this.#engine
+    if (engine === null) return
+    const state: string = engine.ctx.state
+    if (state !== 'running' && state !== 'closed') this.#resume()
   }
 
   #statusFor(state: BridgeState): BridgeStatus {
