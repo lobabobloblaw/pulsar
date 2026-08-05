@@ -26,6 +26,7 @@ import {
 } from '../fixtures/songs/build'
 import { pulseTimerForMidi } from '../../src/audio/host/pitch'
 import { NTSC_CPU_HZ } from '../../src/audio/core/constants'
+import { NOTE_CUT } from '../../src/tracker/model/types'
 import { VIB_TABLE, VIB_PHASES } from '../../src/tracker/driver/effects'
 
 const T = (note: number): number => pulseTimerForMidi(note, NTSC_CPU_HZ)
@@ -580,6 +581,38 @@ describe('Qxy / Rxy note slide — x is SPEED, y is SEMITONES', () => {
     )
     const { sink } = drive(s, 16)
     expect(countWrites(sink, REG.STATUS)).toBe(1)
+  })
+
+  it('note + Qxy on a FRESH channel triggers — there is nothing to slide from', () => {
+    const s = song([{ r: 0, note: 60, vol: 15, fx: fx('Q', 0x41) }], 4)
+    const { ticks, sink } = drive(s, 8)
+    // The full canonical note-on, as for any trigger (docs/register-timeline.md).
+    // Pre-fix the slide branch latched baseNote and returned: zero writes.
+    expect(ticks[0].map((w) => w.addr)).toEqual([
+      REG.STATUS,
+      REG.P1_CTRL,
+      REG.P1_SWEEP,
+      REG.P1_LO,
+      REG.P1_HI,
+    ])
+    expect(countWrites(sink, REG.P1_HI)).toBe(1)
+    // ...and the glide still arms, from the TRIGGERED note: one semitone up, latched.
+    expect(timerSeries(ticks, REG.P1_LO).at(-1)).toBe(T(61))
+  })
+
+  it('note + Rxy after a NOTE_CUT triggers too — the cut left nothing sounding', () => {
+    const s = song(
+      [
+        { r: 0, note: 60, vol: 15 },
+        { r: 1, note: NOTE_CUT },
+        { r: 2, note: 62, vol: 15, fx: fx('R', 0x41) },
+      ],
+      4,
+    )
+    const { sink } = drive(s, 16)
+    // Two triggers: the opening note and the Rxy note. Pre-fix the second emitted
+    // nothing at all.
+    expect(countWrites(sink, REG.P1_HI)).toBe(2)
   })
 })
 

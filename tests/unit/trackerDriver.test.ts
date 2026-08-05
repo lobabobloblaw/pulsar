@@ -496,6 +496,33 @@ describe('mute and solo', () => {
     expect(driver.position.levels[0]).toBe(15)
   })
 
+  it('re-arms $4015 for a LIVE note held through mute -> unmute', () => {
+    // The song path re-arms a suppressed-then-audible channel (tickChannel:
+    // setEnabled + invalidate + triggerFlag). emitLive had no equivalent, so a
+    // live note held during playback stayed silent after unmute: the suppression
+    // branch had cleared the $4015 bit and nothing wrote the byte back.
+    const live = buildSong({ meta: { speed: 4, rowsPerPattern: 8 } })
+    const sink = new ArrayWriteSink()
+    const driver = new TrackerDriver(sink, CLOCK, { song: live })
+    driver.setLiveChannel(0)
+    driver.play('song')
+    driver.runTo(cycleOfTick(0, 1, NTSC_CPU_HZ, 60))
+
+    driver.liveNoteOn(0, 72, 127)
+    driver.runTo(cycleOfTick(0, 4, NTSC_CPU_HZ, 60))
+    expect(lastStatus(sink) & 0x01).toBe(0x01)
+
+    driver.setChannelMute(0, true)
+    driver.runTo(cycleOfTick(0, 7, NTSC_CPU_HZ, 60))
+    expect(lastStatus(sink) & 0x01).toBe(0)
+
+    driver.setChannelMute(0, false)
+    driver.runTo(cycleOfTick(0, 10, NTSC_CPU_HZ, 60))
+    // The bit is back — and as a full retrigger, $4003 included.
+    expect(lastStatus(sink) & 0x01).toBe(0x01)
+    expect(countWrites(sink, REG.P1_HI)).toBe(2)
+  })
+
   it('solo suppresses every other channel', () => {
     const sink = new ArrayWriteSink()
     const driver = new TrackerDriver(sink, CLOCK, { song })

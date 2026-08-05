@@ -90,6 +90,7 @@ import {
 import { RegisterFile, SWEEP_OFF } from './registers'
 import { RowAccumulator, cycleOfTick } from './tempo'
 import { NTSC_CPU_HZ } from '../../audio/core/constants'
+import { DMC_RATE_NTSC } from '../../audio/core/tables'
 import { pulseTimerForMidi, triangleTimerForMidi } from '../../audio/host/pitch'
 import { msToCycles } from '../../audio/timeline/clockMap'
 import type { NesCycle, WriteSink } from '../../audio/timeline/types'
@@ -156,6 +157,16 @@ const ROW_LOG_CAPACITY = 256
  *  snare index 6–8 = notes ≡ 7..9, hat index 1–3 = notes ≡ 12..14). */
 export function noisePeriodIndex(note: number): number {
   return 15 - (((note % 16) + 16) % 16)
+}
+
+/** One-shot DPCM sample duration in CPU cycles: `16·L + 1` bytes ($4013) at eight
+ *  output clocks per byte, the $4010 rate index giving the output-unit period — the
+ *  same `DMC_RATE_NTSC` table the core clocks from. The driver uses it to retire the
+ *  lane's $4015 bit when the sample expires (a LOOPED sample has no expiry). NTSC
+ *  unconditionally: the core's rate table only changes under `region: 'pal'`, and
+ *  neither the engine nor `renderSong` builds a PAL APU. */
+export function dpcmSampleCycles(rateIndex: number, length: number): number {
+  return 8 * (length * 16 + 1) * DMC_RATE_NTSC[rateIndex & 0x0f]
 }
 
 function clampNote(n: number): number {
@@ -235,6 +246,11 @@ export class TrackerDriver {
   private readonly liveHeld = new Int32Array(MAX_CHANNELS)
   private readonly triggerFlag = new Int32Array(MAX_CHANNELS)
   private readonly memory = new Int32Array(MAX_CHANNELS * CMD_SLOTS)
+
+  /** Cycle the dpcm lane's one-shot sample expires, driver-computed from $4010/$4013
+   *  (`dpcmSampleCycles`): −1 idle, `Infinity` a looped sample — never. Cycles are
+   *  integer-valued doubles, so this array is Float64 where the others are Int32. */
+  private readonly dpcmEndsAt = new Float64Array(MAX_CHANNELS)
 
   private soloChannel = -1
   private liveChannel = 0
@@ -375,6 +391,7 @@ export class TrackerDriver {
     this.liveVel.fill(127)
     this.liveHeld.fill(0)
     this.triggerFlag.fill(0)
+    this.dpcmEndsAt.fill(-1)
     this.memory.fill(0)
     this.position.levels.fill(0)
   }
@@ -734,6 +751,20 @@ export class TrackerDriver {
       return
     }
 
+    // A finished one-shot DPCM sample must not keep the lane's $4015 bit: the next
+    // note trigger on ANY channel force-writes the standing byte, and the core —
+    // hardware-authentically — restarts whatever has bytesRemaining === 0. The
+    // driver knows the rate and length it emitted, so it retires the bit (and the
+    // lane) when the computed duration expires. A looped sample's expiry is
+    // Infinity: it never lands here.
+    const dpcmEnd = this.dpcmEndsAt[ch]
+    if (dpcmEnd >= 0 && cycle >= dpcmEnd) {
+      this.dpcmEndsAt[ch] = -1
+      this.sounding[ch] = 0
+      this.regs.setEnabled(ch, false)
+      this.regs.status(this.sink, cycle, false)
+    }
+
     // a. delayed events due on this tick: the Gxx note trigger and the Sxx cut.
     if (this.pendTick[ch] === this.tickInRow) {
       this.fire(ch)
@@ -884,10 +915,13 @@ export class TrackerDriver {
     }
     if (inst >= 0) this.instrument[ch] = inst
 
-    // A note with 3xx / Qxy / Rxy DOES NOT retrigger: it only sets the target. Macros
-    // keep running, phase is untouched. This is the rule that makes legato lines
-    // possible and the one most often got wrong.
-    if (this.noteSlideActive[ch] === 1) {
+    // A note with 3xx / Qxy / Rxy DOES NOT retrigger a SOUNDING note: it only sets
+    // the target. Macros keep running, phase is untouched. This is the rule that
+    // makes legato lines possible and the one most often got wrong. With nothing
+    // sounding there is nothing to slide from, and Qxy / Rxy fall through to the
+    // trigger below — the same guard the 3xx branch has; the glide then arms from
+    // the triggered note.
+    if (this.noteSlideActive[ch] === 1 && this.sounding[ch] === 1 && this.baseNote[ch] !== NOTE_NONE) {
       this.baseNote[ch] = note
       this.noteSlidePending[ch] = 1
       this.armNoteSlide(ch)
@@ -920,6 +954,7 @@ export class TrackerDriver {
   private cut(ch: number): void {
     this.sounding[ch] = 0
     this.baseNote[ch] = NOTE_NONE
+    this.dpcmEndsAt[ch] = -1
     this.regs.setEnabled(ch, false)
     this.regs.invalidate(ch)
     this.regs.status(this.sink, this.lastCycleHint, false)
@@ -1017,6 +1052,13 @@ export class TrackerDriver {
       entry.length,
       a.delta === undefined ? -1 : a.delta,
     )
+    // Arm the retirement tickChannel checks for. The core starts the sample only
+    // when the lane is idle (setEnabled(true) restarts nothing while
+    // bytesRemaining > 0), so a trigger landing while the previous sample still
+    // plays keeps the OLD sample — and the old expiry stands.
+    if (this.dpcmEndsAt[ch] <= cycle) {
+      this.dpcmEndsAt[ch] = a.loop ? Infinity : cycle + dpcmSampleCycles(a.pitch, entry.length)
+    }
   }
 
   private emitLive(ch: number, cycle: NesCycle): void {
@@ -1040,6 +1082,17 @@ export class TrackerDriver {
       }
       this.triggerFlag[ch] = 0
       return
+    }
+    // The same re-arm the song path runs in tickChannel: the suppression branch
+    // above cleared the lane's $4015 bit while muted, and emitting with
+    // trigger = false never writes the byte back — a live note held through a
+    // mute stayed silent after unmute. The dpcm lane is exempt: a live dpcm note
+    // never emits (emitChannel gates on `!live`), so arming its bit would only
+    // set up a ghost restart of a finished sample.
+    if (this.compiled.channels[ch] !== 'dpcm' && !this.regs.isEnabled(ch)) {
+      this.regs.setEnabled(ch, true)
+      this.regs.invalidate(ch)
+      this.triggerFlag[ch] = 1
     }
     this.emitChannel(ch, cycle, note, volume, -1, 0, true)
   }
