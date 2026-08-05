@@ -118,3 +118,76 @@ describe('edits during playback reach the driver', () => {
     expect(effect).toContain('untrack(')
   })
 })
+
+describe('the playing mirror cannot desync from the driver', () => {
+  const store = codeOf('state', 'tracker.svelte.ts')
+
+  it('re-syncs the $state mirror inside pump(), not only in play()/stop()', () => {
+    // A driver-initiated stop (Cxx halt) never goes through stop(), so a mirror
+    // written only in play()/stop() stayed true forever: the chip showed "stop"
+    // over a silent song and togglePlay stopped instead of restarting.
+    const pump = section(store, 'pump(_nowMs: number): boolean {', 'return moved')
+    expect(pump).toMatch(/if \(driver\.playing !== this\.playing\)/)
+    expect(pump).toMatch(/this\.playing = driver\.playing/)
+  })
+})
+
+describe('shift+arrow across a pattern boundary does not extend the selection', () => {
+  const store = codeOf('state', 'tracker.svelte.ts')
+
+  it('decides extension from the frame captured BEFORE moveRow assigns it', () => {
+    // `extend && frame === this.frame` was evaluated after `this.frame = frame`
+    // — always true, and the anchor=null above it dead. Crossing re-anchored at
+    // the old row in the new frame: a bogus up-to-full-pattern selection the
+    // next ctrl+x silently cleared.
+    const move = section(store, 'moveRow(delta: number, extend = false): void {', 'moveField')
+    expect(move).toMatch(/const crossed = frame !== this\.frame/)
+    expect(
+      move.indexOf('const crossed'),
+      'the crossing must be captured before the frame write',
+    ).toBeLessThan(move.indexOf('this.frame = frame'))
+    expect(move).toContain('extend && !crossed')
+  })
+})
+
+describe('the live channel follows every cursor-channel path', () => {
+  const store = codeOf('state', 'tracker.svelte.ts')
+  const grid = codeOf('ui', 'tracker', 'PatternGrid.svelte')
+
+  it('is pushed from the one channel setter, which setCursor and moveChannel use', () => {
+    // Only moveChannel() pushed setLiveChannel, so while playing a pointer click
+    // on the noise lane still stole whichever channel the last Tab press had
+    // picked (the driver steals the editor's cursor channel, §2.6).
+    const setter = section(store, 'setChannel(channel: number): void {', 'moveChannel(delta: number')
+    expect(setter).toContain('setLiveChannel')
+    const cursor = section(store, 'setCursor(row: number', 'moveRow(delta: number')
+    expect(cursor).toContain('this.setChannel(channel)')
+    const move = section(store, 'moveChannel(delta: number): void {', 'setFrame(frame: number')
+    expect(move).toContain('this.setChannel(')
+  })
+
+  it("is the path the grid's field normalisation takes too", () => {
+    // `tracker.channel += 1` / `-= 1` bypassed the push the same way.
+    expect(grid).not.toMatch(/tracker\.channel\s*[+-]=/)
+    const normalise = section(grid, 'function normaliseField', 'function ensureVisible')
+    expect(normalise).toContain('tracker.setChannel(')
+  })
+})
+
+describe('closing the panel cannot leave the keyboard suppressed', () => {
+  const store = codeOf('state', 'tracker.svelte.ts')
+  const grid = codeOf('ui', 'tracker', 'PatternGrid.svelte')
+
+  it('resets tracker.focused when the grid unmounts', () => {
+    // focus/blur own the flag and unmount fires neither: closing the panel
+    // mid-focus left it stuck true, and App's suppress guard
+    // (`suppress: () => tracker.focused`) silently killed every global keydown.
+    const cleanup = section(grid, 'return () => {', '})')
+    expect(cleanup).toContain('tracker.focused = false')
+  })
+
+  it('resets it when the panel closes, even without an unmount', () => {
+    const toggle = section(store, 'toggleOpen(): void {', 'get rowsPerPattern')
+    expect(toggle).toContain('this.focused = false')
+  })
+})

@@ -556,14 +556,14 @@
     const fields = layout?.channels[tracker.channel]?.fields.length ?? 1
     if (tracker.field >= fields) {
       if (tracker.channel < channelCount - 1) {
-        tracker.channel += 1
+        tracker.setChannel(tracker.channel + 1)
         tracker.field = 0
       } else {
         tracker.field = fields - 1
       }
     } else if (tracker.field < 0) {
       if (tracker.channel > 0) {
-        tracker.channel -= 1
+        tracker.setChannel(tracker.channel - 1)
         tracker.field = (layout?.channels[tracker.channel]?.fields.length ?? 1) - 1
       } else {
         tracker.field = 0
@@ -717,6 +717,9 @@
       stopDpr()
       stopRoom()
       releaseAllAuditions()
+      // Unmount fires neither focus nor blur; a stuck `focused` would suppress
+      // every global keydown through App's focus guard.
+      tracker.focused = false
     }
   })
 

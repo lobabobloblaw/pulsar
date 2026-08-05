@@ -68,7 +68,9 @@ class TrackerState {
    *  must stay usable on its own (§4.1). */
   open = $state(false)
   /** True while the grid owns the keyboard. `attachKeyboard`'s focus guard reads
-   *  this so the global QWERTY listener does not also fire (§4.5). */
+   *  this so the global QWERTY listener does not also fire (§4.5). The grid's
+   *  unmount cleanup and `toggleOpen` both reset it — a stuck true would
+   *  suppress every global keydown. */
   focused = $state(false)
 
   editing = $state(false)
@@ -99,7 +101,9 @@ class TrackerState {
   /** Read in the frame loop. Deliberately a plain object. */
   readonly position: MutablePosition = { playing: false, orderIndex: 0, row: 0, bpm: 150 }
 
-  /** Mirrors `position.playing` for the chips, written only on play/stop. */
+  /** Mirrors `position.playing` for the chips. play()/stop() write it eagerly;
+   *  pump() re-syncs it from the driver, because a driver-initiated stop (Cxx
+   *  halt) never comes through stop(). */
   playing = $state(false)
 
   #bridge: (AudioBridge & TrackerApi & DiagnosticsSource) | null = null
@@ -131,7 +135,10 @@ class TrackerState {
 
   toggleOpen(): void {
     this.open = !this.open
-    if (!this.open) this.stop()
+    if (!this.open) {
+      this.focused = false
+      this.stop()
+    }
   }
 
   /* ---- cursor ------------------------------------------------------------ */
@@ -150,7 +157,7 @@ class TrackerState {
     if (extend && this.anchor === null) this.anchor = { row: this.row, channel: this.channel }
     if (!extend) this.anchor = null
     this.row = clamp(row, 0, this.rowsPerPattern - 1)
-    this.channel = clamp(channel, 0, this.channelCount - 1)
+    this.setChannel(channel)
     this.field = Math.max(0, field)
     this.digit = 0
   }
@@ -169,11 +176,16 @@ class TrackerState {
       frame++
       row -= rows
     }
-    if (frame !== this.frame) {
+    // Extending must not span a pattern boundary, and the crossing has to be
+    // captured BEFORE the frame write: the anchor refers to the frame it was
+    // set in, so re-anchoring at the old row in the new frame would fake an
+    // up-to-full-pattern selection.
+    const crossed = frame !== this.frame
+    if (crossed) {
       this.frame = frame
       this.anchor = null
     }
-    this.setCursor(row, this.channel, this.field, extend && frame === this.frame)
+    this.setCursor(row, this.channel, this.field, extend && !crossed)
   }
 
   moveField(delta: number): void {
@@ -182,13 +194,22 @@ class TrackerState {
     this.anchor = null
   }
 
+  /** The ONE channel write path. While a song plays the driver steals the
+   *  editor's cursor channel for live notes (§2.6), so every way the channel
+   *  can change — Tab, a pointer click, field normalisation — must push it here,
+   *  or a click on the noise lane still steals whichever channel the last Tab
+   *  press picked. */
+  setChannel(channel: number): void {
+    this.channel = clamp(channel, 0, this.channelCount - 1)
+    this.#bridge?.setLiveChannel?.(this.channel)
+  }
+
   moveChannel(delta: number): void {
     const n = this.channelCount
-    this.channel = (((this.channel + delta) % n) + n) % n
+    this.setChannel((((this.channel + delta) % n) + n) % n)
     this.field = 0
     this.digit = 0
     this.anchor = null
-    this.#bridge?.setLiveChannel?.(this.channel)
   }
 
   setFrame(frame: number): void {
@@ -282,7 +303,9 @@ class TrackerState {
    *
    * The frame timestamp is part of the loop's contract and deliberately unused:
    * the playhead is the driver's, sampled from `bridge.playback`, so this store
-   * never integrates time of its own.
+   * never integrates time of its own. The only `$state` written here is the
+   * `playing` mirror, and only on a transition — the documented-exception class
+   * of the grid's `tracker.frame` write.
    */
   pump(_nowMs: number): boolean {
     const p = this.position
@@ -294,6 +317,9 @@ class TrackerState {
     p.orderIndex = driver.orderIndex
     p.row = driver.row
     p.bpm = driver.bpm
+    // A driver-initiated stop (Cxx halt) never comes through stop(); without
+    // this re-sync the mirror reads "playing" forever over a silent song.
+    if (driver.playing !== this.playing) this.playing = driver.playing
     return moved
   }
 }

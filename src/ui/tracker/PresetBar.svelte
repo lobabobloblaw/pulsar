@@ -114,7 +114,15 @@
     </label>
   </div>
 
-  <dialog bind:this={confirmEl} class="confirm" aria-label="discard unsaved changes">
+  <!-- oncancel, not just the button: Esc fires cancel with no click, and an
+       unwired cancel leaves `pending` set and the select showing a song that
+       never loaded — the desync syncSelect() exists to prevent. -->
+  <dialog
+    bind:this={confirmEl}
+    class="confirm"
+    aria-label="discard unsaved changes"
+    oncancel={cancelDiscard}
+  >
     <p class="t-body">
       this song has unsaved edits. loading
       <strong>{pending?.title ?? 'another preset'}</strong> discards them.

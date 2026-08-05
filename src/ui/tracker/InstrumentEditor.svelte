@@ -16,6 +16,7 @@
   import {
     emptyInstrument,
     MACRO_KINDS,
+    MAX_SEQUENCE_LENGTH,
     type Instrument,
     type MacroKind,
     type Sequence,
@@ -106,6 +107,9 @@
 
   function setValue(delta: number): void {
     if (sequence === null) return
+    // Step can be stale against this sequence (instrument switch, preset load):
+    // clamp before the indexed write — a sparse slot corrupts the document.
+    step = Math.min(step, values.length - 1)
     const [lo, hi] = range
     const next = [...values]
     next[step] = Math.max(lo, Math.min(hi, (next[step] ?? 0) + delta))
@@ -114,6 +118,7 @@
 
   function setLength(delta: number): void {
     if (sequence === null) return
+    if (delta > 0 && values.length >= MAX_SEQUENCE_LENGTH) return
     const next = [...values]
     if (delta > 0) next.push(next[next.length - 1] ?? 0)
     else if (next.length > 1) next.pop()
@@ -130,6 +135,8 @@
 
   function mark(which: 'loop' | 'release'): void {
     if (sequence === null) return
+    // Same stale-step guard as setValue: never mark past the end.
+    step = Math.min(step, values.length - 1)
     const current = which === 'loop' ? sequence.loop : sequence.release
     const value = current === step ? -1 : step
     writeSequence({ ...sequence, [which]: value })
@@ -175,6 +182,7 @@
         return
     }
     e.preventDefault()
+    e.stopPropagation()
   }
 
   function draw(): void {
@@ -217,6 +225,12 @@
       if (sequence.release >= 0) ctx.fillRect((sequence.release + 1) * bw - 1, 0, 1, cssH)
     }
   }
+
+  // A preset load (or any document swap) can shrink the macro under the cursor
+  // — keep step inside whatever sequence survives (length 0 → back to step 1).
+  $effect(() => {
+    step = Math.max(0, Math.min(step, values.length - 1))
+  })
 
   $effect(() => {
     void values
@@ -267,7 +281,10 @@
       id="inst-pick"
       class="t-value window"
       value={selected}
-      onchange={(e) => (selected = Number(e.currentTarget.value))}
+      onchange={(e) => {
+        selected = Number(e.currentTarget.value)
+        step = 0
+      }}
     >
       {#each song.doc.instruments as inst, i (i)}
         <option value={i}>{i.toString(16).padStart(2, '0')} · {inst.name}</option>
