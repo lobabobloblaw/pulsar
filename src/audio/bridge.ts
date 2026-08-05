@@ -663,6 +663,13 @@ class RealBridge implements AudioBridge {
     own.dspLoadPct = d.dspLoadPct
     own.sampleRate = d.sampleRate
 
+    // The state field belongs to the wake/resume machine, not to the poll: a
+    // refused resume publishes 'idle' — the state that puts the start cap back
+    // on the panel — and re-publishing 'running' over a SUSPENDED context
+    // flashes the cap for one interval and leaves the LED green on silence.
+    // Until the context is genuinely running again the poll's whole job is the
+    // numbers above.
+    if (engine.ctx.state !== 'running') return
     const next = this.#statusFor(this.#status.state === 'error' ? 'error' : 'running')
     const cur = this.#status
     if (
@@ -689,8 +696,15 @@ class RealBridge implements AudioBridge {
     if (state === 'closed') {
       // Chrome closes the context on device loss. Claiming 'running' with nothing
       // sounding would be a truthfulness violation (finding #16) — publish the
-      // failure and let a fresh gesture retry via start()'s cleared promise.
+      // failure and let a fresh gesture retry via start(). That retry rebuilds
+      // only when #engine is null: start()'s live-engine branch is a RESUME and
+      // #resume refuses 'closed', so the dead handle is torn down here, not just
+      // unpromised — scheduler, coordinator, tap and timers belonged to the old
+      // context and a cleared #startPromise alone left start() resuming a corpse.
+      this.#teardown()
+      this.#engine = null
       this.#startPromise = null
+      void engine.dispose().catch(() => {})
       this.#publish({ ...this.#statusFor('error'), error: 'audio device lost' })
       return
     }
