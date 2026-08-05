@@ -9,6 +9,9 @@
  *    - every §1.5 error is produced with a message that names the thing that is wrong.
  *    - `null` for `inst`/`vol`/`note` is REJECTED — "unchanged" is an absent key, never
  *      null and never 0. This is the single most common tracker-format bug.
+ *    - duplicate (channel, index) patterns are REJECTED — the compiler keeps the LAST,
+ *      the grid finds the FIRST — and a wrong-typed order entry is an error, never a
+ *      silent pattern 0.
  *    - unknown top-level keys WARN and are dropped; `extra` round-trips verbatim.
  *    - `fx` trailing nulls are omitted on write and tolerated on read.
  *    - `region: "pal"` warns (D-TK5) and still loads.
@@ -195,6 +198,21 @@ describe('errors — refuse to load', () => {
     expect(errs.some((e) => e.path === 'order[0][0]' && e.message.includes('does not exist'))).toBe(true)
   })
 
+  it('a wrong-typed order entry — null/string/NaN must not silently become pattern 0', () => {
+    for (const bad of [null, '0', 'pulse1:0', NaN]) {
+      const errs = errorsOf(broken((d) => ((d.order as unknown[][])[0][0] = bad)))
+      expect(
+        errs.some((e) => e.path === 'order[0][0]' && e.message.includes('pattern index')),
+        String(bad),
+      ).toBe(true)
+    }
+  })
+
+  it('an order entry of 0 is legitimate — it names pattern 0', () => {
+    // tiny's first frame is [0, 0, 0, 0, 0]: pattern 0 on every channel, zero errors.
+    expect(errorsOf(tiny())).toEqual([])
+  })
+
   it('a pattern on a channel the song does not have', () => {
     const errs = errorsOf(
       broken((d) => {
@@ -202,6 +220,37 @@ describe('errors — refuse to load', () => {
       }),
     )
     expect(errs.some((e) => e.path === 'patterns[0].channel')).toBe(true)
+  })
+
+  it('a duplicated (channel, index) pattern — compile keeps the LAST, the grid shows the FIRST', () => {
+    const errs = errorsOf(
+      broken((d) => {
+        ;(d.patterns as Record<string, unknown>[]).push({
+          channel: 'pulse1',
+          index: 0,
+          rows: [{ r: 0, note: 48 }],
+        })
+      }),
+    )
+    expect(errs.some((e) => e.path.endsWith('.index') && e.message.includes('pulse1:0 is duplicated'))).toBe(true)
+  })
+
+  it('a float index that ROUNDS onto an existing pattern is a duplicate too', () => {
+    // Math.round(0.4) lands on the real pulse1:0 — the collision exists post-rounding.
+    const errs = errorsOf(
+      broken((d) => {
+        ;(d.patterns as Record<string, unknown>[]).push({ channel: 'pulse1', index: 0.4, rows: [] })
+      }),
+    )
+    expect(errs.some((e) => e.message.includes('pulse1:0 is duplicated'))).toBe(true)
+  })
+
+  it('the same index on DIFFERENT channels is not a duplicate', () => {
+    const doc = broken((d) => {
+      ;(d.patterns as Record<string, unknown>[]).push({ channel: 'pulse2', index: 1, rows: [] })
+      ;(d.order as number[][]).push([1, 1, 0, 0, 0])
+    })
+    expect(errorsOf(doc)).toEqual([])
   })
 
   it('rows out of range, out of order, or duplicated', () => {

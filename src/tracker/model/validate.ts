@@ -343,6 +343,7 @@ function parsePatterns(
     return []
   }
   const out: Pattern[] = []
+  const seen = new Set<string>()
   for (let i = 0; i < input.length; i++) {
     const p = input[i]
     if (!isObject(p)) {
@@ -356,7 +357,16 @@ function parsePatterns(
       continue
     }
     const index = int(p.index, -1)
-    if (index < 0) d.error(`patterns[${i}].index`, `${json(p.index)} is not a valid pattern index`)
+    if (index < 0) {
+      d.error(`patterns[${i}].index`, `${json(p.index)} is not a valid pattern index`)
+    } else {
+      // A duplicate (channel, index) must not load: the compiler's slotOf keeps the
+      // LAST, the song model's findPattern returns the FIRST. Checked AFTER rounding,
+      // so a float index cannot slip a second pattern onto an occupied slot.
+      const key = `${channel}:${index}`
+      if (seen.has(key)) d.error(`patterns[${i}].index`, `pattern ${key} is duplicated`)
+      else seen.add(key)
+    }
     const path = `patterns[${channel}:${index}]`
     const rows = parseRows(p.rows, path, rowsPerPattern, effectColumns[chIndex] ?? 1, d)
     out.push({ channel, index, rows })
@@ -502,7 +512,15 @@ function parseOrder(
     }
     const row: number[] = []
     for (let ch = 0; ch < channels.length; ch++) {
-      const idx = int(frame[ch], 0)
+      const entry = frame[ch]
+      // A wrong-typed entry is an authoring error, like a null cell field — int()'s
+      // fallback would otherwise read null/string/NaN as pattern 0 with no diagnostic.
+      if (typeof entry !== 'number' || !Number.isFinite(entry)) {
+        d.error(`order[${f}][${ch}]`, `${json(entry)} — an order entry is a pattern index, never null and never a string`)
+        row.push(0)
+        continue
+      }
+      const idx = Math.round(entry)
       if (!known.has(`${channels[ch]}:${idx}`)) {
         d.error(`order[${f}][${ch}]`, `references ${channels[ch]} pattern ${idx}, which does not exist`)
       }
