@@ -367,24 +367,36 @@ export function drawRows(
   // --- selection ------------------------------------------------------------
   const sel = state.selection
   if (sel !== null) {
-    ctx.fillStyle = palette.selection
     const y0 = yOf(sel.row0)
     const h = (sel.row1 - sel.row0 + 1) * rowH
-    for (let c = sel.channel0; c <= sel.channel1; c++) {
-      const ch = layout.channels[c]
-      if (ch === undefined) continue
-      ctx.fillRect(ch.x - state.scrollX, y0, ch.w, h)
+    // The bands' vertical culling, but a straddling rect is clipped to
+    // [headerH, viewportH], not dropped: an unclipped y0 goes negative and
+    // paints over the channel headers (this layer runs with no clip region).
+    if (y0 + h >= top && y0 <= state.viewportH) {
+      const y = Math.max(y0, top)
+      const clippedH = Math.min(y0 + h, state.viewportH) - y
+      ctx.fillStyle = palette.selection
+      for (let c = sel.channel0; c <= sel.channel1; c++) {
+        const ch = layout.channels[c]
+        if (ch === undefined) continue
+        ctx.fillRect(ch.x - state.scrollX, y, ch.w, clippedH)
+      }
     }
   }
 
   // --- playhead: the one accent on this surface, with the cursor (§4.2) -----
   if (state.playRow >= 0) {
     const y = yOf(state.playRow)
-    ctx.globalAlpha = 0.14
-    ctx.fillStyle = palette.accent
-    ctx.fillRect(gutter, y, totalW - gutter, rowH)
-    ctx.globalAlpha = 1
-    ctx.fillRect(gutter, y, totalW - gutter, 2)
+    if (y + rowH >= top && y <= state.viewportH) {
+      const cy = Math.max(y, top)
+      ctx.globalAlpha = 0.14
+      ctx.fillStyle = palette.accent
+      ctx.fillRect(gutter, cy, totalW - gutter, Math.min(y + rowH, state.viewportH) - cy)
+      ctx.globalAlpha = 1
+      // The 2 px line marks the row's own top edge; scrolled under the header
+      // there is no visible edge to mark.
+      if (y >= top) ctx.fillRect(gutter, y, totalW - gutter, Math.min(2, state.viewportH - y))
+    }
   }
 
   // --- row numbers ----------------------------------------------------------
@@ -431,30 +443,40 @@ export function drawRows(
   const field = cur?.fields[state.cursorField]
   if (cur !== undefined && field !== undefined) {
     const y = yOf(state.cursorRow)
-    const x = field.x - state.scrollX
-    ctx.fillStyle = state.focused ? palette.accent : palette.inkDim
-    if (state.editing) {
-      ctx.fillRect(x, y, field.w, rowH)
-      // Redraw the glyph knocked out of the block in the glass's own ground,
-      // so the value under the cursor stays readable — bg-on-amber is 9.9:1.
-      const i = state.cursorRow - view.firstRow
-      if (i >= 0 && i < view.rowCount) {
-        const value = view.data[
-          i * stride + state.cursorChannel * LANES_PER_CHANNEL + field.lane
-        ] as number
-        ctx.fillStyle = palette.bg
-        ctx.fillText(laneText(field.lane, value), x + 2, y + rowH / 2)
+    // The same vertical culling the selection/playhead apply: follow can
+    // scroll the cursor under the channel header, and this layer runs with
+    // no clip region, so an unguarded y paints over the labels. Straddles
+    // (fractional scrollRow) clip to [top, viewportH]. Horizontal visibility
+    // is the scroller's job — it keeps the cursor channel in view.
+    if (y + rowH >= top && y <= state.viewportH) {
+      const x = field.x - state.scrollX
+      ctx.fillStyle = state.focused ? palette.accent : palette.inkDim
+      if (state.editing) {
+        const cy = Math.max(y, top)
+        ctx.fillRect(x, cy, field.w, Math.min(y + rowH, state.viewportH) - cy)
+        // Redraw the glyph knocked out of the block in the glass's own ground,
+        // so the value under the cursor stays readable — bg-on-amber is 9.9:1.
+        const i = state.cursorRow - view.firstRow
+        if (i >= 0 && i < view.rowCount && y + rowH / 2 >= top) {
+          const value = view.data[
+            i * stride + state.cursorChannel * LANES_PER_CHANNEL + field.lane
+          ] as number
+          ctx.fillStyle = palette.bg
+          ctx.fillText(laneText(field.lane, value), x + 2, y + rowH / 2)
+        }
+        // The armed digit of a two-digit field, as an underscore under it.
+        if (field.chars > 1 && state.cursorDigit > 0 && y + rowH - 4 >= top) {
+          ctx.fillStyle = palette.bg
+          ctx.fillRect(x + 2 + state.cursorDigit * layout.charW, y + rowH - 4, layout.charW, 2)
+        }
+      } else {
+        const cy = Math.max(y, top)
+        const clippedH = Math.min(y + rowH, state.viewportH) - cy
+        if (y >= top) ctx.fillRect(x, y, field.w, 1)
+        if (y + rowH - 1 >= top) ctx.fillRect(x, y + rowH - 1, field.w, 1)
+        ctx.fillRect(x, cy, 1, clippedH)
+        ctx.fillRect(x + field.w - 1, cy, 1, clippedH)
       }
-      // The armed digit of a two-digit field, as an underscore under it.
-      if (field.chars > 1 && state.cursorDigit > 0) {
-        ctx.fillStyle = palette.bg
-        ctx.fillRect(x + 2 + state.cursorDigit * layout.charW, y + rowH - 4, layout.charW, 2)
-      }
-    } else {
-      ctx.fillRect(x, y, field.w, 1)
-      ctx.fillRect(x, y + rowH - 1, field.w, 1)
-      ctx.fillRect(x, y, 1, rowH)
-      ctx.fillRect(x + field.w - 1, y, 1, rowH)
     }
   }
 
