@@ -1,9 +1,10 @@
 /** Preset format gate (design §5.5 gate A, §7.1) — the half WP9 owns.
  *
- *  This suite runs against WHATEVER EXISTS in `src/assets/songs/`, so it is green while
- *  WP11 is still writing the four tracks and becomes a real gate the moment the first
- *  one lands. WP11's own `presets.test.ts` adds gates B–D (musicality lint, offline
- *  render, anti-vacuity); this file is the structural floor underneath them.
+ *  This suite runs against WHATEVER EXISTS in `src/assets/songs/`. The album has since
+ *  landed in full, so the first test pins the count: a vanished JSON fails the run
+ *  instead of silently shrinking the per-file suites below. WP11's own
+ *  `presets.test.ts` adds gates B–D (musicality lint, offline render, anti-vacuity);
+ *  this file is the structural floor underneath them.
  *
  *  Headline assertions:
  *    - every shipped preset parses with ZERO error diagnostics and round-trips
@@ -26,9 +27,9 @@ const TINY = join(ROOT, 'tests', 'fixtures', 'songs', 'tiny.json')
 
 /** The four technique demos design §5.2 commits to, plus the eight album pieces
  *  `docs/preset-suite.md` §4 adds to the same directory and the two `docs/preset-suite.md`
- *  §10.4 adds after them (`green-flash`, `harbour-echo`). Any of them may be absent while
- *  its composer batch is mid-flight; nothing OUTSIDE the list may ever appear. Album
- *  files carry a two-digit play-order prefix (`07-rust-and-neon.json`), which
+ *  §10.4 adds after them (`green-flash`, `harbour-echo`). The album is complete: all of
+ *  them must be present, and nothing OUTSIDE the list may ever appear. Album files carry
+ *  a two-digit play-order prefix (`07-rust-and-neon.json`), which
  *  `src/assets/songs/index.ts` strips to form the id. */
 const EXPECTED_PRESETS = [
   'first-light',
@@ -57,13 +58,17 @@ function presetFiles(): string[] {
 describe('shipped presets — structural gate', () => {
   const files = presetFiles()
 
-  it(`reports which preset tracks exist (${files.length} of ${EXPECTED_PRESETS.length} present)`, () => {
+  it(`ships exactly the ${EXPECTED_PRESETS.length} album tracks (${files.length} found)`, () => {
     const present = files.map((f) => f.replace(/\.json$/, '').replace(/^\d{2}-/, ''))
     for (const id of present) expect(EXPECTED_PRESETS).toContain(id)
-    // Not an assertion that all of them exist — the batches land them independently —
-    // but the set may never contain something the design did not name, and never twice.
+    // Presence is a hard floor: without it a vanished JSON would only shrink the
+    // per-file suites below — a loop over an empty file list registers nothing and
+    // the run stays green. The pin on EXPECTED_PRESETS itself keeps the list from
+    // being edited down to match a thinning directory.
+    expect(EXPECTED_PRESETS).toHaveLength(14)
+    expect(files).toHaveLength(EXPECTED_PRESETS.length)
+    // Nothing outside the design's list, and never twice.
     expect(new Set(present).size).toBe(present.length)
-    expect(present.length).toBeLessThanOrEqual(EXPECTED_PRESETS.length)
   })
 
   for (const file of files) {

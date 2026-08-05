@@ -16,6 +16,12 @@
  *  or `afterAll` hooks in benchmark mode (verified), and a percentile over per-quantum
  *  wall time is the number the audio thread cares about — not tinybench's mean over a
  *  batch. The `bench()` blocks below then produce the familiar ops/sec report.
+ *
+ *  The timing gate is backed by per-scenario WORK floors (events/deltas per quantum,
+ *  the same anti-vacuity shape as patternGrid.bench's fillText/fillRect floors): a
+ *  scenario whose definition regresses — a zeroed DPCM bank, a $4015 byte that mutes
+ *  a channel, a dead envelope — renders FASTER, so the p99 gate alone would pass a
+ *  'worst case' that no longer is one.
  */
 import { bench, describe } from 'vitest'
 import { Apu2A03 } from '../../src/audio/core/apu2a03'
@@ -32,6 +38,10 @@ interface Scenario {
   name: string
   /** false for the register-space ceiling, which is held to the full deadline. */
   gated: boolean
+  /** Anti-vacuity work floors per quantum; undefined means the scenario has no floor
+   *  (silence does no channel work by definition, and the ceiling is an info row). */
+  minEvents?: number
+  minDeltas?: number
   build(): Apu2A03
 }
 
@@ -60,6 +70,10 @@ const SCENARIOS: Scenario[] = [
   {
     name: 'one pulse, A440 duty 2',
     gated: true,
+    // Measured ~9.4 events/quantum. A pulse silenced by a wrong $4015 enable byte or a
+    // dead envelope never clocks its timer: events drop to 0 and the 'scenario' renders
+    // silence faster than anything. The floor catches a muted pulse.
+    minEvents: 1,
     build: () => {
       const a = apu()
       a.write(0, 0x4015, 0x01)
@@ -73,6 +87,10 @@ const SCENARIOS: Scenario[] = [
   {
     name: 'all five channels, musical',
     gated: true,
+    // Measured ~99 events/quantum. The floor catches a build in which the final $4015
+    // byte never takes effect: every channel dark means zero timer expiries, and the
+    // gate would be timing an idle engine.
+    minEvents: 1,
     build: () => {
       const a = apu()
       a.setDpcmMemory(dpcmMemory())
@@ -101,6 +119,11 @@ const SCENARIOS: Scenario[] = [
   {
     name: 'worst case (~800 deltas: bright noise + two top-octave pulses + dpcm)',
     gated: true,
+    // Measured ~760 deltas/quantum; the 267 µs gate is written against this stream.
+    // A zeroed DPCM bank, a $4015 byte that mutes a channel, or a wrong noise period
+    // shrinks it while the render gets FASTER — floored at 700 so the gate cannot
+    // pass on a worst case that no longer is one.
+    minDeltas: 700,
     build: () => {
       const a = apu()
       a.setDpcmMemory(dpcmMemory())
@@ -179,6 +202,8 @@ interface Measurement {
   max: number
   events: number
   deltas: number
+  minEvents: number | undefined
+  minDeltas: number | undefined
 }
 
 function measure(scenario: Scenario, quanta: number, warmup = 1000): Measurement {
@@ -204,6 +229,8 @@ function measure(scenario: Scenario, quanta: number, warmup = 1000): Measurement
     max: sorted[quanta - 1],
     events: (a.stats.eventsProcessed - events0) / quanta,
     deltas: (a.stats.deltasEmitted - deltas0) / quanta,
+    minEvents: scenario.minEvents,
+    minDeltas: scenario.minDeltas,
   }
 }
 
@@ -232,6 +259,20 @@ function report(): void {
     )
     if (r.p99 > limit) {
       failures.push(`"${r.name}" p99 ${r.p99.toFixed(2)} µs > ${limit.toFixed(0)} µs`)
+    }
+    // Anti-vacuity: the work counts are as deterministic as the emulation, so each
+    // floor sits just under the measured value (the comments on SCENARIOS say what
+    // each one catches). A scenario that silently does less work renders faster, so
+    // the p99 gate above cannot see the regression — these floors can.
+    if (r.minEvents !== undefined && r.events < r.minEvents) {
+      failures.push(
+        `"${r.name}" processed only ${r.events.toFixed(2)} events/quantum — the scenario does no work (floor ${r.minEvents})`,
+      )
+    }
+    if (r.minDeltas !== undefined && r.deltas < r.minDeltas) {
+      failures.push(
+        `"${r.name}" emitted only ${r.deltas.toFixed(2)} deltas/quantum — the worst case shrank (floor ${r.minDeltas})`,
+      )
     }
   }
   lines.push('')
