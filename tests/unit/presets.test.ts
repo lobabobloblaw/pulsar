@@ -59,6 +59,11 @@ const PERCUSSION_MIN_EVENTS_FLOOR = 8
 const PERCUSSION_COVERAGE = 0.8
 const RMS_RANGE_DEFAULT: readonly [number, number] = [-20, -9]
 const RMS_FLOOR = -30
+// Gate C/D render minutes of audio per song (two loops plus solo passes); a shared
+// CI runner is ~10x slower than the dev machine, so vitest's 5 s default kills them
+// there. Two minutes is generous headroom, not a hang licence — a wedged render
+// still fails, just later.
+const GATE_RENDER_TIMEOUT = 120_000
 
 // --- the registry -----------------------------------------------------------------------
 
@@ -715,7 +720,7 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
       qa.renderChecksum,
       `add "renderChecksum": ${r.checksum} to extra.qa (this render's FNV-1a)`,
     ).toBe(r.checksum)
-  })
+  }, GATE_RENDER_TIMEOUT)
 
   it('gate D — transposing one pattern breaks the checksum', () => {
     const budget = 40
@@ -730,7 +735,7 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
       ),
     }
     expect(renderSong(mutated, { sampleRate: 48000, loops: 1, maxSeconds: budget }).checksum).not.toBe(base)
-  })
+  }, GATE_RENDER_TIMEOUT)
 })
 
 // --- gate D: the deliberately broken fixtures ----------------------------------------------
