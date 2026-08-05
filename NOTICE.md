@@ -12,6 +12,9 @@ implementations written against publicly documented behavior:
 - FamiStudio's MIT-licensed documentation is used as a behavioral reference for
   tracker semantics in later phases.
 
+The preset songs in `src/assets/songs/` are original compositions authored for
+pulsar.
+
 Generated image assets are documented per-file in `ASSETS.md`, including the exact
 model checkpoint, license, seed, prompt, and post-processing chain for each.
 
