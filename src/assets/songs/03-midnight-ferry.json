@@ -686,7 +686,7 @@
       "bpmRange": [139, 141],
       "durationSec": [115, 132],
       "rmsRange": [-22.03, -19.03],
-      "renderChecksum": 2275818409,
+      "renderChecksum": 3638461697,
       "loopFrame": 2,
       "form": ["intro", "intro", "A", "A", "A", "A", "A'", "A'", "A'", "A'", "B", "B", "B", "B", "pickup", "A''", "A''", "A''"],
       "motif": { "channel": "pulse1", "patterns": [2, 4, 11], "variation": "one-row displacement plus a Gxx sub-row nudge in A' (p1:4/p1:5), re-cast as a canon subject in consonant leaps in B (p1:6-p1:9), and reharmonised over the A7-D7 chain with the global peak in A'' (p1:11)" },

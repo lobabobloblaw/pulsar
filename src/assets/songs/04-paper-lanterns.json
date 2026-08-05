@@ -614,7 +614,7 @@
       "bpmRange": [111, 114],
       "durationSec": [108, 122],
       "rmsRange": [-24.29, -21.29],
-      "renderChecksum": 2854545418,
+      "renderChecksum": 1832601890,
       "loopFrame": 2,
       "form": ["intro", "intro", "A", "A", "A", "A", "B", "B", "B", "B", "C", "C", "C", "B'", "B'", "A'", "A'", "A'"],
       "motif": { "channel": "pulse1", "patterns": [2, 4, 15, 17], "variation": "statement (p2) - displaced +2 rows (p4) - portamento-connected legato with 3xx (p15) - hemiola regrouping in 8-row units over the plagal cadence (p17)" },

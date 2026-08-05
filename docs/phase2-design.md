@@ -1232,9 +1232,12 @@ command; `effectColumns` covers every `fx` slot actually used.
   time and assert each solo pass has RMS > −40 dBFS. Proves the mix, not just the events.
 - **level sanity**: full-mix RMS ∈ [−20, −9] dBFS; no window of > 1.2 s below −60 dBFS
   anywhere except the last 0.5 s.
-- **deterministic checksum**: FNV-1a over the rendered `Float32Array`, pinned per preset
-  exactly as the Phase-1 golden traces are. Re-rendering must reproduce it bit-for-bit;
-  changing a preset requires updating the pin in the same commit, which is the point.
+- **deterministic checksum**: FNV-1a over the rendered `Float32Array` quantised to
+  1e-4, pinned per preset — the same shape as the Phase-1 golden traces (1e-6 over
+  seconds-long fixtures). Re-rendering must reproduce it; changing a preset requires
+  updating the pin in the same commit, which is the point. The quantization absorbs
+  last-bit `Math.sin`/`Math.exp` differences across V8 builds, which a minutes-long
+  render otherwise accumulates in the filter state until a raw byte flips.
 
 **Gate D — anti-vacuity**, because Phase 1 set this standard: a mutation of the preset
 (transpose one pattern by +1 semitone) must **break** the checksum, and a deliberately

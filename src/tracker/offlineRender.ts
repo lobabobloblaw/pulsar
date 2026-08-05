@@ -158,14 +158,22 @@ export function renderSong(song: Song, opts: OfflineRenderOptions = {}): Offline
   }
 }
 
-/** FNV-1a over the raw sample bytes — the same shape as the phase-1 golden traces'
- *  pin, so a preset's checksum can only change when its audio does. */
+/** FNV-1a over samples quantised to 1e-4 — the same shape as the phase-1 golden
+ *  traces' pin (they use 1e-6 over seconds-long fixtures). A preset render runs
+ *  minutes, and last-bit differences in Math.sin/exp across V8 builds accumulate
+ *  in the IIR filter state until a raw float32 byte flips — the CI runner proved
+ *  it: identical audio (every level gate green), different bytes on 9 of 14
+ *  songs. Quantised, the pin is cross-platform; −80 dBFS still catches any real
+ *  change — gate D's one-semitone transpose moves samples by ~0.1. */
 export function fnv1a(samples: Float32Array): number {
-  const bytes = new Uint8Array(samples.buffer, samples.byteOffset, samples.byteLength)
   let h = 0x811c9dc5
-  for (let i = 0; i < bytes.length; i++) {
-    h ^= bytes[i]
-    h = Math.imul(h, 0x01000193) >>> 0
+  for (let i = 0; i < samples.length; i++) {
+    let v = Math.round(samples[i] * 1e4)
+    for (let b = 0; b < 4; b++) {
+      h ^= v & 0xff
+      h = Math.imul(h, 0x01000193)
+      v >>= 8
+    }
   }
   return h >>> 0
 }

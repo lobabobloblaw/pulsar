@@ -2,9 +2,10 @@
 
 - `tiny.json` — the eight-row, two-lane fixture from phase-2 design §1.4. It is the
   round-trip fixture, the driver fixture and the **golden song**: `presetFormat.test.ts`
-  pins the FNV-1a checksum of its 48 kHz render through `renderSong`, so the driver, the
-  macro engine and the whole DSP path are held together by one number. Changing it means
-  updating the pin in the same commit, which is the point.
+  pins the FNV-1a checksum of its 48 kHz render through `renderSong` (samples quantised
+  to 1e-4, so the pin survives last-bit `Math.sin`/`Math.exp` differences across V8
+  builds), so the driver, the macro engine and the whole DSP path are held together by
+  one number. Changing it means updating the pin in the same commit, which is the point.
 - `build.ts` — song builders and the driver harness the `tracker*.test.ts` suites share.
   Every fixture it produces goes through the real `parseSong`, so a broken fixture fails
   loudly where it is written rather than mysteriously where it is used.

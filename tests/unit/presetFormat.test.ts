@@ -131,7 +131,7 @@ describe('the golden song — tests/fixtures/songs/tiny.json', () => {
     // 16 rows x 6 ticks x (1789773/60) cycles, within one output frame.
     expect(r.cycles / 1789773).toBeCloseTo(1.6, 1)
     expect(r.samples.length).toBeGreaterThan(48000)
-    expect(r.checksum).toBe(2975725462)
+    expect(r.checksum).toBe(3072105137)
   })
 
   it('is audible, and every voice it claims is in the mix', () => {

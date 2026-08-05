@@ -1408,7 +1408,7 @@
       "bpmRange": [119, 121],
       "durationSec": [138, 152],
       "rmsRange": [-27.4, -24.4],
-      "renderChecksum": 1500785285,
+      "renderChecksum": 852899776,
       "loopFrame": 2,
       "form": ["intro", "intro", "A", "A", "A", "A", "A'", "A'", "B", "B", "B", "B", "dub", "A''", "A''", "A''", "A''", "A''"],
       "motif": { "channel": "pulse1", "patterns": [0, 2, 3, 5, 12, 14], "variation": "statement on the steel pan alone (p0) - the answered 8-bar period (p2/p3) - rhythmic diminution onto the 16th grid in A' (p5) - re-harmonised under the chromatic mediant in A'' (p15) - the peak restatement with its appoggiatura (p14)" },

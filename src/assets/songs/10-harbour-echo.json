@@ -1009,7 +1009,7 @@
       "bpmRange": [74, 76],
       "durationSec": [134, 148],
       "rmsRange": [-26.7, -23.7],
-      "renderChecksum": 1496143450,
+      "renderChecksum": 2942813857,
       "loopFrame": 2,
       "form": ["intro", "intro", "A", "A", "A", "A", "B", "B", "B", "B", "dub", "dub", "dub", "A'", "A'", "A'", "A'", "C", "C", "C", "turnaround", "turnaround"],
       "motif": { "channel": "pulse1", "patterns": [1, 2, 10, 11, 13, 16], "variation": "statement over the one drop (p1) - the answer, extended by a beat (p2) - the whole subject re-orchestrated an octave down for A' (p10/p11) - re-harmonised under the chromatic mediant and inverted upward to the global peak in C (p16)" },

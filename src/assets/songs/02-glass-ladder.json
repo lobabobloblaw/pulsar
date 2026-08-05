@@ -816,7 +816,7 @@
       "bpmRange": [127, 130],
       "durationSec": [110, 128],
       "rmsRange": [-22.57, -19.57],
-      "renderChecksum": 178127165,
+      "renderChecksum": 2901273117,
       "loopFrame": 2,
       "form": ["intro", "intro", "A", "A", "A", "A", "A'", "A'", "B", "B", "B", "B", "A''", "A''", "A''", "A''"],
       "motif": { "channel": "pulse1", "patterns": [1, 3, 5, 12], "variation": "rhythmic diminution in A' (p1:5/p1:6 halve every value), two-row displacement in p1:3, and re-harmonisation under the bVI chromatic mediant in p1:6 and p1:11" },

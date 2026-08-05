@@ -306,7 +306,7 @@
       "bpmRange": [111, 114],
       "durationSec": [52, 66],
       "rmsRange": [-22.66, -19.66],
-      "renderChecksum": 3750613986,
+      "renderChecksum": 4002021466,
       "loopFrame": 1,
       "form": ["intro", "A", "A", "B", "B", "A'", "riser"],
       "motif": { "channel": "pulse1", "patterns": [1, 3, 5], "variation": "p1:3 augments the A phrase into 16-row held notes for the vibrato section; p1:5 scoops into it with Qxy and re-harmonises the tail over F sharp 7; p1:6 states it once more and then dismantles it with 2xx and 1xx" },

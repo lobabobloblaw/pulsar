@@ -721,7 +721,7 @@
       "bpmRange": [148, 152],
       "durationSec": [100, 118],
       "rmsRange": [-22.1, -19.1],
-      "renderChecksum": 3788286198,
+      "renderChecksum": 2692831978,
       "loopFrame": 2,
       "form": ["intro", "intro", "A", "A", "A", "A", "A'", "A'", "B", "B", "B", "B", "break", "A''", "A''", "A''", "A''"],
       "motif": { "channel": "pulse1", "patterns": [2, 5, 11], "variation": "octave transposition in A' (p1:5), rhythmic displacement by one and two rows in the answers (p1:3 / p1:4), re-orchestration onto pulse 2 in A' (p2:4), and hemiola restatement under the E7-A7 chain (p1:11 rows 32-59)" },
