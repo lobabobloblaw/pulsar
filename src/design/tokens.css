@@ -288,7 +288,10 @@ body {
   box-shadow: var(--focus);
 }
 
-.key[aria-pressed='true'] {
+/* Caps only — KeyBed's piano keys are <div class="key white|black"> carrying
+   aria-pressed too, and their pressed look is deliberately not a colour fill
+   (a black key stays dark and lights its bottom bar). */
+button.key[aria-pressed='true'] {
   color: var(--n-000);
   background: var(--chip-accent);
   box-shadow: none;
@@ -377,13 +380,17 @@ select.window {
 /* Touch keeps the machined sizes and grows the TARGETS: an invisible overlay
    gives a 24px cap a ~40px thumb pad and an 18px mini the same. Overlaps
    between neighbours resolve by paint order, which is close enough to centre-
-   accurate for caps 8px apart. */
+   accurate for caps 8px apart. Scoped to caps (buttons) and the mini
+   disclosure <summary>s: KeyBed's piano keys share the .key class, and a pad
+   reaching 8px past a white key's right edge would play the next semitone. */
 @media (pointer: coarse) {
-  .key {
+  button.key,
+  summary.key {
     position: relative;
   }
 
-  .key::before {
+  button.key::before,
+  summary.key::before {
     content: '';
     position: absolute;
     inset: -8px;
