@@ -33,7 +33,7 @@
   }
   let { announce }: Props = $props()
 
-  let active = $state<string | null>(null)
+  const active = $derived(song.presetId)
   let failed = $state<string | null>(null)
   let pending = $state<PresetEntry | null>(null)
   let confirmEl = $state<HTMLDialogElement | null>(null)
@@ -57,11 +57,10 @@
       const { song: doc, diagnostics } = parseSong(entry.song)
       // Playback first: a document swap under a running driver is a half-loaded song.
       tracker.stop()
-      song.load(doc)
+      song.load(doc, entry.id)
       bridge().loadSong(doc)
       tracker.setFrame(0)
       tracker.setCursor(0, tracker.channel, tracker.field)
-      active = entry.id
       failed = null
       const warnings = diagnostics.filter((d: Diagnostic) => d.severity === 'warn').length
       announce?.(`loaded ${entry.title}${warnings > 0 ? `, ${warnings} warnings` : ''}`)
@@ -136,6 +135,7 @@
 
 <style>
   .presets {
+    min-width: 0;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -170,6 +170,7 @@
   /* Silk name, glass window: the picker reads as a program slot — the ground
      and chevron come from tokens' `.window`. Native popup, native semantics. */
   .picker {
+    min-width: 0;
     display: inline-flex;
     align-items: center;
     gap: var(--s-1);
@@ -179,7 +180,16 @@
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    max-width: 22ch;
+    max-width: min(22ch, 100%);
+  }
+
+  @media (pointer: coarse) {
+    .picker select {
+      font-size: 16px;
+    }
+    .chip.action {
+      min-height: 44px;
+    }
   }
 
   /* A failed load RINGS the window — non-text red, visible on the slab; the

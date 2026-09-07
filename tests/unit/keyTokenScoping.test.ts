@@ -13,13 +13,13 @@ import { describe, expect, it } from 'vitest'
  * - a bare `.key[aria-pressed='true']` latch paints a pressed BLACK piano key
  *   solid blue, where the bed's own `.black.pressed` deliberately keeps the
  *   key dark and lights only its bottom bar;
- * - a bare coarse-pointer `.key::before` hit pad (`inset: -8px`) reaches 8px
- *   past every white key's right edge, and the next key — later in DOM, equal
- *   z-index — wins hit-testing, so the strip plays the next semitone.
+ * - a bare coarse-pointer `.key` size rule would widen the contiguous piano
+ *   keys. Caps now occupy real 44px space; overlapping pseudo-element hit pads
+ *   are forbidden.
  *
  * Minis are not all buttons: the editor reference disclosures are
  * `<summary class="key mini">`, so button-only scoping would silently drop
- * their touch pads. Like paletteDrift, this reads the sources as text —
+ * their touch sizing. Like paletteDrift, this reads the sources as text —
  * importing nothing, so a selector edit cannot fail to parse its way green.
  */
 
@@ -42,11 +42,11 @@ describe('.key token scoping (pinned 2026-08-04)', () => {
     expect(css).not.toMatch(/(^|[\s,}])\.key\[aria-pressed/)
   })
 
-  it('coarse-pointer hit pads cover caps and minis, never the key bed', () => {
+  it('coarse-pointer targets size caps and minis without enlarging the piano keys', () => {
     const block = coarseBlock(css)
-    // 24px caps are buttons; 18px minis are buttons AND <summary> disclosures
-    expect(block).toContain('button.key::before')
-    expect(block).toContain('summary.key::before')
+    // Caps are buttons; minis are buttons AND <summary> disclosures
+    expect(block).toContain('button.key,')
+    expect(block).toContain('summary.key {')
     // a bare .key::before pad would extend 8px past every white piano key's
     // right edge and hand the next semitone the touch
     expect(block).not.toMatch(/(^|[\s,}])\.key::before/)
@@ -61,7 +61,7 @@ describe('.key token scoping (pinned 2026-08-04)', () => {
   })
 
   it('the premise holds: at least one mini is a <summary>, not a button', () => {
-    // guards button-only rescoping, which would drop this mini's hit pad
+    // guards button-only rescoping, which would drop this mini's touch size
     const editors = ['src/ui/tracker/InstrumentEditor.svelte', 'src/ui/tracker/TrackerPanel.svelte']
       .map((p) => readFileSync(resolve(ROOT, p), 'utf8'))
       .join('\n')
@@ -69,7 +69,8 @@ describe('.key token scoping (pinned 2026-08-04)', () => {
   })
 
   it('parsing actually found the rules (guards against a regex that matches nothing)', () => {
-    expect(coarseBlock(css)).toContain('inset: -8px')
-    expect(coarseBlock(css)).toContain('inset: -11px')
+    expect(coarseBlock(css)).toContain('min-width: 44px')
+    expect(coarseBlock(css)).toContain('min-height: 44px')
+    expect(coarseBlock(css)).not.toContain('::before')
   })
 })

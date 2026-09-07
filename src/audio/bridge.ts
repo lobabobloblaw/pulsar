@@ -213,6 +213,8 @@ class RealBridge implements AudioBridge {
   #startPromise: Promise<void> | null = null
   #diagTimer: ReturnType<typeof setInterval> | null = null
   #disposed = false
+  /** A note-off follows the channel its note-on stole, even after cursor moves. */
+  readonly #liveChannelByNote = new Int32Array(256)
 
   /** The last value every parameter was set to, in native units. Seeded from the
    *  registry defaults so a bridge that has not started yet still has an answer, and
@@ -231,6 +233,7 @@ class RealBridge implements AudioBridge {
   #consoleModel: 'nes' | 'famicom' = 'nes'
 
   constructor(opts: { forcePostMessage?: boolean } = {}) {
+    this.#liveChannelByNote.fill(-1)
     this.#forcePostMessage = opts.forcePostMessage === true
     const transport = this.#forcePostMessage || !sabAvailable() ? 'postMessage' : 'sab'
     this.#diag = newDiagnostics(transport)
@@ -379,7 +382,11 @@ class RealBridge implements AudioBridge {
     // can legally bring it back — "press any key" stays a true promise.
     this.#gestureKick()
     if (this.#driver.playing) {
-      this.#driver.liveNoteOn(this.#driver.liveChannelIndex, note, velocity)
+      const channel = this.#driver.liveChannelIndex
+      if (note >= 0 && note < this.#liveChannelByNote.length) {
+        this.#liveChannelByNote[note] = channel
+      }
+      this.#driver.liveNoteOn(channel, note, velocity)
       return
     }
     const s = this.#scheduler
@@ -389,7 +396,13 @@ class RealBridge implements AudioBridge {
 
   noteOff(note: number, _channel = 0): void {
     if (this.#driver.playing) {
-      this.#driver.liveNoteOff(this.#driver.liveChannelIndex, note)
+      let channel = this.#driver.liveChannelIndex
+      if (note >= 0 && note < this.#liveChannelByNote.length) {
+        const startedOn = this.#liveChannelByNote[note]
+        if (startedOn >= 0) channel = startedOn
+        this.#liveChannelByNote[note] = -1
+      }
+      this.#driver.liveNoteOff(channel, note)
       return
     }
     const s = this.#scheduler
@@ -398,6 +411,7 @@ class RealBridge implements AudioBridge {
   }
 
   allNotesOff(): void {
+    this.#liveChannelByNote.fill(-1)
     if (this.#driver.playing) this.#driver.liveAllOff()
     const s = this.#scheduler
     if (s === null) return

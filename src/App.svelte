@@ -18,13 +18,14 @@
   its shape: the runner looks for `pre[data-selftest]` and reads document.title.
 -->
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import { runSelfTest } from './selftest'
   import { bridge, releaseBridge } from './audio/bridge'
   import { attachKeyboard } from './input/keyboard'
   import { createMidi } from './input/midi'
   import { params } from './state/params.svelte'
   import { tracker } from './state/tracker.svelte'
+  import { song } from './state/song.svelte'
   import { transport } from './state/transport.svelte'
   import LiveRegion from './ui/a11y/LiveRegion.svelte'
   import Brand from './ui/Brand.svelte'
@@ -50,6 +51,17 @@
   let announcement = $state('')
   let selftest = $state('')
   let started = false
+  const compactQuery = matchMedia('(max-width: 720px)')
+  let compact = $state(compactQuery.matches)
+
+  // Keep the audio document current independent of which responsive view is
+  // mounted. Reopening the editor must not restart a playing song.
+  $effect(() => {
+    void song.version
+    untrack(() => {
+      if (tracker.playing) audio.loadSong(song.doc)
+    })
+  })
 
   function announce(note: number | string): void {
     announcement = typeof note === 'number' ? noteName(note) : note
@@ -86,6 +98,12 @@
   const harnessMode = new URLSearchParams(location.search).has('selftest')
 
   onMount(() => {
+    const resize = (): void => { compact = compactQuery.matches }
+    compactQuery.addEventListener('change', resize)
+    return () => compactQuery.removeEventListener('change', resize)
+  })
+
+  onMount(() => {
     document.documentElement.dataset['room'] = transport.room
     if (harnessMode) {
       let raf = 0
@@ -117,10 +135,12 @@
       suppress: () => tracker.focused,
     })
 
-    // Pointer-only and touch users need the same gesture path. Any press
-    // anywhere counts, including a press on a key of the keybed.
-    const onPointerDown = (): void => {
+    // Playing surfaces start on press. Native controls own their click: starting
+    // on pointerdown could remove the power button before pointerup, sending the
+    // click to the MIDI button that shifted into its place.
+    const onPointerDown = (event: PointerEvent): void => {
       if (started && boot.done) return
+      if (event.target instanceof Element && event.target.closest('button,input,select,textarea,summary,a')) return
       startAudio()
     }
     window.addEventListener('pointerdown', onPointerDown)
@@ -147,9 +167,14 @@
     }
     raf = requestAnimationFrame(loop)
 
-    return () => {
+    let disposed = false
+    const dispose = (): void => {
+      if (disposed) return
+      disposed = true
       cancelAnimationFrame(raf)
       window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('site:dispose', dispose)
+      window.removeEventListener('pagehide', onPageHide)
       detachKeys()
       unsubscribe()
       tracker.detach()
@@ -157,6 +182,14 @@
       audio.dispose()
       releaseBridge(audio)
     }
+    const onPageHide = (event: PageTransitionEvent): void => {
+      if (!event.persisted) dispose()
+    }
+    // The trusted homepage gives us a synchronous turn before removing the
+    // frame; native pagehide covers standalone navigation without breaking BFCache.
+    window.addEventListener('site:dispose', dispose)
+    window.addEventListener('pagehide', onPageHide)
+    return dispose
   })
 
   // Headless gate harness — preserved verbatim from WP0.
@@ -183,9 +216,9 @@
      so out loud, and that message has nowhere else to go. -->
 {#snippet screenView()}
   <Screen {boot} />
-  <!-- Phone player: visible only under 721px, where the tracker cannot open.
-       It travels with the screen so the enclosure grid needs no new area. -->
-  <PlayerStrip announce={announceText} />
+  <!-- The live instrument always has song controls, including after rotation
+       to tablet width. The editor supplies its own transport while visible. -->
+  {#if !tracker.open || compact}<PlayerStrip announce={announceText} />{/if}
 {/snippet}
 
 {#snippet trackerArea()}
@@ -200,7 +233,7 @@
 {/snippet}
 
 <main aria-label="pulsar">
-<Enclosure tracker={tracker.open ? trackerArea : undefined} screen={screenView}>
+<Enclosure tracker={tracker.open && !compact ? trackerArea : undefined} screen={screenView}>
   {#snippet brand()}
     <Brand />
   {/snippet}

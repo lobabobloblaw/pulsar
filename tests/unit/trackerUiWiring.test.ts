@@ -104,16 +104,16 @@ describe('live record writes to the pattern it was played over', () => {
 })
 
 describe('edits during playback reach the driver', () => {
-  const panel = codeOf('ui', 'tracker', 'TrackerPanel.svelte')
+  const panel = codeOf('App.svelte')
 
   it('reloads the song on a document change while the transport is running', () => {
     // The driver holds a compiled copy of the document; nothing reloaded it, so every
     // edit made while playing was inert until the next stop/play.
     expect(panel).toMatch(/\$effect\(\(\) => \{[\s\S]*?song\.version[\s\S]*?\}\)/)
-    const effect = section(panel, '$effect(() => {', 'const songBpm')
+    const effect = section(panel, '$effect(() => {', 'function announce(')
     expect(effect).toContain('song.version')
-    expect(effect).toMatch(/if \(!tracker\.playing\) return/)
-    expect(effect).toMatch(/bridge\(\)\.loadSong\(song\.doc\)/)
+    expect(effect).toMatch(/if \(tracker\.playing\)/)
+    expect(effect).toMatch(/audio\.loadSong\(song\.doc\)/)
     // Untracked, or the effect re-subscribes to the whole document it just published.
     expect(effect).toContain('untrack(')
   })

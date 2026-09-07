@@ -13,6 +13,7 @@
 import type { AudioBridge } from '../audio/bridge'
 import { bpm as bpmOf, type ClipboardBlock } from './songModel'
 import { song } from './song.svelte'
+import { effectiveChannelMute } from './trackerMix'
 
 /** design §6.3's bridge surface, restated as the subset this store uses so
  *  `state/` never has to import the driver. Every member is present on the real
@@ -252,20 +253,18 @@ class TrackerState {
     const next = [...this.muted]
     next[channel] = !next[channel]
     this.muted = next
-    this.#bridge?.setChannelMute?.(channel, next[channel] === true)
+    this.#bridge?.setChannelMute?.(channel, effectiveChannelMute(next, this.solo, channel))
   }
 
   toggleSolo(channel: number): void {
     this.solo = this.solo === channel ? -1 : channel
     for (let c = 0; c < this.channelCount; c++) {
-      const muted = this.solo === -1 ? this.muted[c] === true : this.solo !== c
-      this.#bridge?.setChannelMute?.(c, muted)
+      this.#bridge?.setChannelMute?.(c, effectiveChannelMute(this.muted, this.solo, c))
     }
   }
 
   isAudible(channel: number): boolean {
-    if (this.solo !== -1) return this.solo === channel
-    return this.muted[channel] !== true
+    return !effectiveChannelMute(this.muted, this.solo, channel)
   }
 
   /* ---- transport --------------------------------------------------------- */

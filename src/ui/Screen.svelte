@@ -401,14 +401,26 @@
   }
 
   @media (pointer: coarse) {
-    .page-dot {
+    .page-dot,
+    .page-dot.active {
       position: relative;
+      width: 44px;
+      height: 44px;
+      border: 0;
+      background: transparent;
     }
 
     .page-dot::before {
       content: '';
       position: absolute;
-      inset: -14px;
+      inset: 16px;
+      border: 1px solid var(--enclosure-hairline);
+      border-radius: var(--r-max);
+    }
+
+    .page-dot.active::before {
+      background: var(--enclosure-mark);
+      border-color: var(--enclosure-mark);
     }
   }
 

@@ -145,6 +145,8 @@ export const START_LATENCY_MS = 40
 /** Every allocation is sized for the canonical five lanes, so a song with fewer
  *  channels never forces a re-allocation and `loadSong` stays a compile + rebind. */
 const MAX_CHANNELS = CANONICAL_CHANNELS.length
+/** Ten fingers plus slack, matching the stopped-mode LiveScheduler policy. */
+const LIVE_HELD_CAPACITY = 16
 
 /** Rows of history the record sink can map an input timestamp back onto. 256 rows at
  *  6 ticks and 60 Hz is ~25 s — far more than any human reaction window. */
@@ -243,7 +245,9 @@ export class TrackerDriver {
   private readonly muted = new Int32Array(MAX_CHANNELS)
   private readonly liveNote = new Int32Array(MAX_CHANNELS)
   private readonly liveVel = new Int32Array(MAX_CHANNELS)
-  private readonly liveHeld = new Int32Array(MAX_CHANNELS)
+  private readonly liveHeldNotes = new Int32Array(MAX_CHANNELS * LIVE_HELD_CAPACITY)
+  private readonly liveHeldVels = new Int32Array(MAX_CHANNELS * LIVE_HELD_CAPACITY)
+  private readonly liveHeldCount = new Int32Array(MAX_CHANNELS)
   private readonly triggerFlag = new Int32Array(MAX_CHANNELS)
   private readonly memory = new Int32Array(MAX_CHANNELS * CMD_SLOTS)
 
@@ -389,7 +393,9 @@ export class TrackerDriver {
     this.pitchAccum.fill(0)
     this.liveNote.fill(-1)
     this.liveVel.fill(127)
-    this.liveHeld.fill(0)
+    this.liveHeldNotes.fill(-1)
+    this.liveHeldVels.fill(127)
+    this.liveHeldCount.fill(0)
     this.triggerFlag.fill(0)
     this.dpcmEndsAt.fill(-1)
     this.memory.fill(0)
@@ -499,20 +505,52 @@ export class TrackerDriver {
    *  the lookahead and the UI says so. */
   liveNoteOn(channel: number, note: number, velocity: number): void {
     const ch = channel < 0 || channel >= MAX_CHANNELS ? this.liveChannel : channel
+    this.removeLiveHeld(ch, note)
+    const base = ch * LIVE_HELD_CAPACITY
+    let count = this.liveHeldCount[ch]
+    if (count >= LIVE_HELD_CAPACITY) {
+      for (let i = 1; i < LIVE_HELD_CAPACITY; i++) {
+        this.liveHeldNotes[base + i - 1] = this.liveHeldNotes[base + i]
+        this.liveHeldVels[base + i - 1] = this.liveHeldVels[base + i]
+      }
+      count = LIVE_HELD_CAPACITY - 1
+    }
+    this.liveHeldNotes[base + count] = note
+    this.liveHeldVels[base + count] = velocity
+    this.liveHeldCount[ch] = count + 1
     this.liveNote[ch] = note
     this.liveVel[ch] = velocity
-    this.liveHeld[ch] = 1
   }
 
   liveNoteOff(channel: number, note: number): void {
     const ch = channel < 0 || channel >= MAX_CHANNELS ? this.liveChannel : channel
-    if (this.liveNote[ch] !== note) return
-    this.liveHeld[ch] = 0
+    if (!this.removeLiveHeld(ch, note)) return
+    const count = this.liveHeldCount[ch]
+    if (count === 0) return
+    const top = ch * LIVE_HELD_CAPACITY + count - 1
+    this.liveNote[ch] = this.liveHeldNotes[top]
+    this.liveVel[ch] = this.liveHeldVels[top]
   }
 
   /** Release every stolen channel — the stuck-note guard's playing-mode counterpart. */
   liveAllOff(): void {
-    for (let ch = 0; ch < MAX_CHANNELS; ch++) this.liveHeld[ch] = 0
+    this.liveHeldCount.fill(0)
+  }
+
+  /** Remove every occurrence without allocating; repeated note-ons are idempotent. */
+  private removeLiveHeld(ch: number, note: number): boolean {
+    const base = ch * LIVE_HELD_CAPACITY
+    const count = this.liveHeldCount[ch]
+    let write = 0
+    for (let i = 0; i < count; i++) {
+      const held = this.liveHeldNotes[base + i]
+      if (held === note) continue
+      this.liveHeldNotes[base + write] = held
+      this.liveHeldVels[base + write] = this.liveHeldVels[base + i]
+      write++
+    }
+    this.liveHeldCount[ch] = write
+    return write !== count
   }
 
   /** Map an input event's own engine cycle back to the row it was played over.
@@ -602,7 +640,7 @@ export class TrackerDriver {
       this.cutTick[ch] = -1
       // A stolen channel returns to the song at the first row boundary after the key
       // came up (§2.6).
-      if (this.liveHeld[ch] === 0 && this.liveNote[ch] >= 0) {
+      if (this.liveHeldCount[ch] === 0 && this.liveNote[ch] >= 0) {
         this.liveNote[ch] = -1
         this.sounding[ch] = 0
         this.regs.setEnabled(ch, false)

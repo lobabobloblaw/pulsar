@@ -377,27 +377,21 @@ select.window {
   background: var(--st-bad);
 }
 
-/* Touch keeps the machined sizes and grows the TARGETS: an invisible overlay
-   gives a 24px cap a ~40px thumb pad and an 18px mini the same. Overlaps
-   between neighbours resolve by paint order, which is close enough to centre-
-   accurate for caps 8px apart. Scoped to caps (buttons) and the mini
-   disclosure <summary>s: KeyBed's piano keys share the .key class, and a pad
-   reaching 8px past a white key's right edge would play the next semitone. */
+/* Touch targets occupy real layout space: invisible pads overlapped adjacent
+   controls and made the selected action depend on paint order. Piano keys
+   retain their own contiguous layout. */
 @media (pointer: coarse) {
   button.key,
   summary.key {
-    position: relative;
+    min-width: 44px;
+    min-height: 44px;
   }
 
-  button.key::before,
-  summary.key::before {
-    content: '';
-    position: absolute;
-    inset: -8px;
-  }
-
-  .key.mini::before {
-    inset: -11px;
+  input.window,
+  select.window,
+  textarea.window {
+    min-height: 44px;
+    font-size: max(16px, 1em);
   }
 }
 

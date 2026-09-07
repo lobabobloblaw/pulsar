@@ -29,13 +29,9 @@
       keyup is never seen at all — hence the focusout release. Tab itself is
       never trapped; a keybed you cannot leave is a worse bug than a stuck note.
 
-   3. RELEASE ONLY WHAT YOU STARTED. `transport.notes` is the UNION of every
-      source (QWERTY, pointer, MIDI) and drives the highlight, but it is not
-      ownership: it has no per-source counts, so it cannot answer "is anyone
-      else still holding this?". This component therefore keeps its own `owned`
-      map and arbitrates play/release on that alone — clicking a key the
-      computer keyboard is physically holding neither retriggers it nor, on
-      release, cuts it.
+   3. RELEASE ONLY WHAT YOU STARTED. Every pointer and the keyboard cursor gets
+      a distinct transport holder token. The highlighted-note set remains the
+      union, while lifting one finger releases exactly that finger's hold.
 
   Stuck-note guard: pointerup, pointercancel, leaving the bed and losing the
   window all release. The all-source guards (blur, visibilitychange -> panic)
@@ -45,6 +41,7 @@
 <script lang="ts">
   import { bridge } from '../audio/bridge'
   import { LOCAL_VELOCITY, codeForSemitone, keyLegend } from '../input/keyboard'
+  import { noteHolder, type NoteHolder } from '../input/noteOwnership'
   import { noteName, transport } from '../state/transport.svelte'
 
   interface Props {
@@ -89,16 +86,10 @@
 
   let cursor = $state(0)
 
-  /** The notes THIS component started, note number -> how many of its own holds
-   *  are on it (two fingers can land on one key during a glissando). Ownership,
-   *  not highlight: the highlight is `transport.notes`, the union. */
-  const owned = new Map<number, number>()
-
   interface PointerHold {
     semitone: number
-    /** null when the press landed on a note another source already held, i.e.
-     *  this component owns nothing and must release nothing. */
-    note: number | null
+    note: number
+    holder: NoteHolder
   }
 
   /** One entry per pointer that is currently down on the bed. */
@@ -106,48 +97,30 @@
 
   /** The note Space/Enter started — a note, not a cursor position. */
   let cursorNote: number | null = null
+  const cursorHolder = noteHolder('pointer', 'keyboard')
 
   const noteOfSemitone = (s: number): number => (transport.octave + 1) * 12 + s
   const keyId = (s: number): string => `key-${s}`
 
-  /** Starts a note and takes ownership of it. Returns the note that must later
-   *  be handed to `release`, or null when this component started nothing. */
-  function play(semitone: number): number | null {
+  /** Registers one physical hold; only the first global holder reaches audio. */
+  function play(semitone: number, holder: NoteHolder): number {
     const note = noteOfSemitone(semitone)
     announce?.(noteName(note))
-
-    const mine = owned.get(note)
-    if (mine !== undefined) {
-      // Already ours: count the extra hold, do not retrigger.
-      owned.set(note, mine + 1)
-      return note
-    }
-    // Someone else's note. Leave it entirely alone — retriggering would be
-    // inaudible and releasing it later would cut a note we never started.
-    if (transport.notes.has(note)) return null
-
-    owned.set(note, 1)
-    // Per-source refcount (design §7.2): true only for the first holder.
-    if (transport.noteOn(note, 'pointer')) audio.noteOn(note, LOCAL_VELOCITY)
+    if (transport.noteOn(note, holder)) audio.noteOn(note, LOCAL_VELOCITY)
     return note
   }
 
-  /** Releases a note this component owns. Never consults the union to decide. */
-  function release(note: number): void {
-    const mine = owned.get(note)
-    if (mine === undefined) return
-    if (mine > 1) {
-      owned.set(note, mine - 1)
-      return
-    }
-    owned.delete(note)
-    if (transport.noteOff(note, 'pointer')) audio.noteOff(note)
+  function release(note: number, holder: NoteHolder): void {
+    if (transport.noteOff(note, holder)) audio.noteOff(note)
   }
 
   function onPointerDown(e: PointerEvent, semitone: number): void {
     e.preventDefault()
     cursor = semitone
-    pointers.set(e.pointerId, { semitone, note: play(semitone) })
+    const previous = pointers.get(e.pointerId)
+    if (previous !== undefined) release(previous.note, previous.holder)
+    const holder = noteHolder('pointer', e.pointerId)
+    pointers.set(e.pointerId, { semitone, note: play(semitone, holder), holder })
   }
 
   /** Glissando: dragging a held pointer onto another key retriggers, per
@@ -156,8 +129,12 @@
     const hold = pointers.get(e.pointerId)
     if (hold === undefined || (e.buttons & 1) === 0) return
     if (hold.semitone === semitone) return
-    if (hold.note !== null) release(hold.note)
-    pointers.set(e.pointerId, { semitone, note: play(semitone) })
+    release(hold.note, hold.holder)
+    pointers.set(e.pointerId, {
+      semitone,
+      note: play(semitone, hold.holder),
+      holder: hold.holder,
+    })
   }
 
   /** pointerup / pointercancel / leaving the bed — always for ONE pointer. */
@@ -165,14 +142,14 @@
     const hold = pointers.get(e.pointerId)
     if (hold === undefined) return
     pointers.delete(e.pointerId)
-    if (hold.note !== null) release(hold.note)
+    release(hold.note, hold.holder)
   }
 
   /** Tab away, or focus taken by a click elsewhere, while Space is down: the
    *  keyup lands on the new focus owner and this element never sees it. */
   function releaseCursorNote(): void {
     if (cursorNote === null) return
-    release(cursorNote)
+    release(cursorNote, cursorHolder)
     cursorNote = null
   }
 
@@ -180,12 +157,9 @@
    *  input/keyboard.ts panics for every source; this drops what we own so the
    *  bookkeeping cannot outlive the notes. */
   function releaseAll(): void {
-    cursorNote = null
+    releaseCursorNote()
+    for (const hold of pointers.values()) release(hold.note, hold.holder)
     pointers.clear()
-    for (const note of owned.keys()) {
-      if (transport.noteOff(note, 'pointer')) audio.noteOff(note)
-    }
-    owned.clear()
   }
 
   function onKeyDown(e: KeyboardEvent): void {
@@ -206,7 +180,7 @@
       case 'Enter':
         // One note at a time from the cursor: Enter while Space is down must
         // not orphan the note Space started.
-        if (!e.repeat && cursorNote === null) cursorNote = play(cursor)
+        if (!e.repeat && cursorNote === null) cursorNote = play(cursor, cursorHolder)
         break
       default:
         return

@@ -12,15 +12,20 @@
  * pointer's note died. The tracker makes that worse, not better — step record
  * is a third source and record-while-playing a fourth.
  *
- * The model: every note keeps the SET of sources holding it. `noteOn` returns
- * true only for the first holder and `noteOff` only for the last, and callers
- * dispatch to the bridge on that answer. Source identity rather than a plain
- * counter, so a repeated note-on from one source is idempotent — which is what
- * a MIDI controller with a sticky key sends.
+ * The model: every note keeps the SET of physical/logical holders. `noteOn`
+ * returns true only for the first holder and `noteOff` only for the last, and
+ * callers dispatch to the bridge on that answer. Holder identity rather than a
+ * plain counter makes sticky repeated MIDI note-ons idempotent while keeping
+ * overlapping controls in one source family independent.
  */
 
 import { SvelteSet } from 'svelte/reactivity'
 import type { AudioBridge, BridgeStatus } from '../audio/bridge'
+import { NoteHoldRegistry, type NoteHolder } from '../input/noteOwnership'
+import { initialRoom, persistRoom, type Room } from './room'
+
+export type { NoteHolder, NoteSource } from '../input/noteOwnership'
+export type { Room } from './room'
 
 export type MidiPermission = 'unknown' | 'granted' | 'denied' | 'unavailable' | 'blocked'
 
@@ -37,26 +42,10 @@ export interface MidiState {
 }
 
 export type ConsoleModel = 'nes' | 'famicom'
-export type Room = 'day' | 'night'
 /** `song` is the tracker's page on the lattice (design §5.6). */
 export type ScreenPage = 'boot' | 'params' | 'scope' | 'midi' | 'song'
 
 export const SCREEN_PAGES: readonly ScreenPage[] = ['params', 'scope', 'song', 'midi']
-
-/** Everything that can hold a note down. Step record and record-while-playing
- *  are the two the tracker adds (§7.2). */
-export type NoteSource = 'qwerty' | 'pointer' | 'midi' | 'tracker' | 'record'
-
-const ROOM_KEY = 'pulsar.room'
-
-function initialRoom(): Room {
-  const stored = typeof localStorage !== 'undefined' ? localStorage.getItem(ROOM_KEY) : null
-  if (stored === 'day' || stored === 'night') return stored
-  if (typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'night'
-  }
-  return 'day'
-}
 
 class TransportState {
   audio = $state<BridgeStatus>({
@@ -72,9 +61,8 @@ class TransportState {
   /** Every sounding note number, from every source — the keybed highlight. */
   readonly notes = new SvelteSet<number>()
 
-  /** note -> the sources currently holding it. Never exposed directly; the two
-   *  booleans `noteOn`/`noteOff` return are the whole contract. */
-  readonly #holders = new Map<number, Set<NoteSource>>()
+  /** Physical/logical holds. Never exposed; first/last booleans are the contract. */
+  readonly #holders = new NoteHoldRegistry()
 
   /** Base octave for the QWERTY keybed; `KeyZ` plays C at this octave. */
   octave = $state(4)
@@ -104,11 +92,7 @@ class TransportState {
   setRoom(room: Room): void {
     this.room = room
     document.documentElement.dataset['room'] = room
-    try {
-      localStorage.setItem(ROOM_KEY, room)
-    } catch {
-      /* private mode: the room still applies for this session */
-    }
+    persistRoom(room)
   }
 
   toggleRoom(): void {
@@ -137,14 +121,8 @@ class TransportState {
    *  @returns true when this is the FIRST holder — i.e. the caller should send
    *  the note-on. A second source joining an already-sounding note gets false
    *  and must not retrigger it. */
-  noteOn(note: number, source: NoteSource = 'qwerty'): boolean {
-    let held = this.#holders.get(note)
-    if (held === undefined) {
-      held = new Set()
-      this.#holders.set(note, held)
-    }
-    const first = held.size === 0
-    held.add(source)
+  noteOn(note: number, holder: NoteHolder = 'qwerty'): boolean {
+    const first = this.#holders.hold(note, holder)
     if (first) this.notes.add(note)
     return first
   }
@@ -153,18 +131,15 @@ class TransportState {
    *  @returns true when the LAST holder let go — i.e. the caller should send the
    *  note-off. This is the whole fix: a QWERTY keyup on a note the pointer or
    *  the tracker still holds returns false and nothing is cut. */
-  noteOff(note: number, source: NoteSource = 'qwerty'): boolean {
-    const held = this.#holders.get(note)
-    if (held === undefined || !held.delete(source)) return false
-    if (held.size > 0) return false
-    this.#holders.delete(note)
-    this.notes.delete(note)
-    return true
+  noteOff(note: number, holder: NoteHolder = 'qwerty'): boolean {
+    const last = this.#holders.release(note, holder)
+    if (last) this.notes.delete(note)
+    return last
   }
 
-  /** How many sources hold `note`. For tests and the dev readout. */
+  /** How many independent controls hold `note`. For tests and the dev readout. */
   holdCount(note: number): number {
-    return this.#holders.get(note)?.size ?? 0
+    return this.#holders.count(note)
   }
 
   /** The panic path. Every source loses every note at once, which is exactly

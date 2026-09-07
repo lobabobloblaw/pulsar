@@ -15,14 +15,10 @@ import { mount } from 'svelte'
 import './design/reset.css'
 import './design/tokens.css'
 import App from './App.svelte'
+import { initialRoom } from './state/room'
 
-const stored = localStorage.getItem('pulsar.room')
-const room =
-  stored === 'night' || stored === 'day'
-    ? stored
-    : matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'night'
-      : 'day'
-document.documentElement.dataset['room'] = room
+document.documentElement.dataset['room'] = initialRoom()
+// Explicit presentation mode; the standalone page keeps its instrument casing.
+document.documentElement.toggleAttribute('data-embedded', new URLSearchParams(location.search).has('embed'))
 
 mount(App, { target: document.getElementById('app')! })

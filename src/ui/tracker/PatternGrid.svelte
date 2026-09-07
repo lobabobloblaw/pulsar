@@ -25,6 +25,7 @@
   import { untrack } from 'svelte'
   import { bridge } from '../../audio/bridge'
   import { LOCAL_VELOCITY, NOTE_KEYS } from '../../input/keyboard'
+  import { noteHolder } from '../../input/noteOwnership'
   import {
     resolveTrackerKey,
     type ColumnKind,
@@ -340,14 +341,16 @@
   function audition(code: string, note: number): void {
     if (auditioning.has(code)) return
     auditioning.set(code, note)
-    if (transport.noteOn(note, 'tracker')) audio.noteOn(note, LOCAL_VELOCITY)
+    if (transport.noteOn(note, noteHolder('tracker', code))) {
+      audio.noteOn(note, LOCAL_VELOCITY)
+    }
   }
 
   function releaseAudition(code: string): void {
     const note = auditioning.get(code)
     if (note === undefined) return
     auditioning.delete(code)
-    if (transport.noteOff(note, 'tracker')) audio.noteOff(note)
+    if (transport.noteOff(note, noteHolder('tracker', code))) audio.noteOff(note)
   }
 
   function releaseAllAuditions(): void {

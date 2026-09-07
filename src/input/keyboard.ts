@@ -17,6 +17,7 @@
  */
 
 import type { AudioBridge } from '../audio/bridge'
+import { noteHolder } from './noteOwnership'
 import { transport } from '../state/transport.svelte'
 
 /** Semitone offset from the base C of the current octave, by physical code. */
@@ -176,7 +177,9 @@ export function attachKeyboard(opts: KeyboardOptions): () => void {
     const note = noteForSemitone(semitone)
     held.set(e.code, note)
     // Per-source refcount (§7.2): sound it only if nobody else already is.
-    if (transport.noteOn(note, 'qwerty')) bridge.noteOn(note, LOCAL_VELOCITY)
+    if (transport.noteOn(note, noteHolder('qwerty', e.code))) {
+      bridge.noteOn(note, LOCAL_VELOCITY)
+    }
     opts.onNote?.(note)
   }
 
@@ -186,7 +189,7 @@ export function attachKeyboard(opts: KeyboardOptions): () => void {
     held.delete(e.code)
     // …and cut it only if this was the last hand on it. A keyup used to cut a
     // note the pointer or the tracker was still holding.
-    if (transport.noteOff(note, 'qwerty')) bridge.noteOff(note)
+    if (transport.noteOff(note, noteHolder('qwerty', e.code))) bridge.noteOff(note)
   }
 
   function onVisibility(): void {

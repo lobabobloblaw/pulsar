@@ -10,12 +10,12 @@
  *  5. rejected -> Firefox means the site-permission add-on is missing, which is
  *     a DIFFERENT problem with a different fix, so it gets its own state
  *     (`blocked`); everything else is `denied`
- *  6. hot-plug (`onstatechange`) -> re-enumerate from scratch, re-attach, and
- *     allNotesOff — unplugging mid-note otherwise leaves the note hanging
+ *  6. hot-plug (`onstatechange`) -> release MIDI-owned holds, then re-enumerate
+ *     from scratch; QWERTY/pointer holds are not collateral damage
  *  7. 0x90 with velocity > 0 is a note on; 0x90 with velocity 0 and 0x80 are
  *     note offs (running-status zero-velocity offs are extremely common);
  *     realtime bytes are ignored; omni in Phase 1
- *  8. dispose detaches everything and panics
+ *  8. dispose detaches everything and releases only MIDI-owned notes
  *
  * The Web MIDI DOM types are not relied on: they are inconsistently present
  * across TS lib versions, and a structural local type costs less than a
@@ -23,6 +23,7 @@
  */
 
 import type { AudioBridge } from '../audio/bridge'
+import { noteHolder, type NoteHolder } from './noteOwnership'
 import { transport, type MidiPort } from '../state/transport.svelte'
 
 interface MidiMessageLike {
@@ -75,8 +76,8 @@ export function createMidi(bridge: AudioBridge, onNote?: (note: number) => void)
   let pending: Promise<void> | null = null
   let disposed = false
   const attached = new Set<MidiInputLike>()
-  /** Notes this module started, so dispose can end exactly those. */
-  const sounding = new Set<number>()
+  /** Note -> port/channel holders, so hot-plug can end MIDI without cutting keys. */
+  const sounding = new Map<number, Set<NoteHolder>>()
 
   function detachAll(): void {
     for (const input of attached) input.onmidimessage = null
@@ -88,7 +89,7 @@ export function createMidi(bridge: AudioBridge, onNote?: (note: number) => void)
     detachAll()
     const ports: MidiPort[] = []
     for (const input of access.inputs.values()) {
-      input.onmidimessage = handleMessage
+      input.onmidimessage = (e): void => handleMessage(input.id, e)
       attached.add(input)
       ports.push({
         id: input.id,
@@ -99,7 +100,7 @@ export function createMidi(bridge: AudioBridge, onNote?: (note: number) => void)
     transport.midi = { ...transport.midi, ports }
   }
 
-  function handleMessage(e: MidiMessageLike): void {
+  function handleMessage(inputId: string, e: MidiMessageLike): void {
     const d = e.data
     if (!d || d.length < 2) return
     const status = d[0] as number
@@ -109,27 +110,43 @@ export function createMidi(bridge: AudioBridge, onNote?: (note: number) => void)
 
     const note = d[1] as number
     const velocity = d.length > 2 ? (d[2] as number) : 0
+    const holder = noteHolder('midi', `${inputId}:${status & 0x0f}`)
 
     if (type === 0x90 && velocity > 0) {
-      sounding.add(note)
+      let holders = sounding.get(note)
+      if (holders === undefined) {
+        holders = new Set()
+        sounding.set(note, holders)
+      }
+      holders.add(holder)
       // Per-source refcount (design §7.2): sound it only if nobody else is, and
       // cut it only when this was the last hand on it.
-      if (transport.noteOn(note, 'midi')) bridge.noteOn(note, velocity)
+      if (transport.noteOn(note, holder)) bridge.noteOn(note, velocity)
       onNote?.(note)
     } else {
-      sounding.delete(note)
-      if (transport.noteOff(note, 'midi')) bridge.noteOff(note)
+      const holders = sounding.get(note)
+      if (holders === undefined || !holders.delete(holder)) return
+      if (holders.size === 0) sounding.delete(note)
+      if (transport.noteOff(note, holder)) bridge.noteOff(note)
     }
+  }
+
+  function releaseMidiNotes(): void {
+    for (const [note, holders] of sounding) {
+      for (const holder of holders) {
+        if (transport.noteOff(note, holder)) bridge.noteOff(note)
+      }
+    }
+    sounding.clear()
   }
 
   function onStateChange(): void {
     if (disposed) return
     // Re-enumerate from scratch rather than patching the port list: a device
     // that reconnects gets a fresh input object, and the stale one never fires
-    // again. Panic first — the unplugged device cannot send its note-offs.
-    bridge.allNotesOff()
-    transport.clearNotes()
-    sounding.clear()
+    // again. Release MIDI's holders first — the unplugged device cannot send its
+    // note-offs, but QWERTY and pointer holds must remain sounding.
+    releaseMidiNotes()
     enumerate()
   }
 
@@ -170,11 +187,7 @@ export function createMidi(bridge: AudioBridge, onNote?: (note: number) => void)
     detachAll()
     if (access) access.onstatechange = null
     access = null
-    if (sounding.size > 0) {
-      bridge.allNotesOff()
-      transport.clearNotes()
-      sounding.clear()
-    }
+    releaseMidiNotes()
   }
 
   return { ensureAccess, dispose }

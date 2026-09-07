@@ -2024,3 +2024,26 @@ successful page fetch, following the same honesty convention as `phase2-design.m
 | **S8** | [Woolyss chipmusic directory](https://www.woolyss.com/chipmusic.php) · Jahtari digital-dub netlabel (Pupajim, *I Am A Robot*) **[snippet]** | The only community pointer found for chip-adjacent reggae/dub as a real practice. **No 2A03/FamiTracker steel-pan recipe and no reggae-specific FamiTracker tutorial exists that we could find** — hence §10.1's derived-and-flagged steel recipes |
 | **S9** | Search-surfaced summaries of Tanaka coverage (Japan Times, *The music you didn't realize you grew up with*, 2017 — **page returned HTTP 402, paywalled, not read**) **[snippet]** | The attributed rhythmic fingerprint of **dotted eighth followed by sixteenth** figures, used as the bass cell in §10.1. Flagged because the primary page could not be fetched; treat as unconfirmed and drop it if it does not sound right |
 | — | [btothethree ch.6](https://btothethree.tumblr.com/post/109306979202/how-to-use-famitracker-chapter-6-wrangling-the) · [Ozzed](https://ozzed.net/how-to-make-8-bit-music.shtml) · [DDRKirby(ISQ)](https://ddrkirby.com/articles/nes-chiptunes-unlock-everything/nes-chiptunes-unlock-everything.html) | Already cited in §8; the noise-kit shapes, duty language and echo technique §10 builds on come from there |
+
+---
+
+## 11. original action-techno coda (tracks 15–18)
+
+These four pieces were written directly in song JSON as original compositions. No game
+score, module, recording, transcription, or third-party generated audio was used. They reuse
+the frozen shared instrument bank; `kinetic-breach` adds one correctly prefixed piece-local
+instrument whose absent duty macro makes its authored `Vxx` changes audible.
+
+| file | pulse / rhythm engine | harmonic engine | kit identity |
+|---|---|---|---|
+| `15-voltage-teeth.json` | 180 BPM E-Phrygian semitone riff; five-frame 5:4 triangle phase | Am–Dm–G–C–F chain; tritone drop; closing B7 | straight hats → six-row cells → metal quarters → three-row fill |
+| `16-black-ice-relay.json` | independent six-row pulse cell against a five-frame 5:4 bass | C♯7–F♯m–Bm–E–A chain; separated ♭II field | straight kit → metallic tresillo → machine ticks |
+| `17-kinetic-breach.json` | fractional 160-BPM groove; 12-row pulse phase; all five APU voices | Fm–B♭–E♭–A♭ chain; D♭ and E-major colour fields | DPCM kick/snare beneath an independent noise-metal clock |
+| `18-terminal-vector.json` | 180 BPM complementary pulse hocket; nested 3:2 and 5:4 motion | Em–Am–Dm–G–C chain; A-major dominant turnaround | straight drive → six-row accents → metallic null → terminal fill |
+
+Each song contains exactly one `D00` metric displacement, an explicit nonzero loop target,
+effect-state cancellation at the loop seam, independent pulse-2 writing, two cited written
+dissonances, and at least two separated non-diatonic devices. Measured preview RMS values are
+−21.98, −22.17, −22.67, and −21.85 dBFS respectively, with zero clipped samples. Registration
+is file-driven through `import.meta.glob`; `tests/unit/presetFormat.test.ts` pins the widened
+18-title set, while the ordinary Gates A–D cover every new file without a per-song test list.

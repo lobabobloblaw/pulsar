@@ -1,11 +1,9 @@
 <!--
   pulsar — the phone player (mobile plan pillar 2, 2026-08-04).
 
-  Below the workbench threshold the tracker cannot open, but the album must
-  still play: one play/stop cap and the songs picker, living under the screen.
-  It renders wherever the screen renders and shows itself only under 721px, so
-  the enclosure grid never learns a new area and the desktop shell stays
-  byte-identical. Playback rides the exact wiring the panel uses — the tracker
+  One play/stop cap and the songs picker live under the screen whenever the
+  tracker editor is not visible. App owns that choice so rotating or resizing
+  never hides the only transport controls. Playback rides the exact wiring the panel uses — the tracker
   store's togglePlay and PresetBar's load path — and the tap that starts it is
   the user gesture the audio bridge's resume logic wants anyway.
 -->
@@ -45,16 +43,10 @@
 
 <style>
   .player {
-    display: none;
-  }
-
-  @media (max-width: 720px) {
-    .player {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--s-3);
-      padding-top: var(--s-2);
-    }
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-3);
+    padding-top: var(--s-2);
   }
 </style>

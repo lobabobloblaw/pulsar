@@ -30,7 +30,7 @@ import { DEFAULT_LEAD_MS, LiveScheduler, type LiveEngine } from '../../src/audio
 import { NTSC_CPU_HZ } from '../../src/audio/core/constants'
 import { msToCycles } from '../../src/audio/timeline/clockMap'
 import { ArrayWriteSink } from '../../src/audio/timeline/writeSink'
-import { triangleTimerForMidi } from '../../src/audio/host/pitch'
+import { pulseTimerForMidi, triangleTimerForMidi } from '../../src/audio/host/pitch'
 import type { NesCycle, RegAddr } from '../../src/audio/timeline/types'
 
 const CLOCK = { clockRate: NTSC_CPU_HZ, nowCycle: () => 0 }
@@ -359,6 +359,33 @@ describe('Rule L — one owner of the timeline at a time', () => {
     driver.runTo(cycleOfTick(0, 15, NTSC_CPU_HZ, 60))
     // ...and the song has the lane back by the next row boundary.
     expect(driver.position.playing).toBe(true)
+  })
+
+  it('falls back to the previous held live note when the newest is released', () => {
+    const song = buildSong({ meta: { speed: 8, rowsPerPattern: 4 } })
+    const sink = new ArrayWriteSink()
+    const driver = new TrackerDriver(sink, CLOCK, { song })
+    driver.play('song')
+
+    driver.liveNoteOn(0, 60, 40)
+    driver.runTo(cycleOfTick(0, 0, NTSC_CPU_HZ, 60))
+    driver.liveNoteOn(0, 64, 127)
+    driver.runTo(cycleOfTick(0, 1, NTSC_CPU_HZ, 60))
+    driver.liveNoteOff(0, 64)
+    driver.runTo(cycleOfTick(0, 2, NTSC_CPU_HZ, 60))
+
+    const timers: number[] = []
+    const volumes: number[] = []
+    for (let i = 0; i < sink.length; i++) {
+      if (sink.addrs[i] === REG.P1_LO) timers.push(sink.values[i])
+      if (sink.addrs[i] === REG.P1_CTRL) volumes.push(sink.values[i] & 0x0f)
+    }
+    expect(timers).toEqual([
+      pulseTimerForMidi(60) & 0xff,
+      pulseTimerForMidi(64) & 0xff,
+      pulseTimerForMidi(60) & 0xff,
+    ])
+    expect(volumes).toEqual([5, 15, 5])
   })
 
   it('SILENCES the stolen lane on handback — the $4015 bit actually clears', () => {

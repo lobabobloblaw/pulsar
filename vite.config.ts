@@ -32,5 +32,5 @@ export default defineConfig({
   server: { headers: CROSS_ORIGIN_ISOLATION, port: 5173, strictPort: true },
   preview: { headers: CROSS_ORIGIN_ISOLATION, port: 4173, strictPort: true },
   worker: { format: 'iife' },
-  build: { target: 'chrome120', sourcemap: true, assetsInlineLimit: 0 },
+  build: { target: ['chrome120', 'edge120', 'firefox128', 'safari16.4'], sourcemap: true, assetsInlineLimit: 0 },
 })

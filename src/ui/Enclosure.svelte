@@ -146,6 +146,23 @@
     mix-blend-mode: multiply;
   }
 
+  /* A homepage window already supplies the outer frame. Fill its available
+     width, preserving normal document scrolling on small and short screens. */
+  :global([data-embedded]) .stage {
+    padding: 0;
+    background: var(--enclosure-bg);
+  }
+  :global([data-embedded]) .device {
+    width: 100%;
+    min-height: 100dvh;
+    align-content: start;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  :global([data-embedded]) .screw {
+    display: none;
+  }
+
   @media (prefers-contrast: more) {
     .device::before {
       opacity: 0;
@@ -216,7 +233,9 @@
   }
 
   .cell.grow {
-    flex: 1;
+    /* Wrap the control strip as a unit before the meter is squeezed beside
+       the wordmark on a phone. Individual controls still wrap inside it. */
+    flex: 1 1 360px;
   }
   .screen {
     grid-area: screen;

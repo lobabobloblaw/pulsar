@@ -16,8 +16,7 @@
   second control language.
 -->
 <script lang="ts">
-  import { untrack, type Snippet } from 'svelte'
-  import { bridge } from '../../audio/bridge'
+  import type { Snippet } from 'svelte'
   import { bpm } from '../../state/songModel'
   import { song } from '../../state/song.svelte'
   import { tracker } from '../../state/tracker.svelte'
@@ -50,23 +49,6 @@
     screen?: Snippet | undefined
   }
   let { announce, presetBar, screen }: Props = $props()
-
-  /** The driver holds a COMPILED copy of the document, so an edit made while the
-   *  transport is running is inert until the song is handed over again — you type a
-   *  note into the row the playhead is about to reach and hear nothing. `song.version`
-   *  is bumped by every command, undo and redo, which makes it the one signal to
-   *  watch. Stopped, this does nothing: `tracker.play()` already loads on the way in.
-   *
-   *  `untrack` around the reload keeps the effect's dependency set to exactly the
-   *  version counter — `loadSong` reads the whole document, and subscribing to that
-   *  would re-run this on every keystroke of an edit it just published. */
-  $effect(() => {
-    void song.version
-    untrack(() => {
-      if (!tracker.playing) return
-      bridge().loadSong(song.doc)
-    })
-  })
 
   const songBpm = $derived(Math.round(bpm(song.doc.meta) * 10) / 10)
   const drvTone = $derived(
@@ -266,6 +248,14 @@
     font-weight: var(--t-micro-weight);
   }
 
+  @media (pointer: coarse) {
+    .stepwin {
+      font-size: 16px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
+
   .readout {
     margin: 0;
     padding-block-end: 1px;
@@ -363,7 +353,14 @@
      lanes, and a full-width grid that scrolls beats a sliver that does not. */
   @media (max-width: 1080px) {
     .work {
-      grid-template-columns: minmax(0, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    /* Put the editable score first on tablets. The display/order and
+       instrument panes share the row below instead of pushing the score
+       beneath an entire screen and long order table. */
+    .work :global(.grid-host) {
+      grid-column: 1 / -1;
+      grid-row: 1;
     }
   }
 

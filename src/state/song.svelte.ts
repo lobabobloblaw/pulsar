@@ -56,6 +56,8 @@ class SongStore {
   /** Set by any edit, cleared by `load`. The preset bar reads it before it
    *  replaces the document (§5.6). */
   #dirty = $state(false)
+  /** Selection belongs to the document, so desktop/phone remounts agree. */
+  presetId = $state<string | null>(null)
 
   get doc(): Song {
     return this.#doc
@@ -78,11 +80,12 @@ class SongStore {
 
   /** Replace the document. Clears history — an undo across a load would be a
    *  lie about which song you are editing. */
-  load(song: Song): void {
+  load(song: Song, presetId: string | null = null): void {
     this.#doc = song
     this.#history = EMPTY_HISTORY
     this.#version++
     this.#dirty = false
+    this.presetId = presetId
   }
 
   reset(): void {

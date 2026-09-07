@@ -222,10 +222,22 @@ export class EngineHandle implements WriteSink, LiveEngine {
   async dispose(): Promise<void> {
     if (this.disposed) return
     this.disposed = true
-    this.node.port.postMessage({ t: 'stop' })
-    this.node.port.onmessage = null
-    this.node.disconnect()
-    await this.ctx.close()
+    try {
+      this.node.port.postMessage({ t: 'stop' })
+    } catch {
+      /* the worklet may already be gone */
+    }
+    try {
+      this.node.port.onmessage = null
+      this.node.disconnect()
+    } catch {
+      /* context shutdown below is the authoritative cleanup */
+    }
+    try {
+      if (this.ctx.state !== 'closed') await this.ctx.close()
+    } catch {
+      /* disposal is best-effort and idempotent */
+    }
   }
 
   private acquire(): WriteBatch {
@@ -275,41 +287,58 @@ export async function startEngine(opts: StartEngineOptions = {}): Promise<Engine
     }
   }
   const ctx = new AudioContext({ latencyHint: 'interactive' })
-  const sep = APU_WORKLET_URL.includes('?') ? '&' : '?'
-  await ctx.audioWorklet.addModule(`${APU_WORKLET_URL}${sep}v=${Date.now()}`)
-  const node = new AudioWorkletNode(ctx, APU_PROCESSOR_NAME, {
-    numberOfInputs: 0,
-    numberOfOutputs: 1,
-    outputChannelCount: [1],
-  })
+  let node: AudioWorkletNode | null = null
+  try {
+    const sep = APU_WORKLET_URL.includes('?') ? '&' : '?'
+    await ctx.audioWorklet.addModule(`${APU_WORKLET_URL}${sep}v=${Date.now()}`)
+    node = new AudioWorkletNode(ctx, APU_PROCESSOR_NAME, {
+      numberOfInputs: 0,
+      numberOfOutputs: 1,
+      outputChannelCount: [1],
+    })
 
-  // The transport decision, made once, here. `createSharedRing` returns null rather
-  // than throwing when SharedArrayBuffer is missing, so a page served without
-  // COOP/COEP degrades to postMessage instead of failing to start.
-  const ring = opts.forcePostMessage === true || !sabAvailable()
-    ? null
-    : createSharedRing(ctx.sampleRate)
+    // The transport decision, made once, here. `createSharedRing` returns null rather
+    // than throwing when SharedArrayBuffer is missing, so a page served without
+    // COOP/COEP degrades to postMessage instead of failing to start.
+    const ring =
+      opts.forcePostMessage === true || !sabAvailable() ? null : createSharedRing(ctx.sampleRate)
 
-  const handle = new EngineHandle(ctx, node, opts, ring)
-  node.connect(ctx.destination)
+    const handle = new EngineHandle(ctx, node, opts, ring)
+    node.connect(ctx.destination)
 
-  const init: {
-    t: 'init'
-    clockRate: number
-    consoleModel: 'nes' | 'famicom'
-    mixerMode: 'lut' | 'linear'
-    masterGain: number
-    ring?: SharedArrayBuffer
-  } = {
-    t: 'init',
-    clockRate: opts.clockRate ?? NTSC_CPU_HZ,
-    consoleModel: opts.consoleModel ?? 'nes',
-    mixerMode: opts.mixerMode ?? 'lut',
-    masterGain: opts.masterGain ?? DEFAULT_MASTER_GAIN,
+    const init: {
+      t: 'init'
+      clockRate: number
+      consoleModel: 'nes' | 'famicom'
+      mixerMode: 'lut' | 'linear'
+      masterGain: number
+      ring?: SharedArrayBuffer
+    } = {
+      t: 'init',
+      clockRate: opts.clockRate ?? NTSC_CPU_HZ,
+      consoleModel: opts.consoleModel ?? 'nes',
+      mixerMode: opts.mixerMode ?? 'lut',
+      masterGain: opts.masterGain ?? DEFAULT_MASTER_GAIN,
+    }
+    if (ring !== null) init.ring = ring
+    node.port.postMessage(init)
+
+    if (ctx.state === 'suspended') await ctx.resume()
+    return handle
+  } catch (error) {
+    if (node !== null) {
+      try {
+        node.port.onmessage = null
+        node.disconnect()
+      } catch {
+        /* closing the context below also releases the node */
+      }
+    }
+    try {
+      if (ctx.state !== 'closed') await ctx.close()
+    } catch {
+      /* preserve the original initialization failure */
+    }
+    throw error
   }
-  if (ring !== null) init.ring = ring
-  node.port.postMessage(init)
-
-  if (ctx.state === 'suspended') await ctx.resume()
-  return handle
 }

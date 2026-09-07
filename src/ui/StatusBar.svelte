@@ -57,7 +57,7 @@
   const note = $derived.by(() => {
     const m = transport.midi
     if (!m.supported) {
-      return 'this browser has no web midi. play with the computer keyboard — z–m lower octave, q–i upper. for midi input, open pulsar in chrome or edge.'
+      return 'play the on-screen keys with touch or a pointer, or use the computer keyboard. this browser does not support midi input.'
     }
     if (m.permission === 'blocked') {
       return 'firefox needs the site permission add-on for web midi. install it, then reload and allow midi.'
@@ -67,9 +67,6 @@
     }
     if (m.permission === 'granted' && m.ports.length === 0) {
       return 'no midi devices yet. plug one in — pulsar picks it up live, no reload needed.'
-    }
-    if (!sabOn) {
-      return 'sharedarraybuffer is off, so pulsar is using the slower message path. audio still works.'
     }
     return ''
   })
@@ -166,11 +163,13 @@
         <span class="silk">midi</span>
         <span class="sr">{midiChip}</span>
       </span>
+      {#if dev}
       <span class="ledgroup" title="sharedarraybuffer transport {sabOn ? 'on' : 'off'}">
         <span class="led" class:ok={sabOn} aria-hidden="true"></span>
         <span class="silk">sab</span>
         <span class="sr">sab {sabOn ? 'on' : 'off'}</span>
       </span>
+      {/if}
       {#if dev}
         <span class="silk">fps {transport.fps}</span>
       {/if}
@@ -258,13 +257,8 @@
 
   @media (pointer: coarse) {
     .switch {
-      position: relative;
-    }
-
-    .switch::before {
-      content: '';
-      position: absolute;
-      inset: -8px 0;
+      min-width: 44px;
+      min-height: 44px;
     }
   }
 

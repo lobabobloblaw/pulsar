@@ -272,6 +272,18 @@
     border-radius: var(--r-1);
   }
 
+  @media (pointer: coarse) {
+    .frame {
+      min-width: 44px;
+      min-height: 44px;
+    }
+    input {
+      font-size: 16px;
+      min-width: 44px;
+      min-height: 44px;
+    }
+  }
+
   .ops {
     display: flex;
     flex-wrap: wrap;

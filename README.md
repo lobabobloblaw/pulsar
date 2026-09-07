@@ -12,10 +12,11 @@ your keyboard or MIDI, growing into a FamiTracker-compatible tracker.
 
 ## status
 
-phase 1 in progress: the 2A03 core (2 pulse, triangle, noise, DPCM), a
-TE-styled live-play shell, QWERTY + Web MIDI input. later phases per
-`plan-file.md`: tracker + FamiTracker-exact tick model, VRC6, WAV export,
-expansion chips, FamiTracker/FamiStudio text interchange.
+phases 1–2 complete: the 2A03 core (2 pulse, triangle, noise, DPCM), live play
+with touch, QWERTY or Web MIDI, and a tracker with original preset songs.
+The app also runs inside alexvoigt.com; see
+[homepage integration](docs/homepage-integration.md) for build and browser checks.
+Later phases cover VRC6, WAV export UI, expansion chips and text interchange.
 
 ## run
 
@@ -27,8 +28,9 @@ pnpm typecheck  # five isolated TS projects + svelte-check
 pnpm build && pnpm preview
 ```
 
-chrome/edge are the primary targets (web midi). safari plays via the computer
-keyboard — z–m lower octave, q–p upper.
+chrome/edge are the primary MIDI targets. browsers without Web MIDI retain
+on-screen touch/pointer keys and computer keyboard input. compact screens get
+live controls and the song player; wider screens also get the tracker editor.
 
 ## architecture in one breath
 
