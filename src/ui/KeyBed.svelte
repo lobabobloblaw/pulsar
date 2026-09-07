@@ -39,13 +39,14 @@
   the engine has already dropped, which costs one harmless duplicate note-off.
 -->
 <script lang="ts">
+  import { tracker } from '../state/tracker.svelte'
   import { bridge } from '../audio/bridge'
   import { LOCAL_VELOCITY, codeForSemitone, keyLegend } from '../input/keyboard'
   import { noteHolder, type NoteHolder } from '../input/noteOwnership'
   import { noteName, transport } from '../state/transport.svelte'
 
   interface Props {
-    announce?: (message: string) => void
+    announce?: ((message: string) => void) | undefined
   }
   let { announce }: Props = $props()
 
@@ -83,6 +84,13 @@
   const BLACK_KEYS = KEYS.filter((k) => k.black)
 
   const audio = bridge()
+  let scroll = $state<HTMLDivElement | null>(null)
+  let range = $state(0)
+  function shiftRange(delta: number): void {
+    releaseAll()
+    range = Math.max(0, Math.min(1, range + delta))
+    if (scroll) scroll.scrollLeft = range * 280
+  }
 
   let cursor = $state(0)
 
@@ -107,6 +115,9 @@
     const note = noteOfSemitone(semitone)
     announce?.(noteName(note))
     if (transport.noteOn(note, holder)) audio.noteOn(note, LOCAL_VELOCITY)
+    if (tracker.open && tracker.editing && matchMedia('(min-width: 721px)').matches) {
+      window.dispatchEvent(new CustomEvent('pulsar:enter-note', { detail: note }))
+    }
     return note
   }
 
@@ -121,6 +132,14 @@
     if (previous !== undefined) release(previous.note, previous.holder)
     const holder = noteHolder('pointer', e.pointerId)
     pointers.set(e.pointerId, { semitone, note: play(semitone, holder), holder })
+  }
+
+  function onPointerMove(e: PointerEvent): void {
+    const hold = pointers.get(e.pointerId)
+    if (!hold) return
+    const key = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>('[data-semitone]')
+    if (!key) { endPointer(e); return }
+    onPointerEnter(e, Number(key.dataset['semitone']))
   }
 
   /** Glissando: dragging a held pointer onto another key retriggers, per
@@ -198,9 +217,14 @@
   const isPressed = (s: number): boolean => transport.notes.has(noteOfSemitone(s))
 </script>
 
-<svelte:window onpointerup={endPointer} onpointercancel={endPointer} onblur={releaseAll} />
+<svelte:window onpointermove={onPointerMove} onpointerup={endPointer} onpointercancel={endPointer} onblur={releaseAll} />
 
-<div class="bed-scroll">
+<div class="range-controls">
+  <button type="button" aria-label="lower keyboard range" disabled={range === 0} onclick={() => shiftRange(-1)}>← Lower keys</button>
+  <span>octave {transport.octave + range}</span>
+  <button type="button" aria-label="upper keyboard range" disabled={range === 1} onclick={() => shiftRange(1)}>Upper keys →</button>
+</div>
+<div class="bed-scroll" bind:this={scroll}>
   <div
     class="bed"
     role="toolbar"
@@ -216,6 +240,7 @@
     {#each WHITE_KEYS as k (k.semitone)}
       <div
         id={keyId(k.semitone)}
+        data-semitone={k.semitone}
         class="key white"
         class:pressed={isPressed(k.semitone)}
         class:cursor={cursor === k.semitone}
@@ -235,6 +260,7 @@
     {#each BLACK_KEYS as k (k.semitone)}
       <div
         id={keyId(k.semitone)}
+        data-semitone={k.semitone}
         class="key black"
         class:pressed={isPressed(k.semitone)}
         class:cursor={cursor === k.semitone}
@@ -251,6 +277,11 @@
 </div>
 
 <style>
+  .range-controls { display: none; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; margin-bottom: 8px; }
+  .range-controls button { min-height: 44px; padding: 8px; border: 1px solid var(--enclosure-hairline); border-radius: 4px; background: var(--enclosure-bg); color: var(--enclosure-ink); font: inherit; }
+  .range-controls button:disabled { opacity: .4; }
+  @media (max-width: 650px) { .range-controls { display: flex; } }
+
   .bed-scroll {
     overflow-x: auto;
     overflow-y: hidden;

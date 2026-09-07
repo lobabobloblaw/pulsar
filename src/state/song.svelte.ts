@@ -37,6 +37,8 @@ import {
   type Song,
 } from './songModel'
 
+import { DraftRepository } from './draft'
+
 export * from './songModel'
 
 /** Lanes packed per channel, mirroring `patternRenderer.LANES_PER_CHANNEL`. */
@@ -48,6 +50,43 @@ const LANE_FX0 = 3
 const NONE = -32768
 
 class SongStore {
+  draftMessage = $state('')
+  draftError = $state(false)
+  #draft: DraftRepository | null = null
+  #restoreFailed = false
+
+  restoreDraft(): void {
+    if (this.#draft !== null) return
+    try {
+      this.#draft = new DraftRepository(localStorage)
+      const saved = this.#draft.read()
+      if (saved) {
+        this.#doc = saved.song
+        this.presetId = saved.presetId
+        this.#dirty = saved.dirty
+        this.#version++
+        this.draftMessage = 'Draft restored · saved on this browser'
+      }
+    } catch {
+      this.#restoreFailed = true
+      this.draftError = true
+      this.draftMessage = 'Draft storage is unavailable or unreadable. Download your project to keep it.'
+    }
+  }
+
+  #saveDraft(): void {
+    if (this.#draft === null || this.#restoreFailed) return
+    try {
+      this.#draft.write({ song: this.#doc, presetId: this.presetId, dirty: this.#dirty })
+      this.draftError = false
+      this.draftMessage = 'Saved on this browser'
+    } catch (error) {
+      this.draftError = true
+      this.draftMessage = error instanceof Error && error.message.startsWith('Another Pulsar')
+        ? error.message : 'Could not save this draft. Download your project before closing.'
+    }
+  }
+
   #doc = $state<Song>(createEmptySong())
   #history = $state<History>(EMPTY_HISTORY)
   /** Bumped on every document change — the canvas grid's cheap dirty signal,
@@ -86,6 +125,7 @@ class SongStore {
     this.#version++
     this.#dirty = false
     this.presetId = presetId
+    this.#saveDraft()
   }
 
   reset(): void {
@@ -116,6 +156,7 @@ class SongStore {
     this.#history = r.history
     this.#version++
     this.#dirty = true
+    this.#saveDraft()
   }
 
   /** Undo/redo do not mark the document clean — a redo stack is not a save. */
@@ -126,6 +167,7 @@ class SongStore {
     this.#history = r.history
     this.#version++
     this.#dirty = true
+    this.#saveDraft()
     return true
   }
 
@@ -136,6 +178,7 @@ class SongStore {
     this.#history = r.history
     this.#version++
     this.#dirty = true
+    this.#saveDraft()
     return true
   }
 

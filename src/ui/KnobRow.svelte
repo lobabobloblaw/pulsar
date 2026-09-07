@@ -10,6 +10,7 @@
   instrument fitting the first screen and scrolling.
 -->
 <script lang="ts">
+  import { tracker } from '../state/tracker.svelte'
   import { params } from '../state/params.svelte'
   import Knob from './Knob.svelte'
 
@@ -17,11 +18,14 @@
 </script>
 
 <section class="knobs" aria-label="voice controls">
-  {#each params.knobs as id, i (id)}
-    <div class="slot" style:grid-area={AREAS[i]}>
-      <Knob {id} />
-    </div>
-  {/each}
+  {#if tracker.playing}
+    <div class="playback-note"><strong>Song playback</strong><span>The piano plays along. Voice controls return when the song stops.</span></div>
+    <div class="slot" style:grid-area="knob-d"><Knob id="master.volume" /></div>
+  {:else}
+    {#each params.knobs as id, i (id)}
+      <div class="slot" style:grid-area={AREAS[i]}><Knob {id} /></div>
+    {/each}
+  {/if}
 </section>
 
 <style>
@@ -35,6 +39,8 @@
     border-top: 1px solid var(--enclosure-hairline);
     border-bottom: 1px solid var(--enclosure-hairline);
   }
+
+  .playback-note { grid-column: 1 / 4; grid-row: 1; align-self: center; display: grid; gap: 4px; font-size: 12px; line-height: 1.5; }
 
   .slot {
     display: grid;

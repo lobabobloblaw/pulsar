@@ -31,6 +31,8 @@
   import Brand from './ui/Brand.svelte'
   import Enclosure from './ui/Enclosure.svelte'
   import PlayerStrip from './ui/PlayerStrip.svelte'
+  import ProjectBar from './ui/ProjectBar.svelte'
+  import { downloadProject, installProjectHost } from './state/projectHost'
   import KeyBed from './ui/KeyBed.svelte'
   import KnobRow from './ui/KnobRow.svelte'
   import Screen from './ui/Screen.svelte'
@@ -114,12 +116,21 @@
       raf = requestAnimationFrame(loop)
       return () => cancelAnimationFrame(raf)
     }
+    song.restoreDraft()
+    const releaseHost = installProjectHost()
+    const pause = (): void => { tracker.stop(); audio.allNotesOff(); transport.clearNotes() }
+    window.addEventListener('site:pause', pause)
     params.attach(audio)
     transport.attach(audio)
     tracker.attach(audio)
 
     const unsubscribe = audio.subscribe((s) => {
       transport.audio = s
+      if (s.state === 'running' && !boot.done) {
+        boot.dismiss()
+        transport.booted = true
+        if (transport.page === 'boot') transport.setPage('params')
+      }
     })
 
     const detachKeys = attachKeyboard({
@@ -127,7 +138,7 @@
       gesture: () => {
         if (started && boot.done) return false
         startAudio()
-        return true // the first key starts audio, it does not play a note
+        return false // the held note is queued until the engine is ready
       },
       onNote: announce,
       // While the tracker grid has focus its own keymap owns the keyboard. One
@@ -175,6 +186,8 @@
       window.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('site:dispose', dispose)
       window.removeEventListener('pagehide', onPageHide)
+      releaseHost()
+      window.removeEventListener('site:pause', pause)
       detachKeys()
       unsubscribe()
       tracker.detach()
@@ -233,6 +246,12 @@
 {/snippet}
 
 <main aria-label="pulsar">
+{#if song.draftError}
+  <div class="draft-alert" role="alert">
+    <span>{song.draftMessage}</span>
+    <button type="button" onclick={downloadProject}>Download project</button>
+  </div>
+{/if}
 <Enclosure tracker={tracker.open && !compact ? trackerArea : undefined} screen={screenView}>
   {#snippet brand()}
     <Brand />
@@ -247,7 +266,7 @@
   {/snippet}
 
   {#snippet keys()}
-    <KeyBed {announce} />
+    {#if !tracker.open || compact}<KeyBed {announce} />{/if}
   {/snippet}
 
   {#snippet foot()}
@@ -255,9 +274,7 @@
          teaches the first key, the midi screen page carries the fallback
          mapping, and the full legend lives in the tracker's keyboard
          reference. Only the disclaimer is printed. -->
-    <div class="foot">
-      <p class="t-micro">not affiliated with teenage engineering</p>
-    </div>
+    <ProjectBar />
   {/snippet}
 </Enclosure>
 
@@ -266,23 +283,8 @@
 
 {#if selftest}<pre data-selftest>{selftest}</pre>{/if}
 
-<style>
-  .foot {
-    display: flex;
-    justify-content: flex-end;
-    padding-top: var(--s-2);
-    border-top: 1px solid var(--enclosure-hairline);
-    color: var(--enclosure-ink-2);
-  }
 
-  pre[data-selftest] {
-    margin: var(--s-4);
-    padding: var(--s-3);
-    font-family: var(--font-ui);
-    font-size: var(--t-body-size);
-    color: var(--enclosure-ink);
-    background: var(--n-000);
-    border-radius: var(--r-2);
-    white-space: pre-wrap;
-  }
+<style>
+  .draft-alert { position: sticky; top: 0; z-index: 20; padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--enclosure-ink); background: var(--enclosure-bg); border-bottom: 2px solid var(--enclosure-mark); font-size: 14px; }
+  .draft-alert button { font: inherit; min-height: 44px; padding: 8px 12px; color: inherit; border: 1px solid currentColor; border-radius: 4px; background: var(--enclosure-bg); }
 </style>

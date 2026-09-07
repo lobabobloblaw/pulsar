@@ -66,6 +66,8 @@
 </div>
 
 <style>
+
+
   /* Light falls from above the desk, so the object below can cast a shadow
      into something. */
   .stage {
@@ -262,8 +264,8 @@
       grid-template-areas:
         'rail rail rail rail rail rail rail rail rail rail rail rail'
         'screen screen screen screen screen screen screen screen screen screen screen screen'
-        'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
         'keys keys keys keys keys keys keys keys keys keys keys keys'
+        'knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs knobs'
         'foot foot foot foot foot foot foot foot foot foot foot foot';
       padding: var(--s-3);
       gap: var(--s-3) var(--s-2);

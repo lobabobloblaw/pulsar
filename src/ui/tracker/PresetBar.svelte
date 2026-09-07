@@ -105,7 +105,7 @@
         class:bad={failed !== null}
         onchange={onPick}
       >
-        <option value="" disabled>load…</option>
+        <option value="" disabled>{song.dirty ? song.doc.meta.name || 'Your project' : 'Choose a song'}</option>
         {#each PRESETS as entry (entry.id)}
           <option value={entry.id} data-song={entry.id}>{entry.title}</option>
         {/each}

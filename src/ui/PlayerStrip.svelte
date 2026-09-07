@@ -8,6 +8,7 @@
   the user gesture the audio bridge's resume logic wants anyway.
 -->
 <script lang="ts">
+  import { song } from '../state/song.svelte'
   import { tracker } from '../state/tracker.svelte'
   import { transport } from '../state/transport.svelte'
   import Icon from './Icon.svelte'
@@ -17,6 +18,8 @@
     announce?: ((message: string) => void) | undefined
   }
   let { announce }: Props = $props()
+
+  const hasNotes = $derived(song.doc.patterns.some((p) => p.rows.some((r) => r.note !== undefined && r.note >= 0)))
 
   function toggle(): void {
     tracker.togglePlay('row')
@@ -30,6 +33,7 @@
     <button
       type="button"
       class="key"
+      disabled={!hasNotes && !tracker.playing}
       aria-pressed={tracker.playing}
       aria-label={tracker.playing ? 'stop' : 'play'}
       onclick={toggle}
@@ -40,8 +44,11 @@
   </span>
   <PresetBar {announce} />
 </div>
+{#if !hasNotes}<p class="hint">Choose a song to listen, or tap the piano to play.</p>{/if}
 
 <style>
+  .hint { margin: 0; font-size: 12px; text-align: center; }
+  button:disabled { opacity: .45; }
   .player {
     display: flex;
     align-items: center;

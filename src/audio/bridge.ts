@@ -210,6 +210,7 @@ class RealBridge implements AudioBridge {
   /** Time-domain staging for the analyser. Allocated once, at start(). The buffer
    *  type is pinned: `getFloatTimeDomainData` will not take a SharedArrayBuffer view. */
   #tap: Float32Array<ArrayBuffer> | null = null
+  readonly #pendingNotes = new Map<number, number>()
   #startPromise: Promise<void> | null = null
   #diagTimer: ReturnType<typeof setInterval> | null = null
   #disposed = false
@@ -363,6 +364,9 @@ class RealBridge implements AudioBridge {
       }, DIAGNOSTICS_INTERVAL_MS)
       this.#poll()
       this.#publish(this.#statusFor('running'))
+      const notes = [...this.#pendingNotes]
+      this.#pendingNotes.clear()
+      for (const [note, velocity] of notes) this.noteOn(note, velocity)
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
       this.#teardown()
@@ -377,6 +381,12 @@ class RealBridge implements AudioBridge {
    *  is untouched; playing -> the driver owns it and the note steals the editor's
    *  cursor channel. */
   noteOn(note: number, velocity: number, _channel = 0): void {
+    if (this.#disposed) return
+    if (this.#scheduler === null || this.#status.state === 'starting') {
+      this.#pendingNotes.set(note, velocity)
+      void this.start()
+      return
+    }
     // Note-ons ride real gestures (keydown, pointerdown, MIDI). If iOS
     // silenced the context since the last one, this activation is the one that
     // can legally bring it back — "press any key" stays a true promise.
@@ -395,6 +405,7 @@ class RealBridge implements AudioBridge {
   }
 
   noteOff(note: number, _channel = 0): void {
+    this.#pendingNotes.delete(note)
     if (this.#driver.playing) {
       let channel = this.#driver.liveChannelIndex
       if (note >= 0 && note < this.#liveChannelByNote.length) {
@@ -411,6 +422,7 @@ class RealBridge implements AudioBridge {
   }
 
   allNotesOff(): void {
+    this.#pendingNotes.clear()
     this.#liveChannelByNote.fill(-1)
     if (this.#driver.playing) this.#driver.liveAllOff()
     const s = this.#scheduler
@@ -629,6 +641,7 @@ class RealBridge implements AudioBridge {
   // --- internals -------------------------------------------------------------------
 
   #teardown(): void {
+    this.#pendingNotes.clear()
     if (this.#diagTimer !== null) {
       clearInterval(this.#diagTimer)
       this.#diagTimer = null

@@ -296,7 +296,7 @@
       class="t-value window"
       type="text"
       value={instrument.name}
-      onchange={(e) => setInstrumentName(e.currentTarget.value)}
+      oninput={(e) => setInstrumentName(e.currentTarget.value)}
     />
   </div>
 

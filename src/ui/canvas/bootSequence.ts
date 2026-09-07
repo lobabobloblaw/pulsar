@@ -41,7 +41,7 @@ const T_RESOLVE = T_SCAN + CANVAS_DUR.resolve
 const T_HOLD = T_RESOLVE + CANVAS_DUR.hold
 const T_DISSOLVE = T_HOLD + CANVAS_DUR.dissolve
 
-const PROMPT = 'press any key'
+const PROMPT = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches ? 'tap a piano key' : 'play a piano key'
 const WORDMARK = 'pulsar'
 const WORDMARK_SCALE = 3
 

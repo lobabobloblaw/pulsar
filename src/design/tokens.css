@@ -163,10 +163,10 @@
   --t-value-weight: 600;
   --t-body-size: 12px;
   --t-body-weight: 400;
-  --t-label-size: 10px;
+  --t-label-size: 12px;
   --t-label-weight: 500;
   --t-label-track: 0.08em;
-  --t-micro-size: 9px;
+  --t-micro-size: 11px;
   --t-micro-weight: 500;
   --t-micro-track: 0.1em;
 }

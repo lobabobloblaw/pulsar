@@ -22,7 +22,7 @@
   and editing parity with the mouse (§4.4).
 -->
 <script lang="ts">
-  import { untrack } from 'svelte'
+  import { onMount, untrack } from 'svelte'
   import { bridge } from '../../audio/bridge'
   import { LOCAL_VELOCITY, NOTE_KEYS } from '../../input/keyboard'
   import { noteHolder } from '../../input/noteOwnership'
@@ -92,6 +92,26 @@
   let cssH = 0
   let scrollRow = 0
   let scrollX = 0
+  let horizontalOverflow = $state(false)
+  let selectDrag = $state(false)
+  let drag: { x: number; y: number; row: number; column: number } | null = null
+  function pan(dx: number, rows: number): void {
+    const last = layout?.channels.at(-1)
+    const maxX = last ? Math.max(0, last.x + last.w - cssW) : 0
+    scrollX = clamp(scrollX + dx, 0, maxX)
+    scrollRow = clamp(scrollRow + rows, 0, Math.max(0, rowsPerPattern - Math.floor((cssH - HEADER_H) / ROW_H)))
+    tracker.follow = false
+    furnitureDirty = true
+    dirty = true
+  }
+  onMount(() => {
+    const enter = (event: Event): void => {
+      const note = (event as CustomEvent<number>).detail
+      if (tracker.editing && Number.isInteger(note) && note >= 0 && note <= 119) writeNote(note)
+    }
+    window.addEventListener('pulsar:enter-note', enter)
+    return () => window.removeEventListener('pulsar:enter-note', enter)
+  })
   let lastPlayRow = -1
   let lastPlayFrame = -1
   let lastAnnounceAt = 0
@@ -159,7 +179,9 @@
     palette = resolvePalette()
 
     cssW = Math.max(240, Math.floor(box.clientWidth))
-    cssH = Math.max(ROW_H * 8 + HEADER_H, Math.floor(box.clientHeight))
+    const lastChannel = layout.channels.at(-1)
+    horizontalOverflow = !!lastChannel && lastChannel.x + lastChannel.w > cssW
+    cssH = Math.max(ROW_H * 8 + HEADER_H, Math.floor(box.clientHeight) - 48)
     el.style.width = `${cssW}px`
     el.style.height = `${cssH}px`
     el.width = Math.round(cssW * dpr)
@@ -643,6 +665,7 @@
     if (hit === null) return
     e.preventDefault()
     el.setPointerCapture(e.pointerId)
+    drag = e.pointerType === 'touch' && !selectDrag ? { x: e.clientX, y: e.clientY, row: scrollRow, column: scrollX } : null
     tracker.setCursor(hit.row, hit.channel, hit.field, e.shiftKey)
     announceCell(false)
     dirty = true
@@ -651,6 +674,12 @@
   function onPointerMove(e: PointerEvent): void {
     const el = canvas
     if (!el || !layout || !el.hasPointerCapture(e.pointerId)) return
+    if (drag) {
+      const dx = drag.column + drag.x - e.clientX - scrollX
+      const rows = drag.row + (drag.y - e.clientY) / ROW_H - scrollRow
+      pan(dx, rows)
+      return
+    }
     const box = el.getBoundingClientRect()
     const hit = hitTest(layout, { scrollRow, scrollX }, e.clientX - box.left, e.clientY - box.top)
     if (hit === null) return
@@ -659,16 +688,13 @@
   }
 
   function onPointerUp(e: PointerEvent): void {
-    canvas?.releasePointerCapture(e.pointerId)
+    drag = null
+    if (canvas?.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId)
   }
 
   function onWheel(e: WheelEvent): void {
     e.preventDefault()
-    const visible = (cssH - HEADER_H) / ROW_H
-    scrollRow = clamp(scrollRow + Math.sign(e.deltaY) * 3, 0, Math.max(0, rowsPerPattern - visible))
-    // Any manual scroll drops out of follow, which re-arms on the next play.
-    if (tracker.position.playing) tracker.follow = false
-    dirty = true
+    pan(e.deltaX || (e.shiftKey ? e.deltaY : 0), e.shiftKey ? 0 : Math.sign(e.deltaY) * 3)
   }
 
   function clamp(v: number, lo: number, hi: number): number {
@@ -751,6 +777,13 @@
 </script>
 
 <div class="grid-host" bind:this={host}>
+  <div class="grid-navigation" aria-label="pattern navigation">
+    <button type="button" disabled={!horizontalOverflow} aria-label="previous channels" onclick={() => pan(-240, 0)}>←</button>
+    <button type="button" disabled={!horizontalOverflow} aria-label="next channels" onclick={() => pan(240, 0)}>→</button>
+    <button type="button" aria-label="earlier rows" onclick={() => pan(0, -16)}>↑ Rows</button>
+    <button type="button" aria-label="later rows" onclick={() => pan(0, 16)}>↓ Rows</button>
+    <button type="button" aria-pressed={selectDrag} onclick={() => { selectDrag = !selectDrag }}>{selectDrag ? 'Select cells' : 'Scroll grid'}</button>
+  </div>
   <canvas
     bind:this={canvas}
     aria-hidden="true"
@@ -796,6 +829,11 @@
 </div>
 
 <style>
+  .grid-navigation { position: absolute; bottom: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 6px; padding: 2px 6px; background: var(--enclosure-bg); z-index: 2; }
+  .grid-navigation button { min-width: 44px; min-height: 44px; padding: 4px 8px; font-size: 12px; color: var(--enclosure-ink); background: var(--enclosure-bg); border: 1px solid var(--enclosure-hairline); border-radius: 4px; }
+  .grid-navigation button:disabled { opacity: .4; }
+  .grid-navigation button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--chip-accent); }
+
   /* The grid is a lit display module, same glass as the dot-matrix well:
      machined rim outside, recess and one faint reflection overlaid inside
      (the canvas is opaque, so the inner light must sit above it). */

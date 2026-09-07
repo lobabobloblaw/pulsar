@@ -317,11 +317,15 @@
 
 <style>
   .screen {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
     display: grid;
     gap: var(--s-3);
   }
 
   .wellwrap {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
     display: grid;
     justify-items: center;
   }

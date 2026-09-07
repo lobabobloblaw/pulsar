@@ -55,9 +55,10 @@
 
   /** At most one note at a time: the most actionable problem wins. */
   const note = $derived.by(() => {
+    if (transport.audio.state === 'error') return 'Audio could not start. Check your connection and retry audio.'
     const m = transport.midi
     if (!m.supported) {
-      return 'play the on-screen keys with touch or a pointer, or use the computer keyboard. this browser does not support midi input.'
+      return ''
     }
     if (m.permission === 'blocked') {
       return 'firefox needs the site permission add-on for web midi. install it, then reload and allow midi.'
@@ -88,19 +89,10 @@
   <div class="controls">
     {#if transport.audio.state !== 'running' && transport.audio.state !== 'starting'}
       <span class="keyed">
-        <button type="button" class="key" onclick={onStartAudio} aria-label="start audio">
+        <button type="button" class="key" onclick={onStartAudio} aria-label={transport.audio.state === 'error' ? 'retry audio' : 'start audio'}>
           <Icon name="power" />
         </button>
-        <span class="silk">start</span>
-      </span>
-    {/if}
-
-    {#if transport.midi.supported && transport.midi.permission === 'unknown'}
-      <span class="keyed">
-        <button type="button" class="key" onclick={onConnectMidi} aria-label="connect midi">
-          <Icon name="midi" />
-        </button>
-        <span class="silk">midi</span>
+        <span class="silk">{transport.audio.state === 'error' ? 'retry audio' : 'start'}</span>
       </span>
     {/if}
 
@@ -113,7 +105,7 @@
         type="button"
         class="key"
         aria-pressed={tracker.open}
-        aria-label="tracker"
+        aria-label="editor"
         onclick={() => {
           tracker.toggleOpen()
           transport.setPage(tracker.open ? 'song' : 'params')
@@ -121,8 +113,20 @@
       >
         <Icon name="grid" />
       </button>
-      <span class="silk">tracker</span>
+      <span class="silk">editor</span>
     </span>
+
+    <details class="settings">
+      <summary class="settings-trigger">Settings</summary>
+      <div class="settings-content">
+    {#if transport.midi.supported && transport.midi.permission === 'unknown'}
+      <span class="keyed">
+        <button type="button" class="key" onclick={onConnectMidi} aria-label="connect midi">
+          <Icon name="midi" />
+        </button>
+        <span class="silk">midi</span>
+      </span>
+    {/if}
 
     <span class="keyed">
       <button
@@ -151,6 +155,10 @@
       </button>
       <span class="silk">model</span>
     </span>
+
+        <p class="settings-note">{transport.midi.supported ? midiChip : 'MIDI input is unavailable in this browser. Use the piano or a computer keyboard.'}</p>
+      </div>
+    </details>
 
     <div class="leds">
       <span class="ledgroup" title={audioChip}>
@@ -181,11 +189,18 @@
   </div>
 
   {#if note}
-    <p class="note">{note}</p>
+    <p class="note" role="status">{note}</p>
   {/if}
 </div>
 
 <style>
+  .settings { position: relative; font-size: 12px; }
+  .settings-trigger { cursor: pointer; padding: 10px; min-height: 36px; border: 1px solid var(--enclosure-hairline); border-radius: 4px; list-style: none; }
+  .settings-trigger::-webkit-details-marker { display: none; }
+  .settings-content { position: absolute; z-index: 10; right: 0; top: calc(100% + 8px); display: flex; flex-wrap: wrap; gap: 12px; width: 280px; max-width: 85vw; padding: 16px; background: var(--enclosure-bg); color: var(--enclosure-ink); border: 1px solid var(--enclosure-hairline); border-radius: 8px; box-shadow: 0 4px 16px rgb(0 0 0 / .2); }
+  .settings-note { width: 100%; margin: 0; line-height: 1.5; }
+  @media (pointer: coarse) { .settings-trigger { min-height: 44px; } }
+
   .status {
     display: grid;
     gap: var(--s-2);

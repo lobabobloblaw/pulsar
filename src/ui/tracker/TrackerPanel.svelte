@@ -25,6 +25,7 @@
   import InstrumentEditor from './InstrumentEditor.svelte'
   import OrderList from './OrderList.svelte'
   import PatternGrid from './PatternGrid.svelte'
+  import KeyBed from '../KeyBed.svelte'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
@@ -153,10 +154,11 @@
 
   <div class="work">
     <div class="side">
-      {#if screen}{@render screen()}{/if}
+      <details><summary>Song display</summary>{#if screen}{@render screen()}{/if}</details>
       <OrderList {announce} />
     </div>
     <PatternGrid {announce} />
+    <div class="tracker-piano"><p class="piano-hint">{tracker.editing ? 'Tap piano keys to enter notes in the selected channel. Use a hardware keyboard for effect codes.' : 'Select Edit to enter notes, or play the piano to audition.'}</p><KeyBed {announce} /></div>
     <div class="side">
       <InstrumentEditor {announce} />
     </div>
@@ -282,43 +284,22 @@
      lattice at 384 CSS px, plus the well's padding. */
   .work {
     display: grid;
-    grid-template-columns: minmax(408px, 448px) minmax(0, 1fr) minmax(200px, 260px);
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 300px);
     gap: var(--s-3);
     align-items: start;
   }
+
+  .tracker-piano { grid-column: 1 / -1; grid-row: 2; min-width: 0; }
+  .piano-hint { font-size: 12px; line-height: 1.5; margin: 0 0 8px; }
+  .bar { position: sticky; top: 0; z-index: 4; background: var(--enclosure-bg); padding-block: 8px; }
+
+  .work :global(.grid-host) { grid-column: 1 / -1; grid-row: 1; }
 
   .side {
     display: grid;
     gap: var(--s-3);
     align-content: start;
     min-width: 0;
-  }
-
-  /* Three-pane mode is a fixed workbench BAY: the row is exactly the grid's
-     height and every pane lives inside it — the order table and the
-     instrument editor scroll within the bay rather than stretching the page.
-     (A fourteen-frame song once pushed the order pane past the grid and the
-     whole instrument scrolled again.) The height is PatternGrid's own clamp,
-     kept in lockstep. */
-  @media (min-width: 1081px) {
-    .work {
-      height: clamp(280px, 46vh, 520px);
-      align-items: stretch;
-    }
-
-    .side {
-      min-height: 0;
-      align-content: stretch;
-    }
-
-    .side:first-child {
-      grid-template-rows: auto minmax(0, 1fr);
-    }
-
-    .side:last-child {
-      overflow-y: auto;
-      align-content: start;
-    }
   }
 
   .narrow {
@@ -346,22 +327,6 @@
 
   .help[open] summary {
     margin-block-end: var(--s-1);
-  }
-
-  /* Between the phone cutoff and the three-pane width, the work row stacks:
-     a grid pane squeezed beside a 408px screen pane is too narrow for five
-     lanes, and a full-width grid that scrolls beats a sliver that does not. */
-  @media (max-width: 1080px) {
-    .work {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    /* Put the editable score first on tablets. The display/order and
-       instrument panes share the row below instead of pushing the score
-       beneath an entire screen and long order table. */
-    .work :global(.grid-host) {
-      grid-column: 1 / -1;
-      grid-row: 1;
-    }
   }
 
   @media (max-width: 720px) {
