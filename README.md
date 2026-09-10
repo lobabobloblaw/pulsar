@@ -18,6 +18,17 @@ The app also runs inside alexvoigt.com; see
 [homepage integration](docs/homepage-integration.md) for build and browser checks.
 Later phases cover VRC6, WAV export UI, expansion chips and text interchange.
 
+## original soundtrack
+
+Eight original NES/Famicom compositions replace the old presets and the first
+replacement attempt: Pocket Voltage (funk), Blue Hour Club (swing jazz),
+Version in Salt (dub), Razor Rally (speed metal), Café Azimuth (bossa nova),
+Two-Part Machine (invention), Slow Orbit (ambient), and Breakwater (drum and bass).
+Distinct voice roles, instrument palettes and forms span 48–192 BPM.
+Choose them in the tracker’s **songs** picker. All notes and instruments are editable.
+`pnpm preview:songs` renders unnormalized WAVs, including a second pass through each
+loop, into `previews/`. See the [track notes and audition guide](docs/soundtrack.md).
+
 ## run
 
 ```bash

@@ -148,8 +148,8 @@ describe('DPCM ghost restarts', () => {
     expect(lastStatus(sink) & 0x10).toBe(0x10)
   })
 
-  it('a whole DPCM preset starts exactly its AUTHORED samples — no ghosts', () => {
-    const file = join(import.meta.dirname, '..', '..', 'src', 'assets', 'songs', '08-long-division.json')
+  it.each(['01-pocket-voltage.json', '04-razor-rally.json', '08-breakwater.json'])('%s starts exactly its AUTHORED samples — no ghosts', (name) => {
+    const file = join(import.meta.dirname, '..', '..', 'src', 'assets', 'songs', name)
     const song = parseSong(JSON.parse(readFileSync(file, 'utf8'))).song
     const image = buildDpcmImage(song)
     expect(image, 'the preset carries samples').not.toBeNull()

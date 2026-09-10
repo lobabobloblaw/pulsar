@@ -180,7 +180,8 @@
     font: inherit;
     letter-spacing: inherit;
     text-transform: inherit;
-    max-width: min(22ch, 100%);
+    min-width: 0;
+    max-width: min(42ch, 100%);
   }
 
   @media (pointer: coarse) {

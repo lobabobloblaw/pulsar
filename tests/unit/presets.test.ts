@@ -89,6 +89,7 @@ function registered(): Registered[] {
 
 interface Qa {
   key?: string
+  accidentalFractionMax?: number
   channels?: ChannelId[]
   effects?: string[]
   bpmRange?: [number, number]
@@ -213,6 +214,7 @@ function walk(song: Song, loops: number): Walk {
   let ticks = 0
   let noteOns = 0
   let loopCount = 0
+  let passRows = 0
   const visited = new Set<number>()
   const guard = frames * rowsPerPattern * (loops + 2) + 64
 
@@ -309,6 +311,7 @@ function walk(song: Song, loops: number): Walk {
         }
       }
     }
+    if (loopCount > 0 && passRows === 0) passRows = played
     if (loopCount >= loops) break
   }
 
@@ -318,7 +321,8 @@ function walk(song: Song, loops: number): Walk {
     seconds: ticks / engine,
     noteOns,
     visited,
-    passRows: frames * rowsPerPattern,
+    // Dxx can shorten a frame; nominal order capacity is not played duration.
+    passRows: passRows || played,
   }
 }
 
@@ -400,9 +404,16 @@ function lint(song: Song, id: string): Lint {
         if (!scale.has(n % 12)) accidentals++
       }
     }
-    if (melodicNotes > 0 && accidentals / melodicNotes > 0.12) {
+    const accidentalMax = qa.accidentalFractionMax ?? 0.12
+    if (!Number.isFinite(accidentalMax) || accidentalMax < 0 || accidentalMax > 0.2) {
+      problems.push('accidentalFractionMax must be in 0..0.2')
+    }
+    if (qa.accidentalFractionMax !== undefined && !qa.notes) {
+      problems.push('a chromatic allowance requires composition notes')
+    }
+    if (melodicNotes > 0 && accidentals / melodicNotes > accidentalMax) {
       problems.push(
-        `${((accidentals / melodicNotes) * 100).toFixed(1)}% of melodic notes are outside ${qa.key} (max 12%)`,
+        `${((accidentals / melodicNotes) * 100).toFixed(1)}% of melodic notes are outside ${qa.key} (max ${accidentalMax * 100}%)`,
       )
     }
   }
@@ -412,7 +423,8 @@ function lint(song: Song, id: string): Lint {
   const range = qa.bpmRange
   if (range === undefined) problems.push('extra.qa.bpmRange is missing')
   else {
-    if (range[0] < 60 || range[1] > 220) problems.push(`bpmRange ${range.join('..')} escapes [60, 220]`)
+    // Ambient’s 48 BPM editing grid is deliberate, not an invalid pop tempo.
+    if (range[0] < 30 || range[1] > 220) problems.push(`bpmRange ${range.join('..')} escapes [30, 220]`)
     if (bpm < range[0] || bpm > range[1]) problems.push(`computed BPM ${bpm.toFixed(1)} outside ${range.join('..')}`)
   }
 
@@ -559,6 +571,30 @@ function tryParse(raw: unknown): { song: Song | null; diagnostics: Diagnostic[] 
 // --- the suite ------------------------------------------------------------------------------
 
 const SONGS = registered()
+
+describe('order-walk duration regression', () => {
+  it('counts skipped rows and a one-time intro independently of the changing catalog', () => {
+    const { song: base } = parseSong(JSON.parse(readFileSync(join(FIXTURES, 'tiny.json'), 'utf8')))
+    const song: Song = {
+      ...base,
+      order: [[0, 0, 0, 0, 0], [1, 0, 0, 0, 0], [2, 0, 0, 0, 0]],
+      patterns: [
+        ...base.patterns.filter((p) => p.channel !== 'pulse1'),
+        { channel: 'pulse1', index: 0, rows: [{ r: 0, note: 60, inst: 0, vol: 15 }, { r: 3, fx: [{ cmd: 'D', param: 0 }] }] },
+        { channel: 'pulse1', index: 1, rows: [{ r: 0, note: 62, inst: 0, vol: 15 }] },
+        { channel: 'pulse1', index: 2, rows: [{ r: 0, note: 64, inst: 0, vol: 15 }, { r: 7, fx: [{ cmd: 'B', param: 1 }] }] },
+      ],
+    }
+    const first = walk(song, 1)
+    const two = walk(song, 2)
+    expect(first.rows).toBe(20) // 4-row intro + two 8-row frames
+    expect(first.passRows).toBe(20)
+    expect(first.seconds).toBeCloseTo(2, 6)
+    expect(two.passRows).toBe(20)
+    expect(two.rows).toBe(36) // intro occurs only once
+    expect(renderSong(song, { loops: 2, maxSeconds: 5 }).rowsPlayed).toBe(36)
+  })
+})
 
 describe('the preset registry', () => {
   it('is a glob of src/assets/songs, so a composer registers a song by adding a file', () => {
@@ -757,6 +793,22 @@ const BAD_LINT: [string, string][] = [
 ]
 
 describe('gate D — a gate that cannot fail is not a gate', () => {
+  it('chromatic allowances remain bounded, documented and reject wholly wrong keys', () => {
+    const source = SONGS.find((s) => s.id === 'blue-hour-club')!
+    const song = tryParse(source.raw).song as Song
+    const withQa = (qa: Qa): Song => ({ ...song, extra: { ...song.extra, qa } })
+    expect(lint(withQa({ ...qaOf(song), accidentalFractionMax: 1 }), source.id).problems)
+      .toContain('accidentalFractionMax must be in 0..0.2')
+    expect(lint(withQa({ ...qaOf(song), notes: '' }), source.id).problems)
+      .toContain('a chromatic allowance requires composition notes')
+    const wrong: Song = {
+      ...song, patterns: song.patterns.map((p) => MELODIC.includes(p.channel) ? {
+        ...p, rows: p.rows.map((c) => c.note !== undefined && c.note >= 0 ? { ...c, note: 66 } : c),
+      } : p),
+    }
+    expect(lint(wrong, source.id).problems.join('\n')).toContain('outside c-mixolydian')
+  })
+
   it.each(BAD_PARSE)('%s fails gate A with "%s"', (file, needle) => {
     const raw: unknown = JSON.parse(readFileSync(join(FIXTURES, file), 'utf8'))
     const { song, diagnostics } = tryParse(raw)

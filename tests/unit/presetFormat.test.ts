@@ -25,31 +25,17 @@ const ROOT = join(import.meta.dirname, '..', '..')
 const PRESET_DIR = join(ROOT, 'src', 'assets', 'songs')
 const TINY = join(ROOT, 'tests', 'fixtures', 'songs', 'tiny.json')
 
-/** The four technique demos design §5.2 commits to, plus the eight album pieces,
- *  `docs/preset-suite.md` §10.4's two additions, and four original high-intensity
- *  action-techno pieces. The album is complete: all of them must be present, and
- *  nothing OUTSIDE the list may ever appear. Album files carry
- *  a two-digit play-order prefix (`07-rust-and-neon.json`), which
- *  `src/assets/songs/index.ts` strips to form the id. */
+/** The replacement soundtrack: all eight originals must ship, and no retired
+ *  preset may leak back into the picker. See docs/soundtrack.md. */
 const EXPECTED_PRESETS = [
-  'first-light',
-  'long-fall',
-  'hammer-shop',
-  'switchback',
-  'iron-sunrise',
-  'glass-ladder',
-  'midnight-ferry',
-  'paper-lanterns',
-  'tide-pool',
-  'switch-cutter',
-  'rust-and-neon',
-  'long-division',
-  'green-flash',
-  'harbour-echo',
-  'voltage-teeth',
-  'black-ice-relay',
-  'kinetic-breach',
-  'terminal-vector',
+  'pocket-voltage',
+  'blue-hour-club',
+  'version-in-salt',
+  'razor-rally',
+  'cafe-azimuth',
+  'two-part-machine',
+  'slow-orbit',
+  'breakwater',
 ]
 
 function presetFiles(): string[] {
@@ -69,7 +55,7 @@ describe('shipped presets — structural gate', () => {
     // per-file suites below — a loop over an empty file list registers nothing and
     // the run stays green. The pin on EXPECTED_PRESETS itself keeps the list from
     // being edited down to match a thinning directory.
-    expect(EXPECTED_PRESETS).toHaveLength(18)
+    expect(EXPECTED_PRESETS).toHaveLength(8)
     expect(files).toHaveLength(EXPECTED_PRESETS.length)
     // Nothing outside the design's list, and never twice.
     expect(new Set(present).size).toBe(present.length)

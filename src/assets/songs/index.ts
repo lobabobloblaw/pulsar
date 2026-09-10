@@ -2,19 +2,18 @@
  *
  *  **A composer registers a song by ADDING A FILE.** There is no list to edit, no
  *  import to add, no shared file to serialize on — `import.meta.glob` is the registry,
- *  and three composer agents can land songs in parallel without ever touching the same
- *  bytes. Drop `NN-name.json` in this directory and it is in the app, in the preset
+ *  and song files have no shared registration list. Drop `NN-name.json` in this
+ *  directory and it is in the app, in the preset
  *  bar, and in every gate in `tests/unit/presets.test.ts`.
  *
- *  `{ eager: true }` on purpose: these are 15–40 KB documents that must be in the
- *  module graph, because that is what makes a preset which fails `parseSong()` fail the
- *  BUILD rather than the user's click (§5.4). Nothing is fetched at runtime, so there
+ *  `{ eager: true }` includes the documents in the module graph. Tests run
+ *  `parseSong()` on every file; the build alone only validates JSON syntax.
+ *  Nothing is fetched at runtime, so there
  *  is no loading state, no 404 path and no COEP interaction.
  *
- *  **Play order is the two-digit filename prefix.** `07-rust-and-neon.json` plays
- *  seventh. Files without a prefix (the four technique demos, which design §5.2 named
- *  before the album existed) sort after the numbered ones, alphabetically. The prefix
- *  is stripped from the id, so the id stays `rust-and-neon` wherever a human reads it —
+ *  **Play order is the two-digit filename prefix.** `07-slow-orbit.json` plays
+ *  seventh. Unprefixed files sort after numbered ones, alphabetically. The prefix
+ *  is stripped from the id, so the id stays `slow-orbit` wherever a human reads it —
  *  preview filenames, gate failures, the chip's `data-song`.
  *
  *  The song is exported RAW (`unknown`). Parsing belongs to the caller, because the
@@ -24,11 +23,11 @@
  */
 
 export interface PresetEntry {
-  /** `rust-and-neon` — the filename with its `NN-` prefix and `.json` removed. */
+  /** `slow-orbit` — the filename with its `NN-` prefix and `.json` removed. */
   readonly id: string
   /** Play order from the filename prefix; `Number.MAX_SAFE_INTEGER` when unprefixed. */
   readonly order: number
-  /** `src/assets/songs/07-rust-and-neon.json`, for diagnostics that name a file. */
+  /** `src/assets/songs/07-slow-orbit.json`, for diagnostics that name a file. */
   readonly file: string
   /** `meta.name` if the document has one, else the id. Read without parsing: the bar
    *  must be able to draw a chip for a song the validator would reject. */

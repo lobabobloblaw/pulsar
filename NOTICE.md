@@ -12,8 +12,13 @@ implementations written against publicly documented behavior:
 - FamiStudio's MIT-licensed documentation is used as a behavioral reference for
   tracker semantics in later phases.
 
-The preset songs in `src/assets/songs/` are original compositions authored for
-pulsar.
+The eight preset songs in `src/assets/songs/` are original compositions authored
+by Codex for pulsar in September 2026. Their tracker notes, arrangements and custom
+instrument envelopes were written directly; no existing game melodies, ROM audio,
+recordings, or hosted music-generation services were used. Pocket Voltage, Razor
+Rally and Breakwater reuse pulsar’s original arithmetic DPCM percussion bank (reproducible with
+`tools/songs/makeDpcm.mjs`). The previous eighteen presets are retired from the app;
+their source history remains in Git. Composition notes: `docs/soundtrack.md`.
 
 Generated image assets are documented per-file in `ASSETS.md`, including the exact
 model checkpoint, license, seed, prompt, and post-processing chain for each.
