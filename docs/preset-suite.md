@@ -1,8 +1,9 @@
 # the preset suite — style bible, piece briefs, production pipeline
 
 > Historical catalog brief. All eighteen former presets were replaced in September
-> 2026; [soundtrack.md](soundtrack.md) is the current repertoire and audition guide.
-> The engine constraints and authoring semantics below remain reference material.
+> 2026, and the eight-piece set that replaced them was in turn replaced by the three
+> OCTET tracks; [soundtrack.md](soundtrack.md) is the current repertoire and audition
+> guide. The engine constraints and authoring semantics below remain reference material.
 
 **Status:** design. This document is the brief composer agents execute. It ADDS eight
 original album pieces to the four technique-demo tracks of `phase2-design.md` §5; those

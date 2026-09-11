@@ -992,6 +992,14 @@ export class TrackerDriver {
   private cut(ch: number): void {
     this.sounding[ch] = 0
     this.baseNote[ch] = NOTE_NONE
+    // A glide still in flight must die with the note: its arrival would otherwise
+    // write the base note back on a silenced channel, and the next 3xx note would
+    // become a glide target with nothing sounding — a silent lane until a 1xx/2xx.
+    this.portaNote[ch] = NOTE_NONE
+    this.portaTarget[ch] = 0
+    this.slideAccum[ch] = 0
+    this.noteSlideActive[ch] = 0
+    this.noteSlidePending[ch] = 0
     this.dpcmEndsAt[ch] = -1
     this.regs.setEnabled(ch, false)
     this.regs.invalidate(ch)

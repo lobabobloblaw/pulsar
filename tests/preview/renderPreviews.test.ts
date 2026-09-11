@@ -27,6 +27,9 @@ const SONG_DIR = join(ROOT, 'src', 'assets', 'songs')
 const OUT_DIR = join(ROOT, 'previews')
 const SAMPLE_RATE = 48000
 const LOOPS = 2
+// Two passes of a two-and-a-half-minute piece are ~6 s of rendering here and far more
+// on a shared runner; vitest's 5 s default is not a budget for that.
+const RENDER_TIMEOUT = 120_000
 
 const enabled = process.env.PULSAR_PREVIEW === '1'
 
@@ -74,7 +77,7 @@ describe.skipIf(!enabled)('song previews', () => {
     expect(view.getUint32(40, true), 'data chunk size').toBe(wav.length - 44)
     expect(view.getUint32(4, true), 'RIFF size').toBe(wav.length - 8)
     expect(seconds).toBeGreaterThan(30)
-  })
+  }, RENDER_TIMEOUT)
 
   it('prints the level table', () => {
     process.stdout.write(`\n${table.join('\n')}\n\nwrote ${list.length} file(s) to previews/\n\n`)

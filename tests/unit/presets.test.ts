@@ -55,8 +55,11 @@ const PERCUSSION_GAP_CAP = 32
 const PERCUSSION_MIN_EVENTS_DEFAULT = 16
 const PERCUSSION_MIN_EVENTS_FLOOR = 8
 /** Fraction of played rows allowed to sit inside an over-long percussion gap (§5.5's
- *  "across >= 80 % of the played rows"). */
-const PERCUSSION_COVERAGE = 0.8
+ *  "across >= 80 % of the played rows"). A song may declare `percussionCoverage` down to
+ *  the floor with a justification — the same shape as `percussionGap` — for a piece whose
+ *  drum-free stretches are the composition (a crash-only intro, a coda of held chords). */
+const PERCUSSION_COVERAGE_DEFAULT = 0.8
+const PERCUSSION_COVERAGE_FLOOR = 0.75
 const RMS_RANGE_DEFAULT: readonly [number, number] = [-20, -9]
 const RMS_FLOOR = -30
 // Gate C/D render minutes of audio per song (two loops plus solo passes); a shared
@@ -100,6 +103,7 @@ interface Qa {
   bank?: { instruments?: string[]; rev?: number }
   percussionGap?: number
   percussionMinEvents?: number
+  percussionCoverage?: number
   renderChecksum?: number
   notes?: string
 }
@@ -204,7 +208,6 @@ function walk(song: Song, loops: number): Walk {
   const evenTicks = Math.max(1, Math.round(acc.num / acc.den))
 
   const porta = new Array<boolean>(channels.length).fill(false)
-  const noteSlide = new Array<boolean>(channels.length).fill(false)
   const sounding = new Array<boolean>(channels.length).fill(false)
 
   const frames = song.order.length
@@ -228,21 +231,23 @@ function walk(song: Song, loops: number): Walk {
     for (let ch = 0; ch < channels.length; ch++) {
       const cell = rows.get(`${channels[ch]}:${song.order[oi][ch]}`)?.get(row)
       if (cell === undefined) continue
+      // Qxy/Rxy are ONE-SHOT: they retarget the note on their own row and the driver
+      // clears the slide on arrival, so the next plain note triggers again. (The old
+      // latched flag undercounted every note after a bass scoop.)
+      let noteSlide = false
       for (const e of cell.fx ?? []) {
         if (e === null) continue
         switch (e.cmd) {
           case '1':
           case '2':
             porta[ch] = false
-            noteSlide[ch] = false
             break
           case '3':
             porta[ch] = true
-            noteSlide[ch] = false
             break
           case 'Q':
           case 'R':
-            noteSlide[ch] = true
+            noteSlide = true
             porta[ch] = false
             break
           case 'B':
@@ -266,7 +271,7 @@ function walk(song: Song, loops: number): Walk {
       if (note === -1) {
         sounding[ch] = false
       } else if (note >= 0) {
-        if (noteSlide[ch] || (porta[ch] && sounding[ch])) {
+        if ((noteSlide || porta[ch]) && sounding[ch]) {
           sounding[ch] = true // target only: no trigger, no note-on
         } else {
           noteOns++
@@ -435,7 +440,14 @@ function lint(song: Song, id: string): Lint {
   if (minEvents < PERCUSSION_MIN_EVENTS_FLOOR) {
     problems.push(`percussionMinEvents ${minEvents} is under the floor ${PERCUSSION_MIN_EVENTS_FLOOR}`)
   }
-  if ((gap !== PERCUSSION_GAP_DEFAULT || minEvents !== PERCUSSION_MIN_EVENTS_DEFAULT) && !qa.notes) {
+  const coverage = qa.percussionCoverage ?? PERCUSSION_COVERAGE_DEFAULT
+  if (coverage < PERCUSSION_COVERAGE_FLOOR || coverage > PERCUSSION_COVERAGE_DEFAULT) {
+    problems.push(`percussionCoverage ${coverage} escapes ${PERCUSSION_COVERAGE_FLOOR}..${PERCUSSION_COVERAGE_DEFAULT}`)
+  }
+  if (
+    (gap !== PERCUSSION_GAP_DEFAULT || minEvents !== PERCUSSION_MIN_EVENTS_DEFAULT || coverage !== PERCUSSION_COVERAGE_DEFAULT) &&
+    !qa.notes
+  ) {
     problems.push('a raised percussion bound needs a justification in extra.qa.notes')
   }
   if (song.channels.includes('noise')) {
@@ -449,9 +461,9 @@ function lint(song: Song, id: string): Lint {
       prev = r
     }
     const covered = 1 - inLongGap / Math.max(1, absoluteRow)
-    if (covered < PERCUSSION_COVERAGE) {
+    if (covered < coverage) {
       problems.push(
-        `only ${(covered * 100).toFixed(1)}% of rows are inside a percussion gap of <= ${gap} rows (need ${PERCUSSION_COVERAGE * 100}%)`,
+        `only ${(covered * 100).toFixed(1)}% of rows are inside a percussion gap of <= ${gap} rows (need ${coverage * 100}%)`,
       )
     }
   }
@@ -758,14 +770,16 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
     ).toBe(r.checksum)
   }, GATE_RENDER_TIMEOUT)
 
-  it('gate D — transposing one pattern breaks the checksum', () => {
-    const budget = 40
+  it('gate D — transposing pulse 1 breaks the checksum', () => {
+    // One whole pass: a piece may keep pulse 1 silent for its first minute.
+    const budget = Math.ceil(walk(song, 1).seconds) + 2
     const base = renderSong(song, { sampleRate: 48000, loops: 1, maxSeconds: budget }).checksum
-    const target = song.patterns.find((p) => p.channel === 'pulse1' && p.rows.length > 0)
+    // Every pulse-1 note, not one pattern: the first pattern may be a lone loop-entry
+    // cut, or struck chords on fixed-mode arpeggios whose row note is ignored by design.
     const mutated: Song = {
       ...song,
       patterns: song.patterns.map((p) =>
-        p === target
+        p.channel === 'pulse1'
           ? { ...p, rows: p.rows.map((c) => (c.note !== undefined && c.note >= 0 ? { ...c, note: c.note + 1 } : c)) }
           : p,
       ),
@@ -794,7 +808,7 @@ const BAD_LINT: [string, string][] = [
 
 describe('gate D — a gate that cannot fail is not a gate', () => {
   it('chromatic allowances remain bounded, documented and reject wholly wrong keys', () => {
-    const source = SONGS.find((s) => s.id === 'blue-hour-club')!
+    const source = SONGS.find((s) => s.id === 'skyline-run')!
     const song = tryParse(source.raw).song as Song
     const withQa = (qa: Qa): Song => ({ ...song, extra: { ...song.extra, qa } })
     expect(lint(withQa({ ...qaOf(song), accidentalFractionMax: 1 }), source.id).problems)
@@ -806,7 +820,7 @@ describe('gate D — a gate that cannot fail is not a gate', () => {
         ...p, rows: p.rows.map((c) => c.note !== undefined && c.note >= 0 ? { ...c, note: 66 } : c),
       } : p),
     }
-    expect(lint(wrong, source.id).problems.join('\n')).toContain('outside c-mixolydian')
+    expect(lint(wrong, source.id).problems.join('\n')).toContain('outside a-minor')
   })
 
   it.each(BAD_PARSE)('%s fails gate A with "%s"', (file, needle) => {

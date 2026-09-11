@@ -23,14 +23,16 @@ Later phases cover VRC6, WAV export UI, expansion chips and text interchange.
 
 ## original soundtrack
 
-Eight original NES/Famicom compositions replace the old presets and the first
-replacement attempt: Pocket Voltage (funk), Blue Hour Club (swing jazz),
-Version in Salt (dub), Razor Rally (speed metal), Café Azimuth (bossa nova),
-Two-Part Machine (invention), Slow Orbit (ambient), and Breakwater (drum and bass).
-Distinct voice roles, instrument palettes and forms span 48–192 BPM.
-Choose them in the transport row’s **Song** picker. All notes and instruments are editable.
-`pnpm preview:songs` renders unnormalized WAVs, including a second pass through each
-loop, into `previews/`. See the [track notes and audition guide](docs/soundtrack.md).
+Three original NES/Famicom compositions ship as the presets: **Skyline Run** (an
+action-stage theme, 150 BPM, 2A03 with DPCM kick and snare), **Cathedral of Gears** (a
+gothic theme, 150 BPM) and **Tide Tables** (a slow ambient piece in 5/4, 56 BPM). They
+are the demo pieces of OCTET, a sibling 2A03 + VRC6 sequencer project, rebuilt here
+for the 2A03's five lanes: Skyline Run ports directly; the other two used the VRC6's
+extra pulses and sawtooth and are re-voiced onto pulse 1, pulse 2, triangle and noise
+by the modules in `tools/songs/octet/`. Choose them in the transport row's **Song**
+picker. All notes and instruments are editable. `pnpm preview:songs` renders
+unnormalized WAVs, including a second pass through each loop, into `previews/`. See
+the [track notes and audition guide](docs/soundtrack.md).
 
 ## run
 

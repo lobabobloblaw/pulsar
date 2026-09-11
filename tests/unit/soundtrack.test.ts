@@ -1,14 +1,16 @@
-/** Genre-specific contracts, not an automated claim of musical quality. */
+/** Piece-specific contracts for the three OCTET tracks — what makes each one itself, not
+ *  an automated claim of musical quality (tools/songs/octet/README.md, docs/soundtrack.md). */
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { parseSong } from '../../src/tracker/model/validate'
+import { parseSong, serializeSong } from '../../src/tracker/model/validate'
 import type { Song } from '../../src/tracker/model/types'
 
 const dir = join(import.meta.dirname, '../../src/assets/songs')
-const songs = readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((file) => ({
-  file, song: parseSong(JSON.parse(readFileSync(join(dir, file), 'utf8'))).song,
-}))
+const songs = readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((file) => {
+  const text = readFileSync(join(dir, file), 'utf8')
+  return { file, text, song: parseSong(JSON.parse(text)).song }
+})
 function named(id: string): Song {
   return songs.find(({ file }) => file.endsWith(`-${id}.json`))!.song
 }
@@ -18,6 +20,10 @@ function pattern(song: Song, channel: Song['channels'][number], frame = 0) {
 }
 function attacks(p: Song['patterns'][number]) {
   return p.rows.filter((c) => c.note !== undefined && c.note >= 0)
+}
+/** Every attack the order reaches on one channel, in played order. */
+function played(song: Song, channel: Song['channels'][number]) {
+  return song.order.flatMap((_, frame) => attacks(pattern(song, channel, frame)))
 }
 function bpm(song: Song) {
   return 24 * song.meta.tempo / (song.meta.speed * song.meta.rowHighlight)
@@ -35,21 +41,23 @@ function openingTimbre(song: Song): string {
   return JSON.stringify(Object.entries(song.instruments[0].macros).map(([kind, index]) =>
     index < 0 ? null : song.sequences[kind as keyof Song['sequences']][index]))
 }
+function qaOf(song: Song) {
+  return song.extra!.qa as { form: string[]; loopFrame: number; accidentalFractionMax?: number; key: string }
+}
 
-describe('genre restart', () => {
-  it('has eight different rhythmic arrangements, opening palettes and tempos', () => {
-    expect(songs).toHaveLength(8)
-    expect(new Set(songs.map(({ song }) => song.extra!.genre)).size).toBe(8)
-    expect(new Set(songs.map(({ song }) => texture(song))).size).toBe(8)
-    expect(new Set(songs.map(({ song }) => openingTimbre(song))).size).toBe(8)
-    expect(new Set(songs.map(({ song }) => bpm(song))).size).toBe(8)
-    expect(Math.min(...songs.map(({ song }) => bpm(song)))).toBe(48)
-    expect(Math.max(...songs.map(({ song }) => bpm(song)))).toBe(192)
+describe('the OCTET tracks', () => {
+  it('are three, each with its own texture, opening palette and tempo', () => {
+    expect(songs.map(({ file }) => file)).toEqual([
+      '01-skyline-run.json', '02-cathedral-of-gears.json', '03-tide-tables.json',
+    ])
+    expect(new Set(songs.map(({ song }) => texture(song))).size).toBe(3)
+    expect(new Set(songs.map(({ song }) => openingTimbre(song))).size).toBe(3)
+    expect(songs.map(({ song }) => bpm(song))).toEqual([150, 150, 56.25])
+    expect(songs.map(({ song }) => song.meta.speed)).toEqual([3, 6, 8])
     // Relabeling, transposing and speeding up a copy cannot fake a new texture.
     const original = songs[0].song
     const copy: Song = {
-      ...original, meta: { ...original.meta, name: 'Not a new genre', tempo: 180 },
-      extra: { ...original.extra, genre: 'different label' },
+      ...original, meta: { ...original.meta, name: 'Not a new piece', tempo: 180 },
       patterns: original.patterns.map((p) => ({
         ...p, rows: p.rows.map((c) => c.note !== undefined && c.note >= 0
           ? { ...c, note: c.note + 2 } : c),
@@ -58,90 +66,76 @@ describe('genre restart', () => {
     expect(texture(copy)).toBe(texture(original))
   })
 
-  it('funk starts with the rhythm section and gives the bass offbeat motion', () => {
-    const s = named('pocket-voltage')
-    expect(attacks(pattern(s, 'pulse1'))).toHaveLength(0)
-    expect(attacks(pattern(s, 'pulse2'))).toHaveLength(0)
-    expect(attacks(pattern(s, 'triangle', 1)).filter((c) => c.r % 4 !== 0).length).toBeGreaterThanOrEqual(6)
-    expect(attacks(pattern(s, 'dpcm')).length).toBeGreaterThanOrEqual(4)
+  it('are committed exactly as serializeSong writes them (the converter is canonical)', () => {
+    for (const { file, text, song } of songs) expect(serializeSong(song), file).toBe(text)
   })
 
-  it('jazz uses actual 2:1 swing subdivisions and quarter-note walking bass', () => {
-    const s = named('blue-hour-club')
-    expect(s.meta.rowHighlight).toBe(6)
-    expect(attacks(pattern(s, 'pulse1')).slice(0, 3).map((c) => c.r)).toEqual([0, 4, 6])
-    for (const p of s.patterns.filter((p) => p.channel === 'triangle')) {
-      expect(attacks(p).map((c) => c.r)).toEqual(Array.from({ length: 16 }, (_, i) => i * 6))
-    }
-    expect(s.order).toHaveLength(9) // three 12-bar blues choruses
+  it('never name their author as a person or a work: they are the sibling project’s demos', () => {
+    for (const { song } of songs) expect(song.meta.author).toMatch(/^OCTET demo/)
   })
 
-  it('dub makes pulse2 a quieter written echo and drops the dry voice', () => {
-    const s = named('version-in-salt')
-    const dry = attacks(pattern(s, 'pulse1'))[0]
-    const echo = attacks(pattern(s, 'pulse2')).slice(0, 2)
-    expect(echo.map((c) => c.r - dry.r)).toEqual([4, 6])
-    expect(echo.map((c) => c.note)).toEqual([dry.note, dry.note])
-    expect(echo[0].vol!).toBeLessThan(dry.vol!)
-    expect(echo[1].vol!).toBeLessThan(echo[0].vol!)
-    expect(attacks(pattern(s, 'pulse1', 2))).toHaveLength(0)
-    expect(attacks(pattern(s, 'pulse2', 2)).length).toBeGreaterThan(0)
-  })
-
-  it('metal centers low pedal riffs and fast double-kick attacks', () => {
-    const s = named('razor-rally')
-    const guitar = attacks(pattern(s, 'pulse1'))
-    expect(guitar.filter((c) => c.note === 52).length).toBeGreaterThanOrEqual(6)
-    expect(Math.max(...guitar.map((c) => c.note!))).toBeLessThan(65)
-    const kicks = attacks(pattern(s, 'dpcm'))
-    expect(kicks.filter((c, i) => i > 0 && c.r - kicks[i - 1].r === 2).length).toBeGreaterThanOrEqual(8)
-    expect(s.order).toHaveLength(20)
-  })
-
-  it('bossa has two-bar comping and four-note extended-chord macros', () => {
-    const s = named('cafe-azimuth')
-    expect(attacks(pattern(s, 'pulse2')).map((c) => c.r)).toEqual([0, 6, 12, 18, 22, 28])
-    expect(s.sequences.arpeggio.map((seq) => seq.values)).toEqual([
-      [0, 4, 7, 11], [0, 3, 7, 10], [0, 4, 7, 10],
-    ])
-    expect(s.order).toHaveLength(16) // 32-bar AABA
-  })
-
-  it('the invention exchanges manuals without drums or a chord macro', () => {
-    const s = named('two-part-machine')
-    expect(s.channels).toEqual(['pulse1', 'pulse2', 'triangle'])
-    expect(attacks(pattern(s, 'pulse2'))[0].r).toBe(16)
-    expect(s.sequences.arpeggio).toHaveLength(0)
-    expect(s.sequences.pitch).toHaveLength(0)
-    expect(new Set(s.order.map((frame) => frame[0])).size).toBe(8)
-  })
-
-  it('ambient sustains eight sonorities with slow attacks and no drum lane', () => {
-    const s = named('slow-orbit')
-    expect(s.channels).toEqual(['pulse1', 'pulse2', 'triangle'])
-    for (const channel of s.channels) {
-      const onsets = s.order.flatMap((_, frame) => attacks(pattern(s, channel, frame)))
-      expect(onsets).toHaveLength(8)
-      expect(onsets.every((c) => c.r === 0 || c.r === 32)).toBe(true)
-    }
-    const envelope = s.sequences.volume[s.instruments[0].macros.volume]
-    expect(envelope.values[0]).toBeLessThan(envelope.values[40])
-    expect(envelope.release).toBeGreaterThan(40)
-  })
-
-  it('drum and bass has broken grids, pitched snare chops and a skipped build', () => {
-    const s = named('breakwater')
+  it('Skyline Run: a 32nd-note grid, DPCM kick and snare on the kit slots, a two-row echo', () => {
+    const s = named('skyline-run')
+    expect(s.meta.speed).toBe(3)
+    expect(s.meta.rowHighlight).toBe(8)
+    expect(s.channels).toEqual(['pulse1', 'pulse2', 'triangle', 'noise', 'dpcm'])
     const kit = s.instruments.find((i) => i.dpcm !== undefined)!.dpcm!
-    expect(new Set(Object.values(kit).filter((a) => a.sample === 1).map((a) => a.pitch)))
-      .toEqual(new Set([9, 12, 15]))
-    expect((s.extra!.qa as { loopFrame: number }).loopFrame).toBe(2)
-    expect(attacks(pattern(s, 'dpcm', 2)).some((c) => c.r % 4 !== 0)).toBe(true)
-    expect(new Set(s.order.map((frame) => frame[4])).size).toBeGreaterThanOrEqual(4)
+    expect(Object.keys(kit)).toEqual(['36', '38'])
+    expect(kit['36'].sample).toBe(0)
+    expect(kit['38'].sample).toBe(1)
+    expect(s.samples.map((x) => x.name)).toEqual(['x-skyline-run-dpcm-kick', 'x-skyline-run-dpcm-snare'])
+    // pulse 2 shadows the hook two rows late and quieter, from the loop frame on
+    const lead = attacks(pattern(s, 'pulse1', 2)).slice(0, 6)
+    const echo = attacks(pattern(s, 'pulse2', 2)).slice(0, 6)
+    expect(echo.map((c) => c.r - lead[echo.indexOf(c)].r)).toEqual([2, 2, 2, 2, 2, 2])
+    expect(echo.map((c) => c.note)).toEqual(lead.map((c) => c.note))
+    expect(echo[0].vol!).toBeLessThan(lead[0].vol!)
+    // the half-time breakdown and its return are the only speed changes
+    const speeds = s.patterns.flatMap((p) => p.rows.flatMap((c) => (c.fx ?? []).filter((e) => e && e.cmd === 'F').map((e) => e!.param)))
+    expect(speeds.sort()).toEqual([3, 6])
+    expect(qaOf(s).loopFrame).toBe(2)
+    expect(s.order).toHaveLength(42)
+  })
+
+  it('Cathedral of Gears: the triangle carries the bass, pulse 2 a chord device, the key allows the raised seventh', () => {
+    const s = named('cathedral-of-gears')
+    expect(s.channels).toEqual(['pulse1', 'pulse2', 'triangle', 'noise'])
+    const tri = played(s, 'triangle')
+    expect(tri.length).toBeGreaterThan(played(s, 'pulse1').length * 3)
+    expect(tri.length).toBeGreaterThan(played(s, 'pulse2').length * 3)
+    expect(Math.min(...tri.map((c) => c.note!))).toBeLessThan(36) // the sawtooth's own octave
+    // the counter-melody lane spells the inner harmony with 0xy while it rests
+    const chords = played(s, 'pulse2').filter((c) => c.fx?.some((e) => e && e.cmd === '0' && e.param !== 0))
+    expect(chords.length).toBeGreaterThanOrEqual(8)
+    expect(qaOf(s).key).toBe('d-minor')
+    expect(qaOf(s).accidentalFractionMax).toBe(0.2)
+    expect(s.order).toHaveLength(22)
+    expect(qaOf(s).loopFrame).toBe(2)
+  })
+
+  it('Tide Tables: two bars of 5/4 a pattern, 3xx drones on the triangle, fixed-mode bells', () => {
+    const s = named('tide-tables')
+    expect(s.meta.rowsPerPattern).toBe(80)
+    expect(s.meta.rowHighlight).toBe(8)
+    expect(s.meta.rowHighlight2).toBe(40)
+    expect(s.channels).toEqual(['pulse1', 'pulse2', 'triangle', 'noise'])
+    const glides = played(s, 'triangle').filter((c) => c.fx?.some((e) => e && e.cmd === '3' && e.param !== 0))
+    expect(glides.length).toBeGreaterThanOrEqual(20)
+    expect(s.sequences.arpeggio.length).toBeGreaterThanOrEqual(4)
+    for (const seq of s.sequences.arpeggio) expect(seq.mode).toBe('fixed')
+    // the wind is written as re-struck one-shot swells: every noise envelope ends on 0
+    for (const c of played(s, 'noise')) {
+      const env = s.sequences.volume[s.instruments[c.inst!].macros.volume]
+      expect(env.loop).toBe(-1)
+      expect(env.values.at(-1)).toBe(0)
+    }
+    expect(s.order).toHaveLength(15)
+    expect(qaOf(s).loopFrame).toBe(0)
   })
 
   for (const { file, song } of songs) {
     it(`${file}: explicitly resets its own loop, without requiring an introduction`, () => {
-      const qa = song.extra!.qa as { form: string[]; loopFrame: number }
+      const qa = qaOf(song)
       expect(qa.form).toHaveLength(song.order.length)
       expect(qa.loopFrame).toBeGreaterThanOrEqual(0)
       expect(qa.loopFrame).toBeLessThan(song.order.length)

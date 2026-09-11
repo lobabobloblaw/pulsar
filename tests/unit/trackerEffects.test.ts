@@ -150,6 +150,30 @@ describe('3xx portamento', () => {
     expect(Math.min(...timers)).toBe(to)
   })
 
+  it('a cut kills a glide in flight: the next 3xx note is a fresh trigger, not a target', () => {
+    // c4, then a slow glide toward c3 (two units a tick: ~250 units, far more than the
+    // row has), a cut BEFORE it arrives, then a 3xx note on the silenced channel.
+    // The glide must not "arrive" after the cut and restore a base note: with nothing
+    // sounding, the new note has to trigger and snap to its own pitch immediately.
+    const s = song(
+      [
+        { r: 0, note: 60, vol: 15 },
+        { r: 1, note: 48, fx: fx('3', 0x02) },
+        { r: 3, note: NOTE_CUT },
+        { r: 5, note: 72, fx: fx('3', 0x02) },
+      ],
+      8,
+    )
+    const { ticks, sink } = drive(s, 64)
+    const timers = timerSeries(ticks, REG.P1_LO)
+    expect(timers[40]).toBe(T(72))
+    expect(timers.at(-1)).toBe(T(72))
+    // $4003 (the side-effect register) goes out for both real triggers.
+    expect(countWrites(sink, REG.P1_HI)).toBe(2)
+    // and the channel is enabled again: $4015 written on the trigger, the cut, the retrigger
+    expect(countWrites(sink, REG.STATUS)).toBe(3)
+  })
+
   it('does NOT retrigger: $4003 is written once, for the first note only', () => {
     const s = song(
       [
