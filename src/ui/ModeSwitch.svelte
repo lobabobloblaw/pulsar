@@ -1,34 +1,38 @@
 <!--
-  pulsar — the workspace switch (Ivory).
+  pulsar — the workspace switch (Ivory, phone pages).
 
-  One segmented control, two positions: Instrument and Tracker. It is the only
-  way the tracker opens, and it reads back the state the app is actually in:
-  `tracker.open` persists for the session, but below App's compact threshold
-  the editor cannot be shown, so the Tracker segment is disabled and says why,
-  and the Instrument segment reads pressed because that is the workspace on
-  screen. Resizing back up restores the editor over the same song and cursor
-  — the persisted flag is the contract (docs/homepage-integration.md).
+  One segmented control, two positions. On a wide window they are Instrument
+  and Tracker: the only way the tracker opens, reading back the state the
+  app is actually in. Below App's compact threshold the tracker has no
+  layout, so the same control pages the phone instead: Play (keytop and
+  keybed) and Voice (screen well and dials) — session state App owns, never
+  persisted. No segment is disabled at any width.
 
-  Opening turns the screen to the song page and closing restores the params
-  page — the page follow the old StatusBar chip performed.
+  Opening the tracker turns the screen to the song page and closing restores
+  the params page. `tracker.open` persists for the session either way:
+  shrinking to a phone shows the pages, growing back restores the editor
+  over the same song and cursor (docs/homepage-integration.md).
 -->
 <script lang="ts">
   import { tracker } from '../state/tracker.svelte'
   import { transport } from '../state/transport.svelte'
+  import type { PhonePage } from './pages'
 
   interface Props {
     /** App's `(max-width: 720px)` state: the tracker has no phone layout. */
     compact: boolean
+    /** The phone page App owns; only rendered while compact. */
+    phonePage: PhonePage
+    onPhonePage: (page: PhonePage) => void
   }
-  let { compact }: Props = $props()
+  let { compact, phonePage, onPhonePage }: Props = $props()
 
   const trackerShown = $derived(tracker.open && !compact)
 
-  /** Guards on the RENDERED state, never on `tracker.open`: below the compact
-   *  threshold the editor can be open but hidden, and a tap on the pressed
-   *  Instrument segment must be a no-op — toggling the hidden editor would
-   *  also stop a playing song (`toggleOpen` stops playback on close) and lose
-   *  the editor on the way back to a wide window. */
+  /** Guards on the RENDERED state, never on `tracker.open`: the editor can be
+   *  open but hidden, and a click on the pressed segment must be a no-op —
+   *  toggling the hidden editor would also stop a playing song
+   *  (`toggleOpen` stops playback on close). */
   function setMode(open: boolean): void {
     if (trackerShown === open) return
     tracker.toggleOpen()
@@ -37,15 +41,17 @@
 </script>
 
 <nav class="modes" aria-label="Workspace">
-  <button type="button" aria-pressed={!trackerShown} onclick={() => setMode(false)}>Instrument</button>
-  <button
-    type="button"
-    aria-pressed={trackerShown}
-    disabled={compact}
-    onclick={() => setMode(true)}
-  >
-    {compact ? 'Tracker · wider screen' : 'Tracker'}
-  </button>
+  {#if compact}
+    <button type="button" aria-pressed={phonePage === 'play'} onclick={() => onPhonePage('play')}>
+      Play
+    </button>
+    <button type="button" aria-pressed={phonePage === 'voice'} onclick={() => onPhonePage('voice')}>
+      Voice
+    </button>
+  {:else}
+    <button type="button" aria-pressed={!trackerShown} onclick={() => setMode(false)}>Instrument</button>
+    <button type="button" aria-pressed={trackerShown} onclick={() => setMode(true)}>Tracker</button>
+  {/if}
 </nav>
 
 <style>
@@ -79,11 +85,6 @@
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.13);
   }
 
-  .modes button:disabled {
-    opacity: 0.4;
-    cursor: default;
-  }
-
   .modes button:focus-visible {
     outline: none;
     box-shadow: var(--focus);
@@ -109,7 +110,6 @@
     .modes button {
       flex: 1 1 0;
       min-width: 0;
-      white-space: normal;
     }
   }
 </style>

@@ -485,6 +485,9 @@
   }
 
   @media (max-width: 600px) {
+    .screen {
+      gap: 8px;
+    }
     .well {
       padding: 12px 10px;
       gap: 10px;

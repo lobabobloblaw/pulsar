@@ -16,7 +16,9 @@
      permission is requested lazily, never on load.
    - compose the Ivory enclosure: head (brand, workspace switch, settings,
      output) · settings strip · transport row · live modules or the tracker ·
-     keytop · keybed · footer.
+     keytop · keybed · footer. Below the compact threshold the shell is paged
+     (`phonePage`, session state owned here like `compact`): Play carries the
+     keytop, keybed and footer, Voice the screen well and the dials.
 
   The ?selftest hook below is the lead's headless gate harness. Do not change
   its shape: the runner looks for `pre[data-selftest]` and reads document.title.
@@ -45,6 +47,7 @@
   import TransportBar from './ui/TransportBar.svelte'
   import TrackerPanel from './ui/tracker/TrackerPanel.svelte'
   import { viewport } from './ui/viewport.svelte'
+  import type { PhonePage } from './ui/pages'
   import { downloadProject, installProjectHost } from './state/projectHost'
   import { createBootSequence } from './ui/canvas/bootSequence'
   import { createFrameBus, provideFrame } from './ui/frame'
@@ -63,6 +66,10 @@
   const compactQuery = matchMedia('(max-width: 720px)')
   let compact = $state(compactQuery.matches)
   let settingsOpen = $state(false)
+  /** The phone page. Default Play; kept across a grow-and-shrink. */
+  let phonePage = $state<PhonePage>('play')
+  const showLive = $derived(!compact || phonePage === 'voice')
+  const showKeys = $derived(!compact || phonePage === 'play')
 
   // Keep the audio document current independent of which responsive view is
   // mounted. Reopening the editor must not restart a playing song.
@@ -242,6 +249,27 @@
   <Settings id="settings-strip" onConnectMidi={connectMidi} />
 {/snippet}
 
+{#snippet liveArea()}
+  <Screen {boot} />
+  <KnobRow />
+{/snippet}
+
+{#snippet keytopArea()}
+  <KeyTop {compact} />
+{/snippet}
+
+{#snippet keysArea()}
+  <KeyBed {announce} />
+{/snippet}
+
+<!-- The footer's visible row belongs to the Play page; its host bridge (the
+     pulsar:project listener, the file input, the replace dialog) must stay
+     mounted on every page, so the Voice page keeps ProjectBar quiet rather
+     than absent. -->
+{#snippet footArea()}
+  <ProjectBar quiet={!showKeys} />
+{/snippet}
+
 <main aria-label="pulsar">
 {#if song.draftError}
   <div class="draft-alert" role="alert">
@@ -252,13 +280,17 @@
 <Enclosure
   tracker={tracker.open && !compact ? trackerArea : undefined}
   settings={settingsOpen ? settingsStrip : undefined}
+  live={showLive ? liveArea : undefined}
+  keytop={showKeys ? keytopArea : undefined}
+  keys={showKeys ? keysArea : undefined}
+  foot={footArea}
 >
   {#snippet brand()}
     <Brand />
   {/snippet}
 
   {#snippet modes()}
-    <ModeSwitch {compact} />
+    <ModeSwitch {compact} {phonePage} onPhonePage={(page) => { phonePage = page }} />
   {/snippet}
 
   {#snippet settingsButton()}
@@ -279,23 +311,6 @@
 
   {#snippet transportRow()}
     <TransportBar announce={announceText} onStartAudio={startAudio} />
-  {/snippet}
-
-  {#snippet live()}
-    <Screen {boot} />
-    <KnobRow />
-  {/snippet}
-
-  {#snippet keytop()}
-    <KeyTop {compact} />
-  {/snippet}
-
-  {#snippet keys()}
-    <KeyBed {announce} />
-  {/snippet}
-
-  {#snippet foot()}
-    <ProjectBar />
   {/snippet}
 </Enclosure>
 

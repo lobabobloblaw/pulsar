@@ -80,4 +80,10 @@
       width: 100px;
     }
   }
+
+  @media (max-width: 360px) {
+    .output {
+      width: 88px;
+    }
+  }
 </style>

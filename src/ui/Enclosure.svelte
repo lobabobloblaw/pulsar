@@ -14,6 +14,11 @@
   live modules (screen, then voice) follow it. The `.live` grid stacks to one
   column at 850px.
 
+  Below App's compact threshold the shell is PAGED rather than stacked: the
+  Play page renders keytop, keys and foot and no live modules, the Voice
+  page the live modules and no keys — App passes only the snippets a page
+  has, and every area here is optional for that reason.
+
   Embedded (`html[data-embedded]`): the homepage window is the casing, so the
   slab fills the frame with no radius, border or shadow, and the page ground
   becomes the slab colour.
@@ -29,14 +34,16 @@
     /** The settings strip — present ONLY while the head's button is expanded. */
     settings?: Snippet | undefined
     transportRow: Snippet
-    /** Screen module + voice section: the instrument workspace. */
-    live: Snippet
+    /** Screen module + voice section: the instrument workspace. Absent on
+     *  the phone's Play page. */
+    live?: Snippet | undefined
     /** The tracker workspace — present ONLY while the editor is open and the
      *  viewport can show it. It replaces `live`; the keys stay. */
     tracker?: Snippet | undefined
-    keytop: Snippet
-    keys: Snippet
-    foot: Snippet
+    /** Absent on the phone's Voice page. */
+    keytop?: Snippet | undefined
+    keys?: Snippet | undefined
+    foot?: Snippet | undefined
   }
   let {
     brand,
@@ -67,12 +74,18 @@
     <div class="area transport">{@render transportRow()}</div>
     {#if tracker}
       <div class="area tracker">{@render tracker()}</div>
-    {:else}
+    {:else if live}
       <div class="area live">{@render live()}</div>
     {/if}
-    <div class="area keytop">{@render keytop()}</div>
-    <div class="area keys">{@render keys()}</div>
-    <footer class="area foot">{@render foot()}</footer>
+    {#if keytop}
+      <div class="area keytop">{@render keytop()}</div>
+    {/if}
+    {#if keys}
+      <div class="area keys">{@render keys()}</div>
+    {/if}
+    {#if foot}
+      <footer class="area foot">{@render foot()}</footer>
+    {/if}
   </div>
 </div>
 
@@ -240,13 +253,31 @@
     .keys {
       order: 4;
     }
-    .live,
-    .tracker {
+    .live {
       order: 5;
+    }
+    /* The gap under the keybed exists only when the keybed is on the page
+       (the desktop-ordered phone, not the Voice page); without the keys the
+       live modules end the page and carry no bottom padding either. */
+    .live:has(~ .keys) {
       margin-top: 20px;
+    }
+    .live:not(:has(~ .keys)) {
+      padding-bottom: 0;
     }
     .foot {
       order: 6;
+    }
+  }
+
+  /* 320px: the head holds brand · output · Settings on one row (the study's
+     320 layout) — a 28px wordmark without its badge, a narrower fader. */
+  @media (max-width: 360px) {
+    .head {
+      gap: 10px 8px;
+    }
+    .head > .brand {
+      --brand-size: 28px;
     }
   }
 </style>

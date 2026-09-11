@@ -78,30 +78,55 @@ describe('the transport position readout never writes $state from the frame loop
   })
 })
 
-describe('the workspace switch honours the phone boundary', () => {
+describe('the workspace switch pages the phone and guards the desktop', () => {
   const modes = codeOf('ui', 'ModeSwitch.svelte')
 
-  it('disables the Tracker segment while compact and says why', () => {
-    // The grid has no phone layout; an enabled segment would flip `tracker.open`
-    // to a workspace that cannot render.
-    const buttons = modes.match(/<button[\s\S]*?<\/button>/g) ?? []
+  it('on compact the two segments are Play and Voice, neither disabled', () => {
+    // The phone is paged, not stacked: a disabled "wider screen" segment would
+    // leave one dead control and a shell two screens tall.
+    const phone = section(modes, '{#if compact}', '{:else}')
+    const buttons = phone.match(/<button[\s\S]*?<\/button>/g) ?? []
     expect(buttons).toHaveLength(2)
-    const trackerButton = buttons.find((b) => b.includes('Tracker'))
-    expect(trackerButton, 'no Tracker segment').toBeDefined()
-    expect(trackerButton).toMatch(/disabled=\{compact\}/)
-    expect(trackerButton).toContain('wider screen')
-    expect(buttons[0]).not.toMatch(/disabled=/)
+    expect(buttons[0]).toMatch(/>\s*Play\s*</)
+    expect(buttons[1]).toMatch(/>\s*Voice\s*</)
+    expect(buttons[0]).toMatch(/aria-pressed=\{phonePage === 'play'\}/)
+    expect(buttons[1]).toMatch(/aria-pressed=\{phonePage === 'voice'\}/)
+    for (const b of buttons) expect(b).not.toMatch(/\bdisabled\b/)
+    expect(modes).not.toContain('wider screen')
   })
 
-  it('guards on the rendered state, so the pressed segment is a no-op', () => {
-    // Below the compact threshold `tracker.open` can be true while the
-    // Instrument segment renders pressed; a guard on the store would then
-    // toggle the hidden editor — and `toggleOpen` stops a playing song.
+  it('on wide the segments are Instrument and Tracker, neither disabled', () => {
+    const wide = section(modes, '{:else}', '{/if}')
+    const buttons = wide.match(/<button[\s\S]*?<\/button>/g) ?? []
+    expect(buttons).toHaveLength(2)
+    expect(buttons[0]).toMatch(/>\s*Instrument\s*</)
+    expect(buttons[1]).toMatch(/>\s*Tracker\s*</)
+    for (const b of buttons) expect(b).not.toMatch(/\bdisabled\b/)
+  })
+
+  it('the wide setter guards on the rendered state, so the pressed segment is a no-op', () => {
+    // `tracker.open` can be true while the editor is hidden; a guard on the
+    // store would toggle the hidden editor — and `toggleOpen` stops a song.
     expect(modes).toMatch(/const trackerShown = \$derived\(tracker\.open && !compact\)/)
     const setter = section(modes, 'function setMode', '</script>')
     expect(setter).toMatch(/if \(trackerShown === open\) return/)
     expect(setter).not.toMatch(/tracker\.open === open/)
     expect(setter).toContain('tracker.toggleOpen()')
+  })
+})
+
+describe('the keybed releases every hold it owns on unmount', () => {
+  const keybed = codeOf('ui', 'KeyBed.svelte')
+
+  it('registers releaseAll with onDestroy', () => {
+    // The phone's Voice page unmounts the bed; a finger still down on a key
+    // would never get its pointerup, and the note would sound until a panic.
+    expect(keybed).toMatch(/import \{[^}]*\bonDestroy\b[^}]*\} from 'svelte'/)
+    expect(keybed).toMatch(/onDestroy\(releaseAll\)/)
+    const fn = section(keybed, 'function releaseAll', 'function onKeyDown')
+    expect(fn).toContain('releaseCursorNote()')
+    expect(fn).toMatch(/for \(const hold of pointers\.values\(\)\) release\(hold\.note, hold\.holder\)/)
+    expect(fn).toContain('pointers.clear()')
   })
 })
 

@@ -7,7 +7,9 @@
   sentence when a draft could not be written — never a decorative "saved".
 
   The hidden file input, the `pulsar:project` host bridge and the replace
-  dialog are unchanged in behaviour; only their clothes are Ivory.
+  dialog are unchanged in behaviour; only their clothes are Ivory. `quiet`
+  renders only that machinery and no visible row: the phone's Voice page has
+  no footer, but the host's New/Open actions must still land somewhere.
 -->
 <script lang="ts">
   import { onMount } from 'svelte'
@@ -17,6 +19,13 @@
   import { parseSong } from '../tracker/model/validate'
   import type { Song } from '../tracker/model/types'
   import { downloadProject } from '../state/projectHost'
+
+  interface Props {
+    /** Mount the host bridge, the file input and the dialog without the row. */
+    quiet?: boolean
+  }
+  let { quiet = false }: Props = $props()
+
   let file = $state<HTMLInputElement | null>(null)
   let dialog = $state<HTMLDialogElement | null>(null)
   let pending = $state<Song | 'new' | null>(null)
@@ -73,6 +82,7 @@
   })
 </script>
 
+{#if !quiet}
 <div class="project" aria-label="project">
   <p class="save" class:error={song.draftError} role="status">● {saveState}</p>
   <div class="actions">
@@ -85,9 +95,10 @@
     </span>
   </div>
   <span class="serial">PULSAR / 2A03</span>
-  <input bind:this={file} type="file" accept=".json,.pulsar.json,application/json" onchange={readFile} hidden />
   {#if error}<p class="open-error" role="alert">{error}</p>{/if}
 </div>
+{/if}
+<input bind:this={file} type="file" accept=".json,.pulsar.json,application/json" onchange={readFile} hidden />
 <dialog bind:this={dialog} aria-label="replace current project" oncancel={cancel}>
   <p>Replace this edited project? Download it first to keep a separate copy.</p>
   <div class="dialog-actions">
@@ -199,6 +210,14 @@
     }
     .serial {
       display: none;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .project,
+    :global([data-embedded]) .project {
+      gap: 6px 10px;
+      padding-top: 10px;
     }
   }
 </style>

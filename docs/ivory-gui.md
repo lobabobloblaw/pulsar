@@ -39,6 +39,24 @@ is `min(100% - 24px, 1120px)` wide in both workspaces (`100% - 8px` at
 the slab fills the frame with no radius, border or shadow, padding 16px
 (12px at ≤600px), and the page ground is the slab colour.
 
+### Phone pages
+
+Below App's compact threshold (720px, where the tracker cannot render) the
+workspace switch's two segments read **Play** and **Voice** instead of
+Instrument and Tracker, and no segment is disabled at any width. Both pages
+keep the head, the settings strip and the transport row. Play adds the
+keytop, the keybed and the footer; Voice adds the screen well with its pager
+and the voice section. The page is session state owned by `App.svelte`
+(`phonePage`, default Play), not persisted and not in the tracker store;
+growing past 720px shows the desktop switch and shrinking back returns to the
+chosen page. Switching pages never touches playback: the keybed releases
+every hold it owns on unmount (`onDestroy(releaseAll)`), the Screen mounts
+fresh on Voice (boot page and TAP A KEY TO START while the engine is idle,
+the params page once it runs), and the footer's host bridge (the
+`pulsar:project` listener, file input and replace dialog) stays mounted on
+Voice through ProjectBar's `quiet` mode. The tracker remains a wide-screen
+surface.
+
 ## Tokens (`src/design/tokens.css`; the screen slice mirrored in `tokens.ts`)
 
 Every custom-property name a component or canvas reads was kept and given an

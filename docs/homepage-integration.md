@@ -15,10 +15,11 @@ script owns publication; a Pulsar source change alone does not update the site.
 `?embed` removes the standalone desk and the slab's border, radius and shadow.
 It fills the host window with a scrollable instrument. The transport row
 (song picker, play/stop, BPM, position) is in the enclosure in both
-workspaces. Below 721px an open tracker yields to the instrument workspace and
-the workspace switch says so; resizing back restores the editor over the same
-song, preset and cursor. No responsive component owns playback
-synchronization: App owns the document effect.
+workspaces. Below 720px the switch pages between Play (keytop, keybed,
+footer) and Voice (screen, dials) instead of stacking the instrument two
+screens tall; the tracker remains a wide-screen surface, and resizing back
+restores the editor over the same song, preset and cursor. No responsive
+component owns playback synchronization: App owns the document effect.
 
 ## Ivory shell
 

@@ -38,11 +38,15 @@
       union, while lifting one finger releases exactly that finger's hold.
 
   Stuck-note guard: pointerup, pointercancel, leaving the bed and losing the
-  window all release. The all-source guards (blur, visibilitychange -> panic)
-  live in input/keyboard.ts; a panic from there can leave this map holding notes
-  the engine has already dropped, which costs one harmless duplicate note-off.
+  window all release — and so does UNMOUNT: the phone's Voice page removes the
+  bed, and a second finger tapping the switch mid-hold would otherwise strand
+  the first finger's note, because its pointerup lands on a bed that is gone.
+  The all-source guards (blur, visibilitychange -> panic) live in
+  input/keyboard.ts; a panic from there can leave this map holding notes the
+  engine has already dropped, which costs one harmless duplicate note-off.
 -->
 <script lang="ts">
+  import { onDestroy } from 'svelte'
   import { tracker } from '../state/tracker.svelte'
   import { bridge } from '../audio/bridge'
   import { LOCAL_VELOCITY, codeForSemitone } from '../input/keyboard'
@@ -184,6 +188,9 @@
     for (const hold of pointers.values()) release(hold.note, hold.holder)
     pointers.clear()
   }
+
+  // Unmount fires neither pointerup nor keyup for holds in flight.
+  onDestroy(releaseAll)
 
   function onKeyDown(e: KeyboardEvent): void {
     switch (e.key) {

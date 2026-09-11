@@ -174,6 +174,20 @@
     border-radius: var(--r-1);
   }
 
+  /* 320px: the caption sits beside the field instead of above it, so the
+     Play page keeps one row for the picker. */
+  @media (max-width: 360px) {
+    .picker {
+      flex-direction: row;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .picker select {
+      flex: 1 1 0;
+      width: auto;
+    }
+  }
+
   /* A failed load RINGS the field — non-text red, visible on the slab; the
      live-region announcement already said it in words. */
   .picker select.bad {

@@ -28,6 +28,18 @@
 // without it — the transport row must not change its row count when audio
 // starts, or the instrument jumps under the finger that started it.
 //
+// PHONE PAGES (phone-pages branch): below 720px the workspace switch reads
+// Play and Voice and pages the shell. The phone pass (320x568 and 390x844,
+// standalone and embed, fine and coarse) shoots BOTH pages as `play-{w}.png`
+// and `voice-{w}.png` (`embed-`, `touch-` prefixes for the variants) and
+// asserts the segment labels, that no segment is disabled, the page
+// structure, no horizontal overflow, the keybed under 500px on Play, the
+// lattice on Voice, vertical fit at 390 embedded (both pages) and at 320
+// embedded (Play; Voice may scroll there and its height is reported), the
+// coarse floors on both pages, the start-cap jump on Play, and that a song
+// keeps playing — position readout moving, play key pressed — across a
+// Voice and back switch.
+//
 // Playwright is intentionally NOT a devDependency of this repo — it is
 // imported from an absolute path outside the repo (see IMPORT below), and
 // the script adds nothing to package.json / pnpm-lock.yaml.
@@ -38,14 +50,17 @@ import { mkdir } from 'node:fs/promises'
 const CHROME_PATH =
   '/Users/alexvoigt/Library/Caches/ms-playwright/chromium_headless_shell-1243/chrome-headless-shell-mac-arm64/chrome-headless-shell'
 
-const WIDTHS = [1024, 736, 390, 320]
+/** Wide widths: the Instrument / Tracker pass. The phone widths are the
+ *  paged pass below. */
+const WIDTHS = [1024, 736]
+const PHONE = [
+  { width: 390, height: 844 },
+  { width: 320, height: 568 },
+]
+const PAGES = ['play', 'voice']
 /** The coarse-pointer pass: phone portrait twice, then a tablet that can
  *  open the tracker. */
-const TOUCH = [
-  { width: 320, height: 568, tracker: false },
-  { width: 390, height: 844, tracker: false },
-  { width: 820, height: 1180, tracker: true },
-]
+const TOUCH = [{ width: 820, height: 1180, tracker: true }]
 const MIN_TARGET = 44
 const MIN_FIELD_FONT = 16
 const VARIANTS = ['standalone', 'embed']
@@ -561,6 +576,245 @@ async function runTouch(base, outDir, loadSong) {
   return 1
 }
 
+/** The phone pass: both pages at each phone width and variant, fine or
+ *  coarse. Every page gets a fresh browser page, because a full-page
+ *  screenshot under mobile emulation drops the touch pointer. */
+async function runPhone(base, outDir, loadSong, coarse) {
+  await mkdir(outDir, { recursive: true })
+  const browser = await chromium.launch({
+    executablePath: CHROME_PATH,
+    args: ['--mute-audio', '--autoplay-policy=no-user-gesture-required'],
+  })
+  const rows = []
+  const failures = []
+  const label = coarse ? 'coarse' : 'fine'
+  try {
+    for (const t of PHONE) {
+      for (const variant of VARIANTS) {
+        const context = await browser.newContext({
+          viewport: { width: t.width, height: t.height },
+          deviceScaleFactor: 1,
+          ...(coarse ? { hasTouch: true, isMobile: true } : {}),
+        })
+        const qs = variant === 'embed' ? '?stub&embed' : '?stub'
+        const open = async () => {
+          const page = await context.newPage()
+          await page.goto(`${base}/${qs}`, { waitUntil: 'load' })
+          await page.waitForSelector('nav[aria-label="Workspace"] button')
+          await page.waitForTimeout(400)
+          if (loadSong) {
+            await page.selectOption('[data-slot="preset-bar"] select', { index: 1 })
+            await page.waitForTimeout(250)
+          }
+          return page
+        }
+        const segment = (page, name) => page.locator('nav[aria-label="Workspace"] button', { hasText: name })
+        const keybedTop = (page) =>
+          page.evaluate(() => {
+            const el = document.querySelector('[role="toolbar"][aria-label^="keybed"]')
+            return el ? Math.round(el.getBoundingClientRect().top + window.scrollY) : null
+          })
+
+        for (const pageName of PAGES) {
+          const issues = []
+          const page = await open()
+
+          const labels = (await page.locator('nav[aria-label="Workspace"] button').allTextContents()).map((x) => x.trim())
+          if (labels.join('|') !== 'Play|Voice') issues.push(`segments are ${JSON.stringify(labels)}, expected Play|Voice`)
+          const disabledCount = await page.locator('nav[aria-label="Workspace"] button:disabled').count()
+          if (disabledCount > 0) issues.push(`${disabledCount} disabled segment(s)`)
+          if (pageName === 'voice') {
+            await segment(page, 'Voice').click()
+            await page.waitForTimeout(300)
+          }
+          const pressed = await segment(page, pageName === 'play' ? 'Play' : 'Voice').getAttribute('aria-pressed')
+          if (pressed !== 'true') issues.push(`${pageName} segment is not pressed`)
+
+          const hasKeys = (await page.locator('[role="toolbar"][aria-label^="keybed"]').count()) > 0
+          const hasWell = (await page.locator('.well > canvas').count()) > 0
+          const hasFooter = (await page.locator('.project').count()) > 0
+          if (pageName === 'play' && (!hasKeys || hasWell || !hasFooter)) {
+            issues.push(`play page structure: keys=${hasKeys} well=${hasWell} footer=${hasFooter}`)
+          }
+          if (pageName === 'voice' && (hasKeys || !hasWell || hasFooter)) {
+            issues.push(`voice page structure: keys=${hasKeys} well=${hasWell} footer=${hasFooter}`)
+          }
+
+          // Coarse floors, audited BEFORE the screenshot (see runTouch).
+          let audit = null
+          if (coarse) {
+            audit = await page.evaluate(
+              ([src, minTarget, minFont]) => new Function(`return (${src})()`)()(minTarget, minFont),
+              [touchAuditFn.toString(), MIN_TARGET, MIN_FIELD_FONT],
+            )
+            if (!audit.coarse) issues.push('(pointer: coarse) did not match')
+            for (const x of audit.smallTargets) issues.push(`target under ${MIN_TARGET}px: ${x}`)
+            for (const x of audit.smallFonts) issues.push(`field under ${MIN_FIELD_FONT}px: ${x}`)
+          }
+
+          const geo = await page.evaluate(() => {
+            const canvas = document.querySelector('.well > canvas')
+            const well = document.querySelector('.well')
+            const cs = well ? getComputedStyle(well) : null
+            return {
+              scrollWidth: document.documentElement.scrollWidth,
+              innerWidth: window.innerWidth,
+              scrollHeight: document.documentElement.scrollHeight,
+              clientHeight: document.documentElement.clientHeight,
+              canvas: canvas ? parseFloat(getComputedStyle(canvas).width) : null,
+              wellInner: well && cs ? well.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) : null,
+            }
+          })
+          if (geo.scrollWidth > geo.innerWidth) issues.push(`document overflow: ${geo.scrollWidth} > ${geo.innerWidth}`)
+
+          let top = 'n/a'
+          if (pageName === 'play') {
+            top = await keybedTop(page)
+            if (top === null || !(top < 500)) issues.push(`keybed top ${top} not < 500`)
+          }
+          if (pageName === 'voice') {
+            const ok = Number.isInteger(geo.canvas) && geo.canvas % 128 === 0 && geo.canvas > 0
+            if (!ok) issues.push(`screen canvas width ${geo.canvas} is not a positive multiple of 128`)
+            if (geo.wellInner !== null && geo.canvas > geo.wellInner) {
+              issues.push(`lattice ${geo.canvas}px wider than the well's inner ${geo.wellInner}px`)
+            }
+          }
+
+          // Vertical fit inside the phone shell: 390 both pages, and 320 Play
+          // under a fine pointer. Under a coarse pointer the 320x568 Play page
+          // cannot fit by arithmetic — the 44px floors on Settings, the switch,
+          // the octave caps and the footer's five actions plus the 164px coarse
+          // keybed exceed 568 with every gap at zero — so there it is reported
+          // (the * mark) and not failed.
+          const fits = geo.scrollHeight <= geo.clientHeight
+          const mustFit = variant === 'embed' && (t.width === 390 || (pageName === 'play' && !coarse))
+          if (mustFit && !fits) issues.push(`page needs vertical scrolling: ${geo.scrollHeight} > ${geo.clientHeight}`)
+
+          const unnamed = await checkUnnamedControls(page)
+          for (const u of unnamed) issues.push(`unnamed control: ${u}`)
+
+          const fileName = `${variant === 'embed' ? 'embed-' : ''}${coarse ? 'touch-' : ''}${pageName}-${t.width}.png`
+          await page.screenshot({ path: `${outDir}/${fileName}`, fullPage: true })
+          await page.close()
+
+          // The start-cap jump, on the Play page, on a fresh page.
+          let jump = 'n/a'
+          if (pageName === 'play') {
+            const p2 = await open()
+            const capBefore = await p2.locator('button.start').count()
+            if (capBefore !== 1) issues.push(`expected the Start audio cap before the gesture, found ${capBefore}`)
+            const idleTop = await keybedTop(p2)
+            await p2.keyboard.press('z')
+            try {
+              await p2.waitForSelector('button.start', { state: 'detached', timeout: 3000 })
+            } catch {
+              issues.push('the Start audio cap did not leave after the key gesture')
+            }
+            await p2.waitForTimeout(150)
+            const runningTop = await keybedTop(p2)
+            jump = `${idleTop}/${runningTop}`
+            if (idleTop !== runningTop) issues.push(`keybed top moved when audio started: ${idleTop} -> ${runningTop}`)
+            await p2.close()
+          }
+
+          // Playback survives a Voice-and-back switch (checked with the Voice row).
+          let playing = 'n/a'
+          if (pageName === 'voice') {
+            const p3 = await open()
+            const pos = () => p3.locator('.position strong').first().textContent()
+            await p3.click('button.play')
+            await p3.waitForTimeout(500)
+            const a = (await pos()).trim()
+            await segment(p3, 'Voice').click()
+            await p3.waitForTimeout(500)
+            const pressedOnVoice = await p3.getAttribute('button.play', 'aria-pressed')
+            const b = (await pos()).trim()
+            await segment(p3, 'Play').click()
+            await p3.waitForTimeout(500)
+            const pressedOnPlay = await p3.getAttribute('button.play', 'aria-pressed')
+            const c = (await pos()).trim()
+            const ok = pressedOnVoice === 'true' && pressedOnPlay === 'true' && a !== b && b !== c
+            playing = ok ? 'ok' : `pressed ${pressedOnVoice}/${pressedOnPlay}, position ${a} > ${b} > ${c}`
+            if (!ok) issues.push(`playback did not survive the page switch: ${playing}`)
+            await p3.close()
+          }
+
+          rows.push({
+            width: t.width,
+            variant,
+            page: pageName,
+            overflow: `${geo.scrollWidth}/${geo.innerWidth}`,
+            height: `${geo.scrollHeight}/${geo.clientHeight}${fits ? '' : '*'}`,
+            top,
+            well: geo.canvas === null ? 'n/a' : `${geo.canvas}/${geo.wellInner}`,
+            unnamed: unnamed.length,
+            targets: audit === null ? '-' : audit.smallTargets.length,
+            fonts: audit === null ? '-' : audit.smallFonts.length,
+            jump,
+            playing,
+            file: fileName,
+          })
+          if (issues.length > 0) failures.push({ label: `${label} ${t.width} ${variant} ${pageName}`, issues })
+        }
+        await context.close()
+      }
+    }
+  } finally {
+    await browser.close()
+  }
+
+  const header = [
+    pad(label, 7),
+    pad('width', 6),
+    pad('variant', 10),
+    pad('page', 6),
+    pad('scrollW/innerW', 15),
+    pad('docH/viewH', 12),
+    pad('keybed', 7),
+    pad('canvas/well', 12),
+    pad('unnamed', 8),
+    pad('<44', 4),
+    pad('<16', 4),
+    pad('idle/run', 9),
+    pad('playing', 8),
+    'file',
+  ].join('| ')
+  console.log('')
+  console.log(header)
+  console.log('-'.repeat(header.length))
+  for (const r of rows) {
+    console.log(
+      [
+        pad(label, 7),
+        pad(r.width, 6),
+        pad(r.variant, 10),
+        pad(r.page, 6),
+        pad(r.overflow, 15),
+        pad(r.height, 12),
+        pad(r.top, 7),
+        pad(r.well, 12),
+        pad(r.unnamed, 8),
+        pad(r.targets, 4),
+        pad(r.fonts, 4),
+        pad(r.jump, 9),
+        pad(r.playing, 8),
+        r.file,
+      ].join('| '),
+    )
+  }
+  console.log('(docH/viewH marked * means the page scrolls vertically)')
+  if (failures.length === 0) {
+    console.log(`\nPHONE ${label.toUpperCase()} PASS`)
+    return 0
+  }
+  console.log(`\nPHONE ${label.toUpperCase()} FAIL`)
+  for (const f of failures) {
+    console.log(`  [${f.label}]`)
+    for (const i of f.issues) console.log(`    - ${i}`)
+  }
+  return 1
+}
+
 async function runSelftest(base) {
   const browser = await chromium.launch({
     executablePath: CHROME_PATH,
@@ -616,8 +870,12 @@ async function main() {
   if (args.selftest) {
     code = await runSelftest(args.base)
   } else {
-    const fine = args.touchOnly ? 0 : await runCaptures(args.base, args.out, !args.empty)
-    const touch = await runTouch(args.base, args.out, !args.empty)
+    const fine = args.touchOnly
+      ? 0
+      : (await runCaptures(args.base, args.out, !args.empty)) |
+        (await runPhone(args.base, args.out, !args.empty, false))
+    const touch =
+      (await runPhone(args.base, args.out, !args.empty, true)) | (await runTouch(args.base, args.out, !args.empty))
     code = fine || touch
   }
   process.exit(code)

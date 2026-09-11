@@ -124,4 +124,12 @@
       gap: 8px;
     }
   }
+
+  @media (max-width: 360px) {
+    .keytop,
+    :global([data-embedded]) .keytop {
+      gap: 6px 12px;
+      padding: 6px 0;
+    }
+  }
 </style>

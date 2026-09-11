@@ -35,6 +35,14 @@
     color: var(--enclosure-ink);
   }
 
+  /* The narrowest phones print the wordmark alone: with the badge the head
+     cannot hold brand, output and Settings on one row at 320px. */
+  @media (max-width: 360px) {
+    .model {
+      display: none;
+    }
+  }
+
   .model {
     padding: 5px;
     font-family: var(--font-ui);

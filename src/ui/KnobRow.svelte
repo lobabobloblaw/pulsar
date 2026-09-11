@@ -54,10 +54,14 @@
     padding: 28px 0;
   }
 
+  /* The phone's Voice page ends with the dials: no trailing air. */
   @media (max-width: 600px) {
+    .voice {
+      padding: 0;
+    }
     .dials {
       gap: 12px;
-      padding: 20px 0 12px;
+      padding: 12px 0 4px;
     }
   }
 

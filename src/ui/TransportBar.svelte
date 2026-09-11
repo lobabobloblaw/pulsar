@@ -328,6 +328,13 @@
     .clock {
       flex: 1 1 auto;
     }
+  }
+
+  @media (max-width: 360px) {
+    .transport {
+      gap: 6px 12px;
+      padding: 10px 0;
+    }
     .position {
       flex-direction: row;
       align-items: baseline;
