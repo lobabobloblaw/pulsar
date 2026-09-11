@@ -476,6 +476,14 @@
     color: var(--enclosure-ink-2);
   }
 
+  /* Inside the homepage window the module is shallower (block padding 18 →
+     14); the phone keeps its own padding. */
+  @media (min-width: 601px) {
+    :global([data-embedded]) .well {
+      padding-block: 14px;
+    }
+  }
+
   @media (max-width: 600px) {
     .well {
       padding: 12px 10px;

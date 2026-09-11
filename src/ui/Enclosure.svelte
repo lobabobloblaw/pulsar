@@ -157,15 +157,22 @@
   :global([data-embedded]) .device {
     width: 100%;
     min-height: 100dvh;
-    padding: 16px;
+    padding: 12px;
     border: 0;
     border-radius: 0;
     box-shadow: none;
   }
-  /* Tighter vertical rhythm inside the casing (with TransportBar, KeyTop and
-     ProjectBar's embedded rules, about 24px less in total). */
+  /* Tighter vertical rhythm inside the casing (with TransportBar, KeyTop,
+     ProjectBar and Screen's embedded rules): the instrument workspace has to
+     fit the 726px body a 900px-tall browser viewport leaves the homepage
+     window. Wide slabs only — the phone has its own head padding. */
   :global([data-embedded]) .live {
     padding-bottom: 16px;
+  }
+  @media (min-width: 601px) {
+    :global([data-embedded]) .head {
+      padding-bottom: 14px;
+    }
   }
 
   @media (max-width: 850px) {
