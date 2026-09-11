@@ -39,7 +39,7 @@
     <button
       type="button"
       class="key mini"
-      aria-label="Lower octave"
+      aria-label="− lower octave"
       disabled={transport.octave <= 0}
       onclick={() => transport.setOctave(transport.octave - 1)}
     >
@@ -49,7 +49,7 @@
     <button
       type="button"
       class="key mini"
-      aria-label="Higher octave"
+      aria-label="+ higher octave"
       disabled={transport.octave >= 8}
       onclick={() => transport.setOctave(transport.octave + 1)}
     >

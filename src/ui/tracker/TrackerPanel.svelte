@@ -156,7 +156,7 @@
           type="button"
           class="key mini"
           aria-pressed={tracker.muted[c] === true}
-          aria-label="Mute {label}"
+          aria-label="M mute {label}"
           onclick={() => mute(c)}
         >
           M
@@ -165,7 +165,7 @@
           type="button"
           class="key mini"
           aria-pressed={tracker.solo === c}
-          aria-label="Solo {label}"
+          aria-label="S solo {label}"
           onclick={() => solo(c)}
         >
           S

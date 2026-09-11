@@ -93,9 +93,14 @@ describe('the workspace switch honours the phone boundary', () => {
     expect(buttons[0]).not.toMatch(/disabled=/)
   })
 
-  it('toggles the store only when the requested state differs', () => {
+  it('guards on the rendered state, so the pressed segment is a no-op', () => {
+    // Below the compact threshold `tracker.open` can be true while the
+    // Instrument segment renders pressed; a guard on the store would then
+    // toggle the hidden editor — and `toggleOpen` stops a playing song.
+    expect(modes).toMatch(/const trackerShown = \$derived\(tracker\.open && !compact\)/)
     const setter = section(modes, 'function setMode', '</script>')
-    expect(setter).toMatch(/if \(tracker\.open === open\) return/)
+    expect(setter).toMatch(/if \(trackerShown === open\) return/)
+    expect(setter).not.toMatch(/tracker\.open === open/)
     expect(setter).toContain('tracker.toggleOpen()')
   })
 })

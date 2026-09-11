@@ -12,14 +12,28 @@
 
 class Viewport {
   narrow = $state(false)
+  #query: MediaQueryList | null = null
 
+  /** The initial value is read synchronously, so `narrow` is right before the
+   *  first paint; following changes is `attach()`'s job. */
   constructor() {
     if (typeof matchMedia !== 'function') return
-    const query = matchMedia('(max-width: 600px)')
-    this.narrow = query.matches
-    query.addEventListener('change', () => {
+    this.#query = matchMedia('(max-width: 600px)')
+    this.narrow = this.#query.matches
+  }
+
+  /** Start following the query. App calls this from onMount beside its own
+   *  compact listener and disposes both in the same cleanup, so a torn-down
+   *  shell (site:dispose, pagehide) leaves no listener behind. */
+  attach(): () => void {
+    const query = this.#query
+    if (query === null) return () => {}
+    const update = (): void => {
       this.narrow = query.matches
-    })
+    }
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
   }
 }
 

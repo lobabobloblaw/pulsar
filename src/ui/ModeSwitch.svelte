@@ -24,8 +24,13 @@
 
   const trackerShown = $derived(tracker.open && !compact)
 
+  /** Guards on the RENDERED state, never on `tracker.open`: below the compact
+   *  threshold the editor can be open but hidden, and a tap on the pressed
+   *  Instrument segment must be a no-op — toggling the hidden editor would
+   *  also stop a playing song (`toggleOpen` stops playback on close) and lose
+   *  the editor on the way back to a wide window. */
   function setMode(open: boolean): void {
-    if (tracker.open === open) return
+    if (trackerShown === open) return
     tracker.toggleOpen()
     transport.setPage(tracker.open ? 'song' : 'params')
   }

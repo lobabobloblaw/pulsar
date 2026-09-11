@@ -44,6 +44,7 @@
   import Settings from './ui/Settings.svelte'
   import TransportBar from './ui/TransportBar.svelte'
   import TrackerPanel from './ui/tracker/TrackerPanel.svelte'
+  import { viewport } from './ui/viewport.svelte'
   import { downloadProject, installProjectHost } from './state/projectHost'
   import { createBootSequence } from './ui/canvas/bootSequence'
   import { createFrameBus, provideFrame } from './ui/frame'
@@ -109,7 +110,11 @@
   onMount(() => {
     const resize = (): void => { compact = compactQuery.matches }
     compactQuery.addEventListener('change', resize)
-    return () => compactQuery.removeEventListener('change', resize)
+    const detachViewport = viewport.attach()
+    return () => {
+      compactQuery.removeEventListener('change', resize)
+      detachViewport()
+    }
   })
 
   onMount(() => {

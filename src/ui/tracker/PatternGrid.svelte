@@ -866,8 +866,8 @@
   <button type="button" class="key mini" aria-pressed={selectDrag} onclick={() => { selectDrag = !selectDrag }}>
     {selectDrag ? 'Select cells' : 'Scroll grid'}
   </button>
-  <button type="button" class="key mini" disabled={!horizontalOverflow} aria-label="Previous channels" onclick={() => pan(-240, 0)}>←</button>
-  <button type="button" class="key mini" disabled={!horizontalOverflow} aria-label="Next channels" onclick={() => pan(240, 0)}>→</button>
+  <button type="button" class="key mini" disabled={!horizontalOverflow} aria-label="← previous channels" onclick={() => pan(-240, 0)}>←</button>
+  <button type="button" class="key mini" disabled={!horizontalOverflow} aria-label="→ next channels" onclick={() => pan(240, 0)}>→</button>
   <span class="legend">Note / Instrument / Volume / FX</span>
 </div>
 </div>
