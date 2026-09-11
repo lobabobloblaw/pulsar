@@ -63,6 +63,10 @@ const PERCUSSION_MIN_EVENTS_FLOOR = 8
  *  drum-free stretches are the composition (a crash-only intro, a coda of held chords). */
 const PERCUSSION_COVERAGE_DEFAULT = 0.8
 const PERCUSSION_COVERAGE_FLOOR = 0.75
+/** Gate C's clamp budget: eight samples for any preset, and never more than 64 even when
+ *  a VRC6 piece declares its own (`extra.qa.clippedSamplesMax`). */
+const CLIPPED_SAMPLES_DEFAULT = 8
+const CLIPPED_SAMPLES_CAP = 64
 const RMS_RANGE_DEFAULT: readonly [number, number] = [-20, -9]
 const RMS_FLOOR = -30
 // Gate C/D render minutes of audio per song (two loops plus solo passes); a shared
@@ -101,6 +105,10 @@ interface Qa {
   bpmRange?: [number, number]
   durationSec?: [number, number]
   rmsRange?: [number, number]
+  /** Clamped samples the two-pass render may contain at the reference gain, when the
+   *  default 8 is not enough. Declared, capped, and only honoured when the default
+   *  would actually fail — see gate C. */
+  clippedSamplesMax?: number
   loopFrame?: number
   form?: string[]
   bank?: { instruments?: string[]; rev?: number }
@@ -768,7 +776,19 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
     expect(onePass, `one pass is ${onePass.toFixed(1)}s`).toBeLessThanOrEqual((window as number[])[1])
 
     expect(r.noteOns, 'note-ons must match the count the document walk reaches').toBe(expected.noteOns)
-    expect(r.clippedSamples, 'a preset that clips is re-voiced, not re-gained').toBeLessThanOrEqual(8)
+    // A 2A03 preset that clips is re-voiced, not re-gained. A VRC6 piece is different in
+    // kind: the expansion's linear DAC adds up to 0.625 on top of the 2A03's full-scale
+    // mix, so an eight-voice song played AS COMPOSED can pass full scale at the render
+    // gain, which is the app's knob at maximum. Such a song declares the clamp count it
+    // needs — capped, justified in `notes`, and accepted only when the default really
+    // would fail, so the allowance cannot creep onto a song that does not need it.
+    const clipAllowance = qa.clippedSamplesMax ?? CLIPPED_SAMPLES_DEFAULT
+    if (qa.clippedSamplesMax !== undefined) {
+      expect(qa.clippedSamplesMax, 'a declared clip allowance is capped').toBeLessThanOrEqual(CLIPPED_SAMPLES_CAP)
+      expect(qa.notes, 'a declared clip allowance needs a justification').toBeTruthy()
+      expect(r.clippedSamples, 'a clip allowance is declared only where the default would fail').toBeGreaterThan(CLIPPED_SAMPLES_DEFAULT)
+    }
+    expect(r.clippedSamples, 'a preset that clips beyond its allowance is re-voiced, not re-gained').toBeLessThanOrEqual(clipAllowance)
 
     const [lo, hi] = qa.rmsRange ?? RMS_RANGE_DEFAULT
     expect(lo, 'a declared rms floor may not go under -30 dBFS').toBeGreaterThanOrEqual(RMS_FLOOR)

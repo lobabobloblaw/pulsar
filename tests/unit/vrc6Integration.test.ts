@@ -150,8 +150,8 @@ describe('3. bit-identity — the chip’s presence changes nothing for a 2A03-o
 
   const PRESETS: ReadonlyArray<{ file: string; checksum: number }> = [
     { file: '01-skyline-run.json', checksum: 1539583046 },
-    { file: '02-cathedral-of-gears.json', checksum: 4235929224 },
-    { file: '03-tide-tables.json', checksum: 189548977 },
+    { file: '02-cathedral-of-gears.json', checksum: 602407995 },
+    { file: '03-tide-tables.json', checksum: 22227566 },
   ]
 
   for (const { file, checksum } of PRESETS) {

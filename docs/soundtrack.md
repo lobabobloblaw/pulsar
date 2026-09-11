@@ -82,12 +82,18 @@ maximum; its usual 0.72 setting is about 5.7 dB lower).
 
 Eight voices are louder than four. Cathedral of Gears gained 2.2 dB of RMS over the
 folded arrangement and its unclamped peak is now 1.16 — 1.3 dB over full scale, which
-the render clamps at 38 samples out of 13.2 million, in 21 isolated spots. **This is a
-render-gain fact, not a composition fact**: the source project's own render of the same
-document peaks at 0.61, and 2.0 is the app's knob at maximum, so nothing clips at any
-normal listening level. The piece is left at the composed levels — no volume column is
-scaled and the core's gain is untouched — and the decision about the render headroom is
-open: see the numbers below and the notes in `tools/songs/octet/cathedral-of-gears.mjs`.
+the render clamps at 38 samples out of 13.2 million, in 21 isolated spots of a few
+samples each. This is the render gain meeting the expansion's headroom, not the
+arrangement: the source project's own render of the same document peaks at 0.61, the
+VRC6's linear DAC adds up to 0.625 on top of the 2A03's full-scale mix, and 2.0 is the
+app's output knob at maximum, so at the default output (0.72, about 5.7 dB lower)
+nothing clips. The piece is kept at the composed levels — no volume column is scaled
+and the core's gain is untouched — and the song declares the clamp it needs
+(`extra.qa.clippedSamplesMax: 48`, justified in its notes). Gate C honours a declared
+allowance only when the default budget of 8 would actually fail, and caps it at 64, so
+the declaration cannot creep onto a song that does not need it. The alternative, a lower
+render/master gain (about 1.6 would put this peak at 0.93), would quieten every song and
+live play by 2 dB and re-pin every checksum; it stays open as a product choice.
 
 Against the source project's own renders of the originals (`tools/render-cli.mjs`, one
 pass, no fade; both sides analysed with its `tools/analyze-wav.mjs`):
