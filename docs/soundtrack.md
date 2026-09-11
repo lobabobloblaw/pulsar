@@ -1,12 +1,12 @@
-# Pulsar — three tracks, one APU
+# Pulsar — three tracks, two chips
 
 September 2026. The eight-genre set is replaced by the three demo compositions of
 OCTET, a sibling NES/Famicom sequencer project for the 2A03 and the VRC6 expansion.
 Each piece was authored there as a generator script that writes every melody, bass
 line, chord, drum pattern and form as code; they are that project's own original
-music, not transcriptions or imitations of any published work. The port carries the
-notes over exactly and changes only the voice allocation where the 2A03's five lanes
-force it. The converter and the per-song arrangement modules live in
+music, not transcriptions or imitations of any published work. Pulsar now has the
+same eight lanes, so the port carries the notes over exactly and re-voices nothing:
+every lane lands on its own lane. The converter and the per-song modules live in
 `tools/songs/octet/` (see its README); song JSON remains the shipped source.
 
 ## Catalog and audition map
@@ -17,52 +17,56 @@ is one). The WAVs from `pnpm preview:songs` hold two passes including the loop s
 | Track | Character | BPM | One pass | Form and defining sound |
 | --- | --- | ---: | ---: | --- |
 | Skyline Run | Action-stage theme | 150 | 2:18 | Intro, A, chorus, A2, bridge, A3 (42 frames on a 32nd-note grid); hook on pulse 1 with a two-row echo canon on pulse 2, diatonic thirds and `0xy` chord stabs, walking triangle bass with a pitch-dive thump, noise kit over DPCM kick and snare, a half-time breakdown in the bridge |
-| Cathedral of Gears | Gothic theme | 150 | 2:24 | Intro, A, A repeat, B, A′ (a minor third up), coda (22 frames); driving-sixteenth bass gallop on the triangle at the sawtooth's register, a lead with vibrato and portamento on pulse 1, counter-melody and `0xy` inner-harmony triads on pulse 2, a sawtooth solo folded onto pulse 1, an `Fxx` ritardando into the loop |
-| Tide Tables | Slow ambient, 5/4 | 56 | 2:44 | Fifteen named patterns of two 5/4 bars (80 rows, speed 8) in D Dorian; triangle drones joined by `3xx` glides, struck bell chords on fixed-mode arpeggio instruments with quieter echoes, two slow voices trading beats, a soft pad, wind and surf on the noise lane, a tempo dip to 110 in the slack-water pattern |
+| Cathedral of Gears | Gothic theme, eight voices | 150 | 2:24 | Intro, A, A repeat, B, A′ (a minor third up), coda (22 frames); a driving-sixteenth bass gallop on the VRC6 sawtooth with the triangle doubling it an octave up, the melody on VRC6 pulse 1 under a duty macro that opens at 50 % and narrows to 3/16, reedy 25 % inner harmony on VRC6 pulse 2, counter-melody and `0xy` chord stabs on 2A03 pulse 1, a three-row echo of the leading line on 2A03 pulse 2, the sawtooth taking the solo lead through the B section, an `Fxx` ritardando into the loop |
+| Tide Tables | Slow ambient, 5/4, eight voices | 56 | 2:44 | Fifteen named patterns of two 5/4 bars (80 rows, speed 8) in D Dorian; triangle drones joined by `3xx` glides, struck bell chords on fixed-mode arpeggio instruments answered two beats later by quieter echoes, two slow VRC6 voices trading beats (duty 1 above, duty 0 below), a soft sawtooth pad at volume 3 gliding between chord tones, wind and surf on the noise lane, a tempo dip to 110 in the slack-water pattern |
 
 About seven and a half minutes of first-pass material. For a quick contrast test,
 audition **Skyline Run → Tide Tables → Cathedral of Gears**: they differ at once in
 grid, register, density and articulation.
 
-## What was folded from the VRC6, and how
+## What the port corrects
 
-Skyline Run is a 2A03 piece and ports one-to-one. The other two used three more
-voices — two VRC6 pulses and a sawtooth — and are re-voiced by priority: melody >
-bass > drums > harmony/chords > counter-melody > echo/doubling. Every fold is a code
-decision with a comment in the song's module.
+Nothing in these pieces is re-voiced: `tools/songs/octet/audit.mjs` counts the note
+attacks, cuts and releases on every lane of the source document against the shipped
+song and fails on any difference a song module has not declared. What the modules and
+the converter do change is where the two drivers disagree.
 
-**Cathedral of Gears** (`tools/songs/octet/cathedral-of-gears.mjs`)
+**Engine differences, applied by `convert.mjs` to every song, on the VRC6 lanes exactly
+as on the 2A03 pulses.** `Axy`'s nibbles are swapped (OCTET counts x up, Pulsar counts x
+down). `7xy` is re-expressed for Pulsar's faster, deeper tremolo table, and `700` becomes
+`710` so it does not re-read effect memory. OCTET's `3xx` glides its own row only while
+Pulsar's is a channel mode, so the first plain note after a glide or a `Qxy`/`Rxy` scoop
+carries an explicit `100` — cancel, no slide, hard trigger. A `===` on an instrument with
+no release point is a no-op in OCTET and a cut in Pulsar, so those cells lose their note
+(neither eight-voice piece has one: their voices and pad all carry release points). Pitch
+effects and pitch macros are stripped from the noise lane, which OCTET ignores there.
+Duty macros pass through unchanged — Pulsar's VRC6 lanes take the chip's own 0–7 values,
+so the wide and reedy timbres are the composed ones.
 
-| OCTET lane | Role | Pulsar lane | Section detail |
-| --- | --- | --- | --- |
-| VRC6 pulse 1 | melody; pad tones in the intro, B section and coda | pulse 1 | verbatim, except bars 48–53 where the saw solo takes the lane |
-| VRC6 saw | bass gallop; pedal + running line and a solo in B; pad roots | triangle (bass) / pulse 1 (solo) | bass at the saw's own octave everywhere; slides scaled 14/32 for the triangle's period table; the six-bar solo, with its bend-in pitch macro, on pulse 1 at 25 % duty |
-| 2A03 triangle | doubling the saw an octave up; the gallop under the solo | dropped / triangle | its own gallop is kept for bars 48–53 only |
-| 2A03 pulse 1 | counter-melody (A sections); `0xy` arpeggio chords (B) | pulse 2 | verbatim |
-| VRC6 pulse 2 | wide-duty inner-harmony chords; pads | pulse 2 (in rests) | in the first A section the harmony's struck tones become `0xy` triads spelled from the two alternating tones and the saw's root wherever the counter-melody rests; intro and coda pad tones pass through; hits under sounding counter-melody notes and the B-section pads are dropped |
-| 2A03 pulse 2 | three-row echo of the leading line | dropped | echo is the first thing to go |
-| noise | kit, with the coda's `Fxx` ritardando | noise | verbatim |
+**Self-ending noise** (`tide-tables.mjs`). The wind and surf envelopes loop forever in
+OCTET; a preset's noise envelope has to end on 0, because a looping one never releases
+the lane. Each becomes the same breath once, ending on 0, re-struck at its own length —
+15 rows for the wind, 26 for the surf, from the envelopes' own tick counts — so the
+breathing continues unchanged. The surf tick was a one-shot already.
 
-Timbre: VRC6 duties map through the port's table, so the lead settles on 25 %, the
-50 % pad stays 50 % and the harmony alternates 25/50 %. The drums stop where the piece
-stops them (a crash-only intro, a coda of held chords under the ritardando), which the
-song declares as `percussionCoverage: 0.75`.
+**Loop entry** (every module). Pulsar's presets state note, instrument and volume
+explicitly on the loop row rather than inheriting whatever the previous pass left in the
+register file. Cathedral of Gears needs it on one lane only: 2A03 pulse 2, the echo lane,
+which is silent across the seam and says so with a cut. Tide Tables restates the triangle
+drone that is held across the seam and cuts the five lanes that are silent there — the
+bells, their echoes and the three VRC6 voices, which release in the penultimate pattern.
+Skyline Run keeps its own loop-entry cells and its DPCM restart gates.
 
-**Tide Tables** (`tools/songs/octet/tide-tables.mjs`)
+Both eight-voice songs claim seven lanes and declare a silent `dpcm` as well, because
+`channels` is a prefix of the canonical eight and reaching `vrc6p1` means carrying every
+lane before it. That lane gets an empty pattern and a `0` in each order frame.
 
-| OCTET lane | Role | Pulsar lane | Detail |
-| --- | --- | --- | --- |
-| triangle | drones and glides | triangle | verbatim; the final drone is restated on the loop row |
-| VRC6 pulse 1 | voice A, the upper slow line | pulse 1 | verbatim, highest priority |
-| 2A03 pulse 1 | struck bell chords | pulse 1 / pulse 2 | a strike that lands on a voice-A note moves to pulse 2 instead of being lost |
-| VRC6 pulse 2 | voice B, the lower line on the beats voice A leaves free | pulse 2 | verbatim below displaced strikes |
-| 2A03 pulse 2 | bell echoes two beats later | pulse 2 | kept where no strike or voice note claims the row |
-| VRC6 saw | soft pad gliding between chord tones | pulse 2 (background) | 50 % duty with its own slow envelope, volume column doubled; struck where the lane is free and re-entered on its current chord tone as soon as a bell or echo above it has died; silent while a voice-B note or a ringing bell holds the lane |
-| noise | wind, surf and a surf tick on looping breathing envelopes | noise | the same breaths as one-shot swells re-struck at their own length (16 and 26 rows), so every envelope ends on 0 |
-
-The pad is quieter on a pulse than on the sawtooth, and the low drones sit under the
-target's 90 Hz post-DAC high-pass, so the piece measures about −25 dBFS over two
-passes; it is not normalised.
+**The arrangement that was here before.** The 2026-09-11 release folded these two pieces
+onto four 2A03 lanes — melody to pulse 1, sawtooth bass to the triangle, harmony spelled
+as `0xy` triads in the counter-melody's rests, the echo lane dropped — because Pulsar had
+no VRC6 yet. Commit `006f837` holds that arrangement and the fold modules that produced
+it. It is history, not a fallback: the chip is in the core now and the pieces play as
+composed.
 
 ## Rendering and checks
 
@@ -73,33 +77,54 @@ maximum; its usual 0.72 setting is about 5.7 dB lower).
 | id | two passes | RMS | peak | clipped |
 | --- | ---: | ---: | ---: | ---: |
 | skyline-run | 268.8 s | −18.74 dBFS | 0.647 | 0 |
-| cathedral-of-gears | 275.7 s | −18.86 dBFS | 0.751 | 0 |
-| tide-tables | 327.8 s | −24.56 dBFS | 0.553 | 0 |
+| cathedral-of-gears | 275.7 s | −16.62 dBFS | 1.000 | 38 |
+| tide-tables | 327.8 s | −23.67 dBFS | 0.853 | 0 |
 
-Against the source project's own renders of the originals (one pass with a two-second
-fade), one pass runs within a second of the same length for every piece, no second is
-silent on either side, and the ten-second loudness profiles follow the same shape;
-overall level differs by up to 3 dB because the VRC6 mixes with extra gain and the
-sawtooth is louder than a pulse at the same column value.
+Eight voices are louder than four. Cathedral of Gears gained 2.2 dB of RMS over the
+folded arrangement and its unclamped peak is now 1.16 — 1.3 dB over full scale, which
+the render clamps at 38 samples out of 13.2 million, in 21 isolated spots. **This is a
+render-gain fact, not a composition fact**: the source project's own render of the same
+document peaks at 0.61, and 2.0 is the app's knob at maximum, so nothing clips at any
+normal listening level. The piece is left at the composed levels — no volume column is
+scaled and the core's gain is untouched — and the decision about the render headroom is
+open: see the numbers below and the notes in `tools/songs/octet/cathedral-of-gears.mjs`.
+
+Against the source project's own renders of the originals (`tools/render-cli.mjs`, one
+pass, no fade; both sides analysed with its `tools/analyze-wav.mjs`):
+
+| piece | duration (source → Pulsar) | RMS | peak |
+| --- | --- | --- | --- |
+| skyline-run | 137.39 s → 137.59 s | −21.4 → −18.7 dBFS | 0.613 → 0.647 |
+| cathedral-of-gears | 144.05 s → 144.26 s | −18.2 → −16.7 dBFS | 0.606 → 1.000 (23 clamped) |
+| tide-tables | 163.63 s → 163.87 s | −22.2 → −23.7 dBFS | 0.539 → 0.820 |
+
+One pass runs within a quarter of a second of the same length for every piece, no second
+is silent on either side, and the ten-second loudness profiles follow the same shape.
+Tide Tables measures quieter here and its quiet ends are quieter still, because its
+lowest drones sit under the target's 90 Hz post-DAC high-pass.
 
 Tests keep the per-song rules that hold for any album piece: explicit state on every
-lane at the loop row, hardware pitch ranges, self-ending noise envelopes,
-non-drifting pitch macros, the four preset gates (structure, musicality lint, render,
-anti-vacuity) and a byte-identical round trip of the committed files through
-`serializeSong`. Piece-specific tests pin what makes each one itself: Skyline Run's
-speed 3 with eight rows to the beat, DPCM on the kit slots and the two-row echo;
-Cathedral of Gears's triangle bass, `0xy` chord device on pulse 2 and declared
-accidental allowance (the raised leading tone and the F-minor restatement);
-Tide Tables's 80-row patterns with a 40-row bar, `3xx` on the triangle and fixed-mode
-arpeggio bells. Texture signatures ignore labels, transposition and tempo; a renamed,
-transposed copy is shown not to count as a new piece.
+lane at the loop row (a lane that never sounds has none to declare), hardware pitch
+ranges including the VRC6's 12-bit floors derived from `pitch.ts`, self-ending noise
+envelopes, non-drifting pitch macros, the four preset gates (structure, musicality lint,
+render, anti-vacuity) and a byte-identical round trip of the committed files through
+`serializeSong`. The key lint reads all six pitched lanes, and each VRC6 lane is proved
+to move its accidental count. Piece-specific tests pin what makes each one itself:
+Skyline Run's speed 3 with eight rows to the beat, DPCM on the kit slots and the two-row
+echo; Cathedral of Gears's sawtooth bass with the triangle an octave above it, the lead's
+7 → 2 duty macro, every pulse-2 note proved to be a lead note three rows earlier, and the
+declared accidental allowance (the raised leading tone and the F-minor restatement); Tide
+Tables's 80-row patterns with a 40-row bar, `3xx` on the triangle, fixed-mode arpeggio
+bells with their echoes two beats behind, and two VRC6 voices that never share a row.
+Texture signatures ignore labels, transposition and tempo; a renamed, transposed copy is
+shown not to count as a new piece.
 
 Two driver-facing corrections came out of the port and are covered by tests: `Qxy`
 and `Rxy` are one-shot in the preset walk as they are in the driver, and a cut now
 forgets a glide still in flight (its arrival used to restore a base note on a silenced
 channel, leaving the next `3xx` note as a silent target). These checks verify the
 implementation and the written arrangement, not beauty or recognizability; final
-approval belongs to an audition, especially the folded lanes of the two VRC6 pieces.
+approval belongs to an audition — now of eight voices rather than four.
 
 ## Scope
 

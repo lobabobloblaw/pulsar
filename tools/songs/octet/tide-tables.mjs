@@ -1,36 +1,47 @@
-/** Tide Tables — eight lanes folded onto four (tools/songs/octet/README.md).
+/** Tide Tables — the eight-voice piece, ported directly (tools/songs/octet/README.md).
  *
- *  OCTET's arrangement, 5/4 at speed 8 (eight rows a beat, eighty rows = two bars per
- *  pattern, D Dorian, fifteen patterns): triangle = low drones joined by `3xx` glides;
- *  2A03 pulse 1 = struck bell chords (fixed-mode arpeggio instruments), 2A03 pulse 2 =
- *  their echo two beats later; VRC6 pulse 1 = "voice A", the upper of two slow
- *  counterpoint lines (pad envelope, vibrato); VRC6 pulse 2 = "voice B", the lower line,
- *  each note on the beat the other voice leaves free; saw = a soft pad gliding between
- *  chord tones with swells and tremolo; noise = wind and surf on breathing envelopes.
- *  Lanes are sparse (twenty to forty events each), so they fold BY TIME.
+ *  OCTET's arrangement, carried over untouched. 5/4 at speed 8 (eight rows a beat, eighty
+ *  rows = two bars per pattern, D Dorian, fifteen patterns): triangle = low drones joined
+ *  by `3xx` glides; 2A03 pulse 1 = struck bell chords (fixed-mode arpeggio instruments),
+ *  2A03 pulse 2 = their echo two beats later; VRC6 pulse 1 = "voice A", the upper of two
+ *  slow counterpoint lines (duty 1, pad envelope with a release point, vibrato); VRC6
+ *  pulse 2 = "voice B", the lower line at duty 0, each note on the beat the other voice
+ *  leaves free; VRC6 saw = a soft pad at volume 3 gliding between chord tones with `3xx`,
+ *  swells and tremolo; noise = wind and surf. Nothing is re-voiced.
  *
- *    triangle  <- verbatim: drones and glides.
- *    pulse 1   <- voice A (the melody, highest priority) and the bell strikes. A strike
- *                 that lands on a voice-A note moves to pulse 2 instead of being lost.
- *    pulse 2   <- those displaced strikes, voice B, the bell echoes, and the pad.
- *                 Priority in that order: chord > counter-line > echo > pad. The pad is
- *                 a background: it is struck where it can be, and RE-ENTERS on its
- *                 current chord tone as soon as a struck sound above it has died (a
- *                 strike dies in eight rows, an echo in eleven; a held voice-B note or a
- *                 ringing bell keeps the lane until it is released).
- *    noise     <- wind and surf, whose OCTET envelopes loop forever, become one-shot
- *                 swells of the same shape re-struck at their own length (16 and 26
- *                 rows), so the breathing continues and every envelope ends on 0 as the
- *                 presets require. The surf tick is one-shot already.
- *    dropped   -> echoes that coincide with a strike or a voice note; the pad while a
- *                 voice-B note or a ringing bell holds pulse 2.
+ *  TWO corrections are made here, both the target driver's rather than the music's:
  *
- *  Timbre: voice A keeps VRC6 duty 1 (25 %), voice B duty 0 (12.5 %); the pad gets 50 %
- *  with its own slow envelope and its volume column doubled (3 → 6), because the saw's
- *  weight does not survive the move to a pulse at 3/15.
+ *  1. Self-ending noise. OCTET's wind and surf envelopes loop forever; pulsar's presets
+ *     require a noise envelope that ends on 0 (a looping one never releases the lane, and
+ *     the gate reads the last value). Each becomes the same breath once, ending on 0, and
+ *     is RE-STRUCK at its own length so the breathing continues unchanged — 15 rows for the
+ *     wind, 26 for the surf, from the envelopes' own tick counts. The surf tick is a
+ *     one-shot already and is left alone.
+ *  2. Loop entry. The final `B00` returns to frame 0 and pulsar's presets state every lane
+ *     explicitly on that row. The noise lane already strikes the wind there with its
+ *     instrument and volume; the triangle's drone is held across the seam and is restated;
+ *     the bells, their echoes and the three VRC6 voices are silent across the seam (the
+ *     voices and the pad release in the penultimate pattern and the last pattern is one
+ *     held note), so those five get a cut.
+ *
+ *  The engine differences shared by every song (the `Axy` nibble swap, the `7xy` tremolo
+ *  re-expression, the `100` after a glide) are applied by `convert.mjs`, on the VRC6 lanes
+ *  exactly as on the 2A03 pulses. Voice A, voice B and the pad all carry release points, so
+ *  their `===` cells survive the port as releases.
+ *
+ *  The 2026-09-11 release folded this piece onto four 2A03 lanes because pulsar had no VRC6
+ *  yet; docs/soundtrack.md records that arrangement and the commit that holds it.
  */
-import { LANE, OFF, REL, cellFx, withFx } from './convert.mjs'
-import { copyCell, ensureLoopEntry, fold, hasNote, parkGlobalFx, sustainRows, timeline, writeTimeline } from './fold.mjs'
+import {
+  LANE,
+  cellFx,
+  ensureLoopEntry,
+  expectLanes,
+  hasNote,
+  timeline,
+  withFx,
+  writeTimeline,
+} from './convert.mjs'
 
 export const id = 'tide-tables'
 export const name = 'Tide Tables'
@@ -38,42 +49,34 @@ export const author = 'OCTET demo, rebuilt for pulsar'
 export const rowHighlight = 8 // eight rows a beat
 export const rowHighlight2 = 40 // one bar of 5/4
 
-const I = { TRI: 0, WIND: 1, SURF: 2, TICK: 3, PAD: 4, VOICE_A: 21, VOICE_B: 22 }
+const I = { TRI: 0, WIND: 1, SURF: 2 }
 const TICKS_PER_ROW = 8
-/** Rows a released pad-envelope voice takes to fade (34-tick tail). */
-const RELEASE_ROWS = 5
+/** The frame the final `Bxx` returns to: this piece has no intro to skip. */
+const LOOP_FRAME = 0
 
 /** A looping breathing envelope → the same breath once, ending on 0. */
 function oneShot(macro) {
   return { values: [...macro.values, 0], loop: -1, release: -1 }
 }
 
+/** The last cell on a lane that leaves a note sounding, or null if the lane ends silent. */
+function lastSounding(cells) {
+  for (let r = cells.length - 1; r >= 0; r--) {
+    if (!hasNote(cells[r])) continue
+    return cells[r][0] >= 0 ? cells[r] : null
+  }
+  return null
+}
+
 export function reduce(doc) {
-  const original = JSON.parse(JSON.stringify(doc))
   const length = doc.order.length * doc.rowsPerPattern
   const inst = doc.instruments
 
-  // --- instruments -----------------------------------------------------------------------
+  // --- 1. the breathing envelopes, once each, re-struck at their own length -------------
   inst[I.WIND].volume = oneShot(inst[I.WIND].volume)
   inst[I.SURF].volume = oneShot(inst[I.SURF].volume)
-  inst[I.PAD].duty = { values: [2], loop: -1, release: -1 }
-  // voice A/B duties 1 and 0 are already 2A03 values under the port's table
-
-  const tri = timeline(doc, LANE.TRI).map(copyCell)
-  const strikes = timeline(doc, LANE.P1).map(copyCell)
-  const echoes = timeline(doc, LANE.P2).map(copyCell)
-  const voiceA = timeline(doc, LANE.V1).map(copyCell)
-  const voiceB = timeline(doc, LANE.V2).map(copyCell)
-  const pad = timeline(doc, LANE.SAW).map((cell) => {
-    if (!cell) return null
-    const out = copyCell(cell)
-    if (out[2] !== null) out[2] = Math.min(15, out[2] * 2)
-    return out
-  })
-  const noise = timeline(doc, LANE.NOISE).map(copyCell)
-
-  // --- noise: re-strike the breathing envelopes at their own length ---------------------
   const period = (i) => Math.floor(inst[i].volume.values.length / TICKS_PER_ROW)
+  const noise = timeline(doc, LANE.NOISE)
   let current = null
   for (let r = 0; r < length; r++) {
     const cell = noise[r]
@@ -88,90 +91,36 @@ export function reduce(doc) {
   }
   writeTimeline(doc, LANE.NOISE, noise)
 
-  // --- pulse 1: voice A over the bell strikes; strikes it displaces go to pulse 2 -------
-  const pulse1 = fold(length, [
-    { name: 'voice A', cells: voiceA },
-    { name: 'strikes', cells: strikes },
-  ])
-  const displaced = new Array(length).fill(null)
-  for (const d of pulse1.displaced) if (d.layer === 'strikes') displaced[d.row] = copyCell(d.cell)
-  writeTimeline(doc, LANE.P1, pulse1.cells)
-
-  // --- pulse 2: displaced strikes > voice B > echoes > pad -------------------------------
-  const pulse2 = fold(length, [
-    { name: 'strikes', cells: displaced },
-    { name: 'voice B', cells: voiceB },
-    { name: 'echoes', cells: echoes },
-    { name: 'pad', cells: pad },
-  ]).cells
-
-  // The pad's own timeline, for re-entries: which chord tone it holds at each row.
-  const padTone = new Array(length).fill(null)
-  let tone = null
-  for (let r = 0; r < length; r++) {
-    const cell = pad[r]
-    if (hasNote(cell)) tone = cell[0] >= 0 ? { note: cell[0], vol: cell[2] ?? tone?.vol ?? 6 } : null
-    else if (cell && cell[2] !== null && tone) tone = { ...tone, vol: cell[2] }
-    padTone[r] = tone
-  }
-  // Re-enter the pad when whatever displaced it has died: struck sounds by their
-  // envelope, held voice notes and ringing bells only after a release.
-  let busyUntil = -1
-  let owner = null
-  for (let r = 0; r < length; r++) {
-    const cell = pulse2[r]
-    if (hasNote(cell)) {
-      if (cell[0] === OFF) busyUntil = r
-      else if (cell[0] === REL) busyUntil = r + RELEASE_ROWS
-      else {
-        owner = cell[1] ?? owner
-        busyUntil = owner === I.PAD ? -1 : r + sustainRows(inst[owner], TICKS_PER_ROW)
-      }
-      continue
-    }
-    if (owner !== I.PAD && busyUntil >= 0 && r >= busyUntil && padTone[r] && !cell) {
-      pulse2[r] = [padTone[r].note, I.PAD, padTone[r].vol, null, null]
-      owner = I.PAD
-      busyUntil = -1
-    }
-  }
-  // A pad glide (`3xx`) only makes sense from the pad's own previous note; after a bell
-  // or a voice it would glide from that sound's pitch, so it becomes a plain strike.
-  let last = null
-  for (let r = 0; r < length; r++) {
-    const cell = pulse2[r]
-    if (!hasNote(cell) || cell[0] < 0) continue
-    const fx = cellFx(cell)
-    if (cell[1] === I.PAD && last !== I.PAD && fx.some(([cmd]) => cmd === '3')) {
-      pulse2[r] = withFx(cell, fx.filter(([cmd]) => cmd !== '3'))
-    }
-    last = cell[1] ?? last
-  }
-  writeTimeline(doc, LANE.P2, pulse2)
-
-  // --- the lanes that no longer exist, and the bookkeeping the target needs -------------
-  for (const lane of [LANE.V1, LANE.V2, LANE.SAW]) for (const p of doc.patterns) p.rows[lane].fill(null)
-  parkGlobalFx(original, doc)
-  // The final drone (D-1, held through the seam) is restated on the loop row so every
-  // lane declares itself; the pulses were silent across the seam and get a cut.
-  ensureLoopEntry(doc, 0, { [LANE.P1]: 'cut', [LANE.P2]: 'cut', [LANE.TRI]: [tri[length - doc.rowsPerPattern][0], I.TRI, 15], [LANE.NOISE]: 'cut' })
+  // --- 2. explicit state on every sounding lane at the loop row -------------------------
+  const drone = lastSounding(timeline(doc, LANE.TRI))
+  if (drone === null) throw new Error('the triangle drone that carries across the seam is missing')
+  const written = ensureLoopEntry(doc, LOOP_FRAME, {
+    [LANE.P1]: 'cut',
+    [LANE.P2]: 'cut',
+    [LANE.TRI]: [drone[0], drone[1], drone[2]],
+    [LANE.NOISE]: 'cut',
+    [LANE.V1]: 'cut',
+    [LANE.V2]: 'cut',
+    [LANE.SAW]: 'cut',
+  })
+  expectLanes('loop entry', written, [LANE.P1, LANE.P2, LANE.TRI, LANE.V1, LANE.V2, LANE.SAW])
   return doc
 }
 
 export const qa = {
   key: 'd-dorian',
-  channels: ['pulse1', 'pulse2', 'triangle', 'noise'],
-  effects: ['3', '4', '7', 'A', 'B', 'F', 'G', 'S'],
+  channels: ['pulse1', 'pulse2', 'triangle', 'noise', 'vrc6p1', 'vrc6p2', 'vrc6saw'],
+  effects: ['1', '3', '4', '7', 'A', 'B', 'F', 'G', 'S'],
   bpmRange: [55, 58],
   durationSec: [150, 180],
   loopFrame: 0,
   percussionGap: 32,
-  rmsRange: [-27, -20],
+  rmsRange: [-26, -21],
   form: [
     'low water', 'drift', 'pad rises', 'answer', 'bells', 'struck', 'counterpoint', 'open water',
     'slack water', 'flood', 'building', 'high water', 'running out', 'releasing', 'one note',
   ],
   notes:
-    'Slow ambient piece in 5/4 at 56 BPM (speed 8, eighty rows = two bars a pattern), D Dorian over a Dm-G-Am-C cycle. Triangle drones glide with 3xx; struck bell chords are fixed-mode arpeggio instruments answered by quieter echoes; two slow voices trade beats. The noise lane is wind and surf, not drums: breathing swells re-struck every 16 and 26 rows (their own length) with a surf tick now and then, which is why percussionGap is at the cap. The tempo dips to 110 for the slack-water pattern and returns. It is the quiet piece of the set by design: drones, a soft pad and slow voices with long envelopes, no drum kit, so the two-pass mix sits near -25 dBFS (rmsRange declared, nothing is normalised).',
-  renderChecksum: 189548977,
+    'Slow ambient piece in 5/4 at 56 BPM (speed 8, eighty rows = two bars a pattern), D Dorian over a Dm-G-Am-C cycle, eight voices. Triangle drones join by 3xx glide. Struck bell chords on fixed-mode arpeggio instruments ring on pulse 1 and are answered two beats later by quieter echoes on pulse 2. The two VRC6 pulses are slow counterpoint voices — voice A above at duty 1 (12.5%), voice B below at duty 0 (6.25%) — and no row carries both: each takes the beats the other leaves free. The VRC6 sawtooth is a soft pad held at volume 3, gliding between chord tones with 3xx under Axy swells and a 7xy tremolo. The noise lane is wind and surf, not drums: their breathing envelopes are one-shot swells re-struck every 15 and 26 rows, their own length, with a surf tick now and then, which is why percussionGap is at the cap. The tempo dips to 110 for the slack-water pattern and returns. It is the quiet piece of the set by design — drones, a soft pad and slow voices with long envelopes, no drum kit, and the low drones sit under the 90 Hz post-DAC high-pass — so the two-pass mix sits near -24 dBFS (rmsRange declared, nothing is normalised).',
+  renderChecksum: 22227566,
 }

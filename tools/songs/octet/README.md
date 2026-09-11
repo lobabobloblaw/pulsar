@@ -7,21 +7,21 @@ project's own original pieces, each authored as a generator script that writes e
 melody, bass line, chord, drum pattern and form as code; nothing in them quotes or
 paraphrases a published work, which is what `docs/preset-suite.md` §0 requires.
 
-pulsar has the 2A03's five lanes only. *Skyline Run* is a 2A03 piece and ports
-one-to-one. The other two use the VRC6's two pulses and sawtooth, so they are
-**re-arranged** for pulse 1, pulse 2, triangle and noise: the same music, the same
-notes, a different voice allocation where the chip forces it. Every allocation
-decision is code, in one module per song, with a comment saying what moved where
-and why.
+pulsar has the same eight lanes: the 2A03's five and the VRC6's two pulses and
+sawtooth. All three pieces therefore port **one to one** — every lane lands on its
+own lane and no voice is re-allocated. The song modules carry only the corrections
+the target driver needs, each with a comment saying what it corrects and why; a
+module that moved a voice would be changing the music, which is not what this
+directory is for.
 
 | file | role |
 |---|---|
-| `convert.mjs` | the mechanical OCTET → pulsar mapping (notes, noise indices, DPCM key map, macros, per-channel patterns, canonical serialization) and the engine-difference fixups shared by every song |
-| `fold.mjs` | time-folding helpers: lane timelines, priority folds, global-effect parking, loop-entry state |
-| `skyline-run.mjs` | direct port; adds the loop-entry state and the DPCM restart gates the target driver needs |
-| `cathedral-of-gears.mjs` | the VRC6 fold for the gothic piece (melody to pulse 1, saw bass to the triangle, counter-melody and harmony chords on pulse 2) |
-| `tide-tables.mjs` | the VRC6 fold for the ambient piece (voices and bells shared by time across the pulses, breathing noise as re-struck one-shot swells) |
+| `convert.mjs` | the mechanical OCTET → pulsar mapping (notes, noise indices, DPCM key map, macros, per-channel patterns, canonical serialization), the engine-difference fixups shared by every song, and the small helpers the modules use (lane timelines, loop-entry state) |
+| `skyline-run.mjs` | the 2A03 piece: adds the loop-entry state and the DPCM restart gates the target driver needs |
+| `cathedral-of-gears.mjs` | the eight-voice gothic piece: adds the loop-entry state, nothing else |
+| `tide-tables.mjs` | the eight-voice ambient piece: adds the loop-entry state, and turns the looping wind and surf envelopes into one-shot swells re-struck at their own length |
 | `build.mjs` | the command line |
+| `audit.mjs` | the lane audit: source events against shipped events, lane by lane, with each module's corrections declared |
 
 Rebuild a song from its OCTET document (paths are the sibling checkout's):
 
@@ -35,11 +35,26 @@ The output is byte-identical to what `serializeSong` writes, so gate A's round t
 holds on the committed file. After any change, run `pnpm test tests/unit/presets.test.ts`,
 paste the checksum gate C prints into the module's `qa.renderChecksum`, and rebuild.
 
+Then check that the rebuild is still the same music:
+
+```
+node tools/songs/octet/audit.mjs --octet ../octet
+```
+
+It counts note attacks, cuts and releases per lane on both sides of the port and fails
+on any difference the song modules have not declared.
+
+The two eight-voice pieces claim seven lanes each. They also declare `dpcm`, which they
+never play: `channels` is a PREFIX of the canonical eight, so reaching `vrc6p1` means
+carrying the lanes before it. The lane gets an empty pattern and a `0` in every order
+frame, and the preset lint accepts it because it claims nothing and sounds nothing.
+
 ## What the converter corrects between the two drivers
 
-Both engines agree on note numbering (after +12), period tables, macro semantics,
-noise mapping (`$400E = 15 − (note mod 16)`) and most effects. The differences that
-change what is heard are fixed in `convert.mjs`:
+Both engines agree on note numbering (after +12), period tables, macro semantics, VRC6
+duty values (0–7 pass through unchanged), noise mapping (`$400E = 15 − (note mod 16)`)
+and most effects. The differences that change what is heard are fixed in `convert.mjs`,
+on the VRC6 lanes exactly as on the 2A03 pulses:
 
 - `Axy` nibbles are swapped (OCTET: x up; pulsar: x down).
 - `7xy` is re-expressed for pulsar's faster, deeper tremolo table; `700` becomes `710`.
