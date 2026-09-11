@@ -182,6 +182,7 @@
 <style>
   .tracker {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
     min-width: 0;
   }
@@ -275,10 +276,6 @@
   }
 
   @media (pointer: coarse) {
-    .lane .key {
-      min-width: 44px;
-      min-height: 44px;
-    }
     .field input {
       width: 64px;
     }

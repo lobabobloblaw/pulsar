@@ -374,7 +374,10 @@
     }
   }
 
-  .key.cursor::after {
+  /* The arrow-key cursor: a mark on the key `aria-activedescendant` names,
+     shown only while the bed itself has keyboard focus — the cursor means
+     nothing to a pointer. */
+  .bed:focus-visible .key.cursor::after {
     content: '';
     position: absolute;
     inset: auto 50% 26px;
@@ -385,7 +388,7 @@
     background: var(--enclosure-accent);
   }
 
-  .black.cursor::after {
+  .bed:focus-visible .black.cursor::after {
     bottom: 8px;
     background: var(--key-face);
   }

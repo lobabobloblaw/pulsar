@@ -174,13 +174,6 @@
     border-radius: var(--r-1);
   }
 
-  @media (pointer: coarse) {
-    .picker select {
-      min-height: 44px;
-      font-size: 16px;
-    }
-  }
-
   /* A failed load RINGS the field — non-text red, visible on the slab; the
      live-region announcement already said it in words. */
   .picker select.bad {

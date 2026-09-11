@@ -875,6 +875,7 @@
 <style>
   .grid {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0;
     min-width: 0;
   }
@@ -923,12 +924,6 @@
     white-space: nowrap;
   }
 
-  @media (pointer: coarse) {
-    .grid-nav .key {
-      min-width: 44px;
-      min-height: 44px;
-    }
-  }
 
   canvas {
     display: block;

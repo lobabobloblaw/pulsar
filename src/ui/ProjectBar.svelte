@@ -79,8 +79,10 @@
     <button type="button" class="key text" onclick={() => ask('new')}>New project</button>
     <button type="button" class="key text" onclick={() => file?.click()}>Open project</button>
     <button type="button" class="key text" onclick={downloadProject}>Download project</button>
-    <button type="button" class="key text" disabled={!song.canUndo} onclick={() => song.undo()}>Undo</button>
-    <button type="button" class="key text" disabled={!song.canRedo} onclick={() => song.redo()}>Redo</button>
+    <span class="history">
+      <button type="button" class="key text" disabled={!song.canUndo} onclick={() => song.undo()}>Undo</button>
+      <button type="button" class="key text" disabled={!song.canRedo} onclick={() => song.redo()}>Redo</button>
+    </span>
   </div>
   <span class="serial">PULSAR / 2A03</span>
   <input bind:this={file} type="file" accept=".json,.pulsar.json,application/json" onchange={readFile} hidden />
@@ -129,7 +131,14 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 2px;
+    gap: 4px 8px;
+  }
+
+  /* Undo and Redo wrap as a pair, so neither is ever orphaned on its own line. */
+  .history {
+    display: inline-flex;
+    gap: 4px;
+    white-space: nowrap;
   }
 
   .actions .key {
@@ -179,6 +188,10 @@
     }
     .save {
       flex-basis: 100%;
+    }
+    .actions {
+      width: 100%;
+      gap: 4px 6px;
     }
     .serial {
       display: none;

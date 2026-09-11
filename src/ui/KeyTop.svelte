@@ -62,17 +62,25 @@
 <style>
   .keytop {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px 12px;
+    min-width: 0;
     padding: 14px 0;
     border-top: 1px solid var(--enclosure-hairline);
   }
 
   .scope,
   .hint {
+    min-width: 0;
     letter-spacing: 0.7px;
     white-space: nowrap;
+  }
+
+  .scope {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .octave {
@@ -97,16 +105,16 @@
     font-size: 13px;
   }
 
-  @media (pointer: coarse) {
-    .octave .key {
-      min-width: 44px;
-      min-height: 44px;
-    }
-  }
-
+  /* The phone: the caption takes its own line above the octave group, so
+     the row's min-content is the octave group alone and 44px caps still fit
+     at 320px. */
   @media (max-width: 600px) {
     .hint {
       display: none;
+    }
+    .scope {
+      flex-basis: 100%;
+      white-space: normal;
     }
     .octave {
       gap: 8px;

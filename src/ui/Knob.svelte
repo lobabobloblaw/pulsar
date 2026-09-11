@@ -303,11 +303,12 @@
   }
 
   .detail {
+    max-width: 100%;
     font-family: var(--font-ui);
     font-size: var(--t-caption-size);
     line-height: 1.4;
     text-align: center;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
     color: var(--enclosure-ink-2);
   }
 

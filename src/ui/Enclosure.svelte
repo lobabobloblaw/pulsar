@@ -77,8 +77,13 @@
 </div>
 
 <style>
+  /* ONE column that can shrink to nothing: a bare `auto` track takes the
+     slab's min-content width, and the slab's percentage width then resolves
+     against that wider track — at 320px with 44px octave caps the keytop's
+     min-content pushed the whole slab past the viewport. */
   .stage {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     place-items: start center;
     min-height: 100dvh;
     /* Notches and home bars: the desk extends under them, the slab does not
@@ -94,6 +99,7 @@
   .device {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     width: min(100% - 24px, 1120px);
     padding: 24px;
     color: var(--enclosure-ink);

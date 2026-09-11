@@ -71,7 +71,6 @@
 
   @media (pointer: coarse) {
     input[type='range'] {
-      min-height: 44px;
       margin-top: 0;
     }
   }

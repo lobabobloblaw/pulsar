@@ -429,7 +429,13 @@ select.window {
 
 /* Touch targets occupy real layout space: invisible pads overlapped adjacent
    controls and made the selected action depend on paint order. Piano keys
-   retain their own contiguous layout. */
+   retain their own contiguous layout (they are <div class="key">, never
+   buttons, so the floors below never reach them).
+
+   The floors are declared ONCE, here, and win the cascade on purpose: a
+   component may size a control above 44px or above 16px, never below, and a
+   scoped rule (.macros .key { min-height: 25px }) must not be able to undo the
+   floor by specificity. `!important` is the honest way to say that. */
 @media (pointer: coarse) {
   button.key,
   summary.key {
@@ -442,6 +448,23 @@ select.window {
   textarea.window {
     min-height: 44px;
     font-size: max(16px, 1em);
+  }
+
+  /* Every button and disclosure summary, whatever class a component gives
+     it: a real 44x44 target. */
+  button,
+  summary {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+
+  /* Every field, the output range included: 44px tall and never under 16px,
+     which is also what stops iOS zooming into a focused field. */
+  input,
+  select,
+  textarea {
+    min-height: 44px !important;
+    font-size: max(16px, 1em) !important;
   }
 }
 

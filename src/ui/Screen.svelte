@@ -479,10 +479,10 @@
      padding so the integer dot still fits inside the bezel. */
   @media (max-width: 360px) {
     .well {
-      padding-inline: 4px;
+      padding-inline: 0;
     }
     .cap {
-      padding-inline: 4px;
+      padding-inline: 6px;
     }
   }
 </style>
