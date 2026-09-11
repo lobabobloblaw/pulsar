@@ -311,18 +311,18 @@
     }
   }
 
-  /* The phone row: play + song, then the readouts on their own line. While
-     the Start/Retry cap is up it shares the first row with the play key and
-     the song picker takes a row of its own. */
+  /* The phone: the play key (with the Start/Retry cap or the starting note
+     beside it), then the song picker on a row of its own, then the readouts.
+     The picker ALWAYS takes its own row, so the cap's arrival or departure
+     changes only the first row's width and never the row count — a row
+     appearing under a finger moved the keybed 65px mid-tap. The failure
+     sentence is the one state that adds a line, and it is a failure. */
   @media (max-width: 600px) {
     .transport {
       gap: 12px 16px;
       padding: 16px 0;
     }
     .song {
-      flex-basis: 140px;
-    }
-    .start ~ .song {
       flex-basis: 100%;
     }
     .clock {

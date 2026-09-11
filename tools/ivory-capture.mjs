@@ -23,6 +23,10 @@
 // visible field at a computed font-size of at least 16px, saved as
 // `touch-{width}.png`. This is the pass the homepage's phone shell (a 320x568
 // touch iframe) exercises; fine-pointer captures cannot see these defects.
+// On the phone widths it also starts the (stub) engine with a key press and
+// asserts the keybed's top offset is the same with the Start audio cap and
+// without it — the transport row must not change its row count when audio
+// starts, or the instrument jumps under the finger that started it.
 //
 // Playwright is intentionally NOT a devDependency of this repo — it is
 // imported from an absolute path outside the repo (see IMPORT below), and
@@ -471,6 +475,44 @@ async function runTouch(base, outDir, loadSong) {
       if (audit.canvasWidth !== null && audit.wellInner !== null && audit.canvasWidth > audit.wellInner) {
         issues.push(`lattice ${audit.canvasWidth}px wider than the well's inner ${audit.wellInner}px`)
       }
+
+      // The start-cap jump check, on a FRESH page in the same touch context:
+      // the full-page screenshot above dropped this page's touch pointer, and
+      // the check has to run under the coarse floors the phone really has.
+      let jump = 'n/a'
+      if (!t.tracker) {
+        const p2 = await context.newPage()
+        await p2.goto(`${base}/?stub`, { waitUntil: 'load' })
+        await p2.waitForSelector('nav[aria-label="Workspace"] button')
+        await p2.waitForTimeout(400)
+        if (loadSong) {
+          await p2.selectOption('[data-slot="preset-bar"] select', { index: 1 })
+          await p2.waitForTimeout(250)
+        }
+        const keybedTop = () =>
+          p2.evaluate(() => {
+            const el = document.querySelector('[role="toolbar"][aria-label^="keybed"]')
+            return el ? Math.round(el.getBoundingClientRect().top + window.scrollY) : null
+          })
+        const capBefore = await p2.locator('button.start').count()
+        if (capBefore !== 1) issues.push(`expected the Start audio cap before the gesture, found ${capBefore}`)
+        const idleTop = await keybedTop()
+        // The first key press is the audio gesture: App.startAudio -> the
+        // stub's start(), which publishes starting then running.
+        await p2.keyboard.press('z')
+        try {
+          await p2.waitForSelector('button.start', { state: 'detached', timeout: 3000 })
+        } catch {
+          issues.push('the Start audio cap did not leave after the key gesture')
+        }
+        await p2.waitForTimeout(150)
+        const runningTop = await keybedTop()
+        jump = `${idleTop}/${runningTop}`
+        if (idleTop !== runningTop) {
+          issues.push(`keybed top moved when audio started: ${idleTop} -> ${runningTop}`)
+        }
+        await p2.close()
+      }
       rows.push({
         width: t.width,
         state: t.tracker ? 'tracker+settings' : 'live+settings',
@@ -478,6 +520,7 @@ async function runTouch(base, outDir, loadSong) {
         well: audit.wellInner === null ? 'n/a' : `${audit.canvasWidth}/${audit.wellInner}`,
         targets: audit.smallTargets.length,
         fonts: audit.smallFonts.length,
+        jump,
         file: fileName,
       })
       if (issues.length > 0) failures.push({ width: t.width, issues })
@@ -495,6 +538,7 @@ async function runTouch(base, outDir, loadSong) {
     pad('canvas/well', 12),
     pad('<44px', 6),
     pad('<16px', 6),
+    pad('keybed idle/run', 16),
     'file',
   ].join('| ')
   console.log('')
@@ -502,7 +546,7 @@ async function runTouch(base, outDir, loadSong) {
   console.log('-'.repeat(header.length))
   for (const r of rows) {
     console.log(
-      [pad('coarse', 8), pad(r.width, 6), pad(r.state, 18), pad(r.overflow, 16), pad(r.well, 12), pad(r.targets, 6), pad(r.fonts, 6), r.file].join('| '),
+      [pad('coarse', 8), pad(r.width, 6), pad(r.state, 18), pad(r.overflow, 16), pad(r.well, 12), pad(r.targets, 6), pad(r.fonts, 6), pad(r.jump, 16), r.file].join('| '),
     )
   }
   if (failures.length === 0) {
