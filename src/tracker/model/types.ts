@@ -20,17 +20,40 @@
 /** Bumped only on a breaking change. A loader that sees a higher major refuses. */
 export const SONG_FORMAT_VERSION = 1 as const
 
-export type ChannelId = 'pulse1' | 'pulse2' | 'triangle' | 'noise' | 'dpcm'
+/** The five 2A03 lanes, then the three VRC6 expansion lanes (mapper 24: two pulses
+ *  and the sawtooth). An id is an INTERNAL identifier, not UI copy — `CHANNEL_LABELS`
+ *  in `src/state/songModel.ts` is what the grid prints. */
+export type ChannelId =
+  | 'pulse1'
+  | 'pulse2'
+  | 'triangle'
+  | 'noise'
+  | 'dpcm'
+  | 'vrc6p1'
+  | 'vrc6p2'
+  | 'vrc6saw'
 export type Region = 'ntsc' | 'pal'
 
-/** The canonical lane order. `channels` must be a PREFIX of this. */
+/** The canonical lane order. `channels` must be a PREFIX of this — which is what keeps
+ *  the format at version 1 while the lane list grows: a five-lane song is unchanged on
+ *  disk and loads in every build, and an eight-lane song is refused by an older build
+ *  with its existing "channels must be a prefix" diagnostic, which is the right
+ *  failure. A VRC6 song therefore always declares `dpcm` too, possibly with empty
+ *  patterns. */
 export const CANONICAL_CHANNELS: readonly ChannelId[] = [
   'pulse1',
   'pulse2',
   'triangle',
   'noise',
   'dpcm',
+  'vrc6p1',
+  'vrc6p2',
+  'vrc6saw',
 ]
+
+/** The 2A03 prefix — the lanes every NES has, and the shape of a new document. The
+ *  driver reads it to decide whether a song touches the expansion chip at all. */
+export const CHIP_2A03_CHANNELS: readonly ChannelId[] = CANONICAL_CHANNELS.slice(0, 5)
 
 /** MIDI note number, 0..119 (c-1..b8). Two sentinels share the space, out of band. */
 export type NoteValue = number
@@ -165,7 +188,9 @@ export interface Song {
   readonly format: 'pulsar-song'
   readonly version: number // SONG_FORMAT_VERSION
   readonly meta: SongMeta
-  /** Lane order. v1 writers emit all five; a reader must tolerate a prefix. */
+  /** Lane order: a PREFIX of `CANONICAL_CHANNELS`. A v1 writer emits the prefix the
+   *  song actually uses — a 2A03-only song keeps its five lanes, a VRC6 song writes
+   *  eight — and a reader must tolerate any prefix. */
   readonly channels: readonly ChannelId[]
   /** Effect columns visible per channel, 1..4, same length as `channels`. */
   readonly effectColumns: readonly number[]
@@ -232,8 +257,11 @@ export const RESERVED_EFFECTS: readonly string[] = [
   'Z',
 ]
 
-/** An empty but structurally valid document. Used by the store's initial state, by
- *  the command tests, and as the base every fixture builds on. */
+/** An empty but structurally valid document — a 2A03 song. A NEW document does not
+ *  declare the VRC6 lanes: adding the chip is an authoring decision (it costs three
+ *  more lanes of grid and a mapper an NSF player has to support), so `emptySong()`
+ *  stays exactly the five lanes it has always been and every one of its arrays is
+ *  derived from `CHIP_2A03_CHANNELS` rather than written out five times. */
 export function emptySong(overrides: Partial<SongMeta> = {}): Song {
   return {
     format: 'pulsar-song',
@@ -252,10 +280,10 @@ export function emptySong(overrides: Partial<SongMeta> = {}): Song {
       evenTempo: false,
       ...overrides,
     },
-    channels: CANONICAL_CHANNELS,
-    effectColumns: [1, 1, 1, 1, 1],
-    order: [[0, 0, 0, 0, 0]],
-    patterns: CANONICAL_CHANNELS.map((channel) => ({ channel, index: 0, rows: [] })),
+    channels: CHIP_2A03_CHANNELS,
+    effectColumns: CHIP_2A03_CHANNELS.map(() => 1),
+    order: [CHIP_2A03_CHANNELS.map(() => 0)],
+    patterns: CHIP_2A03_CHANNELS.map((channel) => ({ channel, index: 0, rows: [] })),
     instruments: [],
     sequences: { volume: [], arpeggio: [], pitch: [], hiPitch: [], duty: [] },
     samples: [],

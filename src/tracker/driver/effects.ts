@@ -108,12 +108,22 @@ export const MIN_PULSE_PERIOD = 8
 /** Triangle keeps its own floor: below 2 the core freezes the sequencer (D-T1). */
 export const MIN_TRIANGLE_PERIOD = 2
 export const MAX_PERIOD = 0x7ff
+/** The VRC6's dividers are 12-bit, so its lanes slide four times further down before
+ *  they saturate — the reason a saw bass reaches an octave a 2A03 pulse cannot. */
+export const MAX_VRC6_PERIOD = 0xfff
+/** The VRC6 has no sweep unit and therefore no period check to mute a short timer:
+ *  0 is a legal (inaudibly high) period, not silence. The 2A03 pulses keep their 8. */
+export const MIN_VRC6_PERIOD = 0
 /** Noise "period" is a 4-bit index into the period table, not an 11-bit timer. */
 export const MAX_NOISE_INDEX = 15
 
-export function clampPeriod(period: number, min: number): number {
+/** Clamp a slid period into the LANE's divider. `max` is a parameter because 11 bits
+ *  versus 12 is a property of the chip, not of the effect: every pitch effect
+ *  (1xx 2xx 3xx 4xy Pxx Qxy Rxy, arpeggio 0xy, the pitch and hi-pitch macros) runs
+ *  unchanged over the wider range and simply stops later. */
+export function clampPeriod(period: number, min: number, max: number = MAX_PERIOD): number {
   const p = Math.round(period)
-  return p < min ? min : p > MAX_PERIOD ? MAX_PERIOD : p
+  return p < min ? min : p > max ? max : p
 }
 
 export function clampNoiseIndex(index: number): number {

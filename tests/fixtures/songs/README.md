@@ -6,6 +6,15 @@
   to 1e-4, so the pin survives last-bit `Math.sin`/`Math.exp` differences across V8
   builds), so the driver, the macro engine and the whole DSP path are held together by
   one number. Changing it means updating the pin in the same commit, which is the point.
+- `vrc6.json` — the eight-lane fixture: a 2A03 pulse line, a VRC6 pulse melody driven
+  by a duty macro stepping 0..7, a `V03`/`V08` pair on vrc6 pulse 2 (so the four-bit
+  duty field's mode bit is exercised), and a saw bass at volumes 15 and 3 with two
+  `3xx` glides. It is what `trackerVrc6Format.test.ts` round-trips and what proves an
+  eight-lane document is still format version 1. Generated through the real
+  `serializeSong`, so the file on disk is byte-stable against it.
+- `trace.ts` — capture and FNV-1a of a whole register trace. `trackerVrc6Regression`
+  uses it to hold every five-lane song's timeline to what it was before the VRC6
+  lanes existed.
 - `build.ts` — song builders and the driver harness the `tracker*.test.ts` suites share.
   Every fixture it produces goes through the real `parseSong`, so a broken fixture fails
   loudly where it is written rather than mysteriously where it is used.

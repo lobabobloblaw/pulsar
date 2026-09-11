@@ -227,6 +227,63 @@ lands on ordinary MIDI notes — kick (index 12–14) on notes ≡ 1..3 mod 16, 
 ≡ 7..9, hat (1–3) on ≡ 12..14. Pitch effects and pitch macros move the INDEX on this
 channel, not an 11-bit timer.
 
+### VRC6 lanes
+
+The tracker's lane list is a PREFIX of eight: the five 2A03 lanes then `vrc6p1`,
+`vrc6p2`, `vrc6saw`. Their register blocks are not four apart and not adjacent to the
+APU, so `registers.ts` addresses every lane through a base table —
+`$4000 $4004 $4008 $400C $4010 $9000 $A000 $B000` — rather than `$4000 + ch·4 + slot`.
+
+**Canonical orders.** The side-effect register is `$x002`: its enable bit, when
+cleared, resets the lane's step, its accumulator and its timer. It therefore goes LAST,
+and all three registers go out unconditionally on a trigger, write-on-change after.
+
+- **vrc6 pulse 1 / 2** — `$9000`/`$A000` (`M DDD VVVV`) → `$9001`/`$A001` (period low)
+  → **`$9002`/`$A002` last** (`E--- HHHH`: enable + the period's high nibble).
+- **vrc6 saw** — `$B000` (`--RR RRRR`, the accumulator rate) → `$B001` (period low) →
+  **`$B002` last**.
+
+Standing conventions, chosen once:
+
+- **`$4015` is never written for a VRC6 lane.** The expansion chip has no status
+  register, and `$4015` belongs to five lanes that have nothing to do with this one —
+  writing it on a VRC6 note-off would cut a 2A03 voice. `RegisterFile` keeps a per-lane
+  `armed` flag for exactly this reason: a VRC6 lane has no bit to read back.
+- **`$9003 = 0x00`, written once** on the first tick of a song that declares a VRC6
+  lane, and never again. It means "no halt, no period shift", so every lane runs at the
+  period the driver wrote. A 2A03-only song never writes it, which is what keeps its
+  register timeline byte-for-byte what it was before these lanes existed
+  (`trackerVrc6Regression.test.ts` pins the FNV-1a of all four shipped five-lane
+  traces).
+- **A note-off, a `---` cut and a composed volume of 0 are the same three bytes**:
+  volume 0 in `$x000` (rate 0 for the saw) AND the enable bit cleared in `$x002`. The
+  second half is not redundant — it is the phase reset, and it stops a silent lane's
+  divider running. `stop()` adds `$9000 $9002 $A000 $A002 $B000 $B002`, in that order,
+  after `$4015 = 0`, and only for a song that armed the chip.
+- **Duty is a FOUR-bit field**: bits 0–2 the duty (output high for `duty+1` of 16
+  steps) and bit 3 the mode bit, which makes the lane output its volume constantly. A
+  duty macro or a `Vxx` is masked `& 0xF` — so `V08` and above reach the mode bit,
+  OCTET's convention — and the default when neither is set is **7**, the 50 % square.
+  The 2A03 pulses keep `& 3` and their default of 2.
+- **The saw's volume is a rate**: `rate = sounding ? min(42, round(v · 42 / 15)) : 0`,
+  OCTET's own mapping. 42 is the ceiling because the accumulator adds the rate on each
+  of seven even steps and `7 · 42` already overflows eight bits — above it the chip
+  distorts, which a volume column must not be able to reach by accident.
+- **Periods are 12-bit, `0x000..0xFFF`**, and the minimum is 0: the VRC6 has no sweep
+  unit, so it has no period check to mute a short timer the way a 2A03 pulse's floor of
+  8 does. `clampPeriod` therefore takes the lane's maximum. Every pitch effect —
+  `1xx 2xx 3xx 4xy Pxx Qxy Rxy`, arpeggio `0xy`, the pitch and hi-pitch macros — runs
+  unchanged over the wider range and simply stops later, which is what lets a saw bass
+  reach an octave a 2A03 pulse saturates in. `$x002` still moves only when its nibble
+  or the enable bit changes, which is D-TK2 read on a 12-bit divider.
+- **Pitch.** The VRC6 pulses divide by 16, like the 2A03 pulse, so the same timer sounds
+  the same note (`t = 253` → 440.3969 Hz). The saw divides by 14: A4 is `t = 290` →
+  439.3159 Hz, −2.694 cents, and that is the hardware, not a rounding bug.
+
+Effects supported on a VRC6 lane are the PULSE set. The noise lane's inverted period
+index and the dpcm lane's trigger path are keyed on their channel ids and do not reach
+these lanes.
+
 ## Rule L — one owner of the timeline at a time
 
 `EngineHandle` remains the one and only `RingProducer` owner. `TrackerDriver` and

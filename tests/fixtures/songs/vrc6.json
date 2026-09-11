@@ -1,0 +1,248 @@
+{
+  "format": "pulsar-song",
+  "version": 1,
+  "meta": {
+    "name": "vrc6",
+    "author": "pulsar",
+    "engineSpeed": 60,
+    "tempo": 150,
+    "speed": 6,
+    "rowsPerPattern": 8,
+    "rowHighlight": 4,
+    "rowHighlight2": 16,
+    "region": "ntsc",
+    "speedSplitPoint": 32,
+    "evenTempo": false
+  },
+  "channels": [
+    "pulse1",
+    "pulse2",
+    "triangle",
+    "noise",
+    "dpcm",
+    "vrc6p1",
+    "vrc6p2",
+    "vrc6saw"
+  ],
+  "effectColumns": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ],
+  "order": [
+    [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ]
+  ],
+  "patterns": [
+    {
+      "channel": "pulse1",
+      "index": 0,
+      "rows": [
+        {
+          "r": 0,
+          "note": 60,
+          "inst": 0,
+          "vol": 12
+        },
+        {
+          "r": 2,
+          "note": 62
+        },
+        {
+          "r": 4,
+          "note": 64
+        },
+        {
+          "r": 6,
+          "note": 65
+        }
+      ]
+    },
+    {
+      "channel": "pulse2",
+      "index": 0,
+      "rows": []
+    },
+    {
+      "channel": "triangle",
+      "index": 0,
+      "rows": []
+    },
+    {
+      "channel": "noise",
+      "index": 0,
+      "rows": []
+    },
+    {
+      "channel": "dpcm",
+      "index": 0,
+      "rows": []
+    },
+    {
+      "channel": "vrc6p1",
+      "index": 0,
+      "rows": [
+        {
+          "r": 0,
+          "note": 72,
+          "inst": 1,
+          "vol": 15
+        },
+        {
+          "r": 1,
+          "note": 74
+        },
+        {
+          "r": 2,
+          "note": 76
+        },
+        {
+          "r": 3,
+          "note": 77
+        },
+        {
+          "r": 4,
+          "note": 79
+        },
+        {
+          "r": 5,
+          "note": 77
+        },
+        {
+          "r": 6,
+          "note": 76
+        },
+        {
+          "r": 7,
+          "note": 74
+        }
+      ]
+    },
+    {
+      "channel": "vrc6p2",
+      "index": 0,
+      "rows": [
+        {
+          "r": 0,
+          "note": 67,
+          "inst": 0,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "V",
+              "param": 3
+            }
+          ]
+        },
+        {
+          "r": 4,
+          "note": 69,
+          "fx": [
+            {
+              "cmd": "V",
+              "param": 8
+            }
+          ]
+        },
+        {
+          "r": 7,
+          "note": -1
+        }
+      ]
+    },
+    {
+      "channel": "vrc6saw",
+      "index": 0,
+      "rows": [
+        {
+          "r": 0,
+          "note": 36,
+          "inst": 0,
+          "vol": 15
+        },
+        {
+          "r": 2,
+          "note": 43,
+          "fx": [
+            {
+              "cmd": "3",
+              "param": 16
+            }
+          ]
+        },
+        {
+          "r": 4,
+          "vol": 3
+        },
+        {
+          "r": 6,
+          "note": 36,
+          "fx": [
+            {
+              "cmd": "3",
+              "param": 16
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "instruments": [
+    {
+      "name": "plain",
+      "macros": {
+        "volume": -1,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": -1
+      }
+    },
+    {
+      "name": "vrc6 lead",
+      "macros": {
+        "volume": -1,
+        "arpeggio": -1,
+        "pitch": -1,
+        "hiPitch": -1,
+        "duty": 0
+      }
+    }
+  ],
+  "sequences": {
+    "volume": [],
+    "arpeggio": [],
+    "pitch": [],
+    "hiPitch": [],
+    "duty": [
+      {
+        "values": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "loop": 7,
+        "release": -1
+      }
+    ]
+  },
+  "samples": []
+}
