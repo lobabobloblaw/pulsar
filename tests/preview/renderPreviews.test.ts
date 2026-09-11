@@ -5,6 +5,17 @@
  *
  *      pnpm preview:songs      ->  previews/<id>.wav  +  a level table on stdout
  *
+ *  `PULSAR_PREVIEW_ONLY` narrows that to a comma-separated list of song ids — the file
+ *  name without its two-digit play-order prefix and its extension — so a composer working
+ *  on one piece renders one piece in seconds rather than the whole catalogue:
+ *
+ *      PULSAR_PREVIEW_ONLY=cathedral-of-gears pnpm preview:songs
+ *      PULSAR_PREVIEW_ONLY=skyline-run,tide-tables pnpm preview:songs
+ *
+ *  An id matching nothing FAILS rather than rendering nothing quietly: a typo there would
+ *  otherwise read exactly like a clean run. The filter changes only which songs are
+ *  rendered — same loops, same rate, same raw mix for the ones it keeps.
+ *
  *  Inert in the default `pnpm test` run. The file matches `tests/**\/*.test.ts` and is
  *  collected, but `describe.skipIf` keeps it from doing anything without `PULSAR_PREVIEW=1`
  *  — which is what keeps ~30 s of rendering and a directory of build artifacts out of CI
@@ -32,6 +43,10 @@ const LOOPS = 2
 const RENDER_TIMEOUT = 120_000
 
 const enabled = process.env.PULSAR_PREVIEW === '1'
+const only = (process.env.PULSAR_PREVIEW_ONLY ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter((s) => s.length > 0)
 
 function songs(): { id: string; raw: unknown }[] {
   return readdirSync(SONG_DIR)
@@ -44,8 +59,16 @@ function songs(): { id: string; raw: unknown }[] {
 }
 
 describe.skipIf(!enabled)('song previews', () => {
-  const list = songs()
+  const all = songs()
+  const list = only.length === 0 ? all : all.filter((s) => only.includes(s.id))
   mkdirSync(OUT_DIR, { recursive: true })
+
+  it('resolves every id named in PULSAR_PREVIEW_ONLY', () => {
+    const missing = only.filter((id) => !all.some((s) => s.id === id))
+    expect(missing, `PULSAR_PREVIEW_ONLY names ${missing.join(', ')}; known ids: ${all.map((s) => s.id).join(', ')}`)
+      .toEqual([])
+    expect(list.length, 'the filter selected no songs').toBeGreaterThan(0)
+  })
 
   const table: string[] = [
     'id                      dur      rms      peak   clip  checksum',
