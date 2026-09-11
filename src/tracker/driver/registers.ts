@@ -20,6 +20,13 @@
  *  a composed volume of 0 writes `$4008 = 0x00`, which halts the sequencer IN PHASE
  *  holding its DAC value rather than clearing `$4015`. Duty changes go out as
  *  `$4000`/`$4004` alone so a duty macro stepping every tick cannot click.
+ *
+ *  **The VRC6 lanes obey the same two disciplines and add nothing to them.** Their
+ *  addresses come from `CHANNEL_BASE` rather than from `$4000 + ch·4` (the expansion
+ *  blocks are at `$9000`, `$A000` and `$B000`), their side-effect register is `$x002`,
+ *  and `$4015` is NEVER written for them — the chip has no status register, and
+ *  touching the APU's would silence a 2A03 lane. `$9003` is written once, as `0x00`,
+ *  at play start.
  */
 import { REG_STATUS } from '../../audio/core/constants'
 import type { NesCycle, WriteSink } from '../../audio/timeline/types'
@@ -29,12 +36,65 @@ export const CH_PULSE2 = 1
 export const CH_TRIANGLE = 2
 export const CH_NOISE = 3
 export const CH_DPCM = 4
+export const CH_VRC6P1 = 5
+export const CH_VRC6P2 = 6
+export const CH_VRC6SAW = 7
 
-/** $4015 enable bits, indexed by canonical channel. */
+/** `$4015` enable bits, indexed by canonical channel — the FIVE 2A03 lanes only.
+ *
+ *  The VRC6 has no status register: a lane of it is silenced by its own `$x000` and
+ *  `$x002`, never by `$4015`, and `ENABLE_BIT[ch] ?? 0` therefore leaves the byte
+ *  alone for channels 5–7. That is not an oversight to be tidied up later — writing
+ *  `$4015` for a VRC6 lane would silence a 2A03 one. */
 export const ENABLE_BIT: readonly number[] = [0x01, 0x02, 0x04, 0x08, 0x10]
 
-/** Four register slots per channel: $4000 + ch·4 + slot. */
+/** Base address of each canonical lane's register block, in canonical channel order.
+ *
+ *  This table replaces the old `$4000 + ch·4 + slot` arithmetic. It produces exactly
+ *  the same addresses for the five 2A03 lanes — `$4000 $4004 $4008 $400C $4010` — and
+ *  it is the only way to express the VRC6's blocks, which are neither contiguous with
+ *  the APU nor four registers apart. */
+export const CHANNEL_BASE: readonly number[] = [
+  0x4000, 0x4004, 0x4008, 0x400c, 0x4010, 0x9000, 0xa000, 0xb000,
+]
+
+/** Register-image slots reserved per channel. Four is the 2A03's block size; the
+ *  VRC6 uses the first three of its four and never writes the fourth ($x003 is a
+ *  whole-chip register, not a per-lane one — see `vrc6FrequencyControl`). */
 export const SLOTS_PER_CHANNEL = 4
+
+/** `$9003`, the VRC6's frequency-control register: bit 0 halts all three lanes, bits
+ *  1–2 shift the effective period. The driver wants none of that, so it writes 0x00
+ *  ONCE at play start and never again — every lane then runs at its written period. */
+export const VRC6_FREQ_CONTROL = 0x9003
+
+/** `$x000` for a VRC6 pulse: `M DDD VVVV`. The duty FIELD is four bits — bits 0–2 the
+ *  duty (output high for `duty+1` of 16 steps) and bit 3 the mode bit, which makes the
+ *  lane output its volume constantly and ignore the duty. Taking them as one nibble is
+ *  what lets a duty macro or a `Vxx` reach the mode bit at all. */
+export function vrc6PulseControlByte(duty: number, volume: number): number {
+  return ((duty & 0x0f) << 4) | (volume & 0x0f)
+}
+
+/** `$x002` for either VRC6 lane kind: enable in bit 7, the period's high nibble low.
+ *  Clearing the enable bit silences the lane AND resets its phase (step, accumulator,
+ *  timer), which is why it is the side-effect register and goes out LAST. */
+export function vrc6EnableByte(on: boolean, timer: number): number {
+  return (on ? 0x80 : 0) | ((timer >> 8) & 0x0f)
+}
+
+/** The sawtooth's accumulator rate, `$B000`, from a composed 0..15 volume.
+ *
+ *  OCTET's own mapping, quoted: `rate = noteActive ? Math.min(42, Math.round(outVol *
+ *  42 / 15)) : 0`. 42 is the ceiling because the accumulator adds the rate on each of
+ *  the seven even steps and `7 · 42 = 294` already exceeds the 8-bit accumulator —
+ *  above 42 it wraps, which is the chip's documented "distortion" and not something a
+ *  volume column should be able to reach by accident. */
+export function vrc6SawRate(volume: number): number {
+  if (volume <= 0) return 0
+  const r = Math.round((volume * 42) / 15)
+  return r > 42 ? 42 : r
+}
 
 /** Length-counter halt + constant volume, both set on every pulse/noise note. */
 export const HALT_CONSTANT = 0x30
@@ -63,6 +123,15 @@ export class RegisterFile {
   readonly last: Int32Array
   /** The whole `$4015` byte the driver owns. */
   enable = 0
+  /** Per-lane "this channel is armed", 0 or 1.
+   *
+   *  For a 2A03 lane it mirrors the lane's `$4015` bit exactly. It exists because a
+   *  VRC6 lane has no bit to mirror: without it `isEnabled` would answer false for
+   *  every armed VRC6 lane and the driver's re-arm branch would invalidate the whole
+   *  image on every tick — write-on-change would be gone and a sustained note would
+   *  rewrite its side-effect register at 60 Hz, the exact failure `$4003`'s
+   *  write-on-change rule exists to prevent. */
+  private readonly armed: Int32Array
   private lastEnable = -1
   /** Cycle of the most recent write, so `stop()` can report its horizon. */
   lastCycle: NesCycle = 0
@@ -71,6 +140,7 @@ export class RegisterFile {
   constructor(channelCount: number) {
     this.last = new Int32Array(channelCount * SLOTS_PER_CHANNEL)
     this.last.fill(-1)
+    this.armed = new Int32Array(channelCount)
   }
 
   /** Forget the whole image — every byte is re-emitted on the next tick. Used on
@@ -88,9 +158,17 @@ export class RegisterFile {
   reset(): void {
     this.last.fill(-1)
     this.enable = 0
+    this.armed.fill(0)
     this.lastEnable = -1
     this.lastCycle = 0
     this.writes = 0
+  }
+
+  /** Disarm every lane and clear the `$4015` byte, without emitting anything — the
+   *  state half of the driver's all-channels-off. The writes are the caller's. */
+  disarmAll(): void {
+    this.enable = 0
+    this.armed.fill(0)
   }
 
   /** Raw write. Every emission funnels through here so `lastCycle` and the counter
@@ -109,14 +187,18 @@ export class RegisterFile {
     this.emit(sink, cycle, REG_STATUS, this.enable)
   }
 
+  /** Arm or disarm a lane. On a 2A03 lane that IS the `$4015` bit; on a VRC6 lane
+   *  there is no bit and only the armed flag moves — the silence writes are the
+   *  caller's, through `vrc6Off`. */
   setEnabled(channel: number, on: boolean): void {
+    this.armed[channel] = on ? 1 : 0
     const bit = ENABLE_BIT[channel] ?? 0
     if (on) this.enable |= bit
     else this.enable &= ~bit
   }
 
   isEnabled(channel: number): boolean {
-    return (this.enable & (ENABLE_BIT[channel] ?? 0)) !== 0
+    return this.armed[channel] === 1
   }
 
   /** One register slot, write-on-change. Returns true when a write went out. */
@@ -132,7 +214,7 @@ export class RegisterFile {
     const v = value & 0xff
     if (!force && this.last[i] === v) return false
     this.last[i] = v
-    this.emit(sink, cycle, 0x4000 + channel * SLOTS_PER_CHANNEL + slot, v)
+    this.emit(sink, cycle, (CHANNEL_BASE[channel] ?? 0x4000) + slot, v)
     return true
   }
 
@@ -214,5 +296,75 @@ export class RegisterFile {
     this.slot(sink, cycle, channel, 2, address & 0xff, true)
     this.slot(sink, cycle, channel, 3, length & 0xff, true)
     this.status(sink, cycle, true)
+  }
+
+  // --- VRC6 ---------------------------------------------------------------------------
+
+  /** `$9003 = 0x00`, forced, once per playback. No `$4015` is involved: the expansion
+   *  chip has no status register and the driver must never touch the APU's on its
+   *  behalf. */
+  vrc6FrequencyControl(sink: WriteSink, cycle: NesCycle): void {
+    this.emit(sink, cycle, VRC6_FREQ_CONTROL, 0x00)
+  }
+
+  /** VRC6 pulse: `$x000` (mode | duty | volume) → `$x001` (period low) →
+   *  **`$x002` last** (enable + period high) — the side-effect register, because
+   *  clearing its enable bit resets the lane's step and timer.
+   *
+   *  On a trigger all three go out unconditionally; afterwards each is write-on-change,
+   *  so a held note writes `$x002` exactly once and a slide moves it only when the
+   *  period's high NIBBLE (or the enable bit) actually changes — the VRC6 reading of
+   *  D-TK2.
+   *
+   *  A composed volume of 0 is a note-off on this chip: volume 0 AND the enable bit
+   *  cleared, which is silence plus a phase reset, so the next note starts from step 0
+   *  the way a fresh trigger does. */
+  vrc6Pulse(
+    sink: WriteSink,
+    cycle: NesCycle,
+    channel: number,
+    trigger: boolean,
+    duty: number,
+    volume: number,
+    timer: number,
+  ): void {
+    const on = volume > 0
+    this.slot(sink, cycle, channel, 0, on ? vrc6PulseControlByte(duty, volume) : 0x00, trigger)
+    this.slot(sink, cycle, channel, 1, timer & 0xff, trigger)
+    this.slot(sink, cycle, channel, 2, on ? vrc6EnableByte(true, timer) : 0x00, trigger)
+  }
+
+  /** VRC6 sawtooth: `$B000` (accumulator rate) → `$B001` (period low) →
+   *  **`$B002` last**. Same discipline as the pulses; the volume becomes a rate. */
+  vrc6Saw(
+    sink: WriteSink,
+    cycle: NesCycle,
+    channel: number,
+    trigger: boolean,
+    volume: number,
+    timer: number,
+  ): void {
+    const rate = vrc6SawRate(volume)
+    const on = rate > 0
+    this.slot(sink, cycle, channel, 0, rate, trigger)
+    this.slot(sink, cycle, channel, 1, timer & 0xff, trigger)
+    this.slot(sink, cycle, channel, 2, on ? vrc6EnableByte(true, timer) : 0x00, trigger)
+  }
+
+  /** Silence one VRC6 lane: `$x000 = 0` (volume/rate 0) then `$x002 = 0` (enable
+   *  cleared, which is also the phase reset). The same two bytes for a pulse and for
+   *  the saw, and the same two `stop()` writes, which is why there is one method. */
+  vrc6Off(sink: WriteSink, cycle: NesCycle, channel: number): void {
+    this.slot(sink, cycle, channel, 0, 0x00, false)
+    this.slot(sink, cycle, channel, 2, 0x00, false)
+  }
+
+  /** `stop()`'s VRC6 half: `$9000 $9002 $A000 $A002 $B000 $B002`, all forced, in the
+   *  order OCTET's own `stop()` writes them. */
+  vrc6AllOff(sink: WriteSink, cycle: NesCycle): void {
+    for (let ch = CH_VRC6P1; ch <= CH_VRC6SAW; ch++) {
+      this.slot(sink, cycle, ch, 0, 0x00, true)
+      this.slot(sink, cycle, ch, 2, 0x00, true)
+    }
   }
 }

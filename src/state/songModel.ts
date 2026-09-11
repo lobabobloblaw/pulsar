@@ -50,6 +50,9 @@ export const CHANNEL_LABELS: Readonly<Record<ChannelId, string>> = {
   triangle: 'triangle',
   noise: 'noise',
   dpcm: 'dpcm',
+  vrc6p1: 'vrc6 pulse 1',
+  vrc6p2: 'vrc6 pulse 2',
+  vrc6saw: 'vrc6 saw',
 }
 
 export const CHANNEL_IDS = CANONICAL_CHANNELS

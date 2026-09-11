@@ -24,10 +24,12 @@
  */
 import {
   CANONICAL_CHANNELS,
+  CHIP_2A03_CHANNELS,
   NOTE_CUT,
   NOTE_NONE,
   NOTE_RELEASE,
   emptySong,
+  type ChannelId,
   type Song,
 } from '../model/types'
 import {
@@ -74,8 +76,10 @@ import {
   CHAN_VOL_SCALE,
   MAX_CHAN_VOL8,
   MEMORY_COMMANDS,
+  MAX_VRC6_PERIOD,
   MIN_PULSE_PERIOD,
   MIN_TRIANGLE_PERIOD,
+  MIN_VRC6_PERIOD,
   OFF_ON_ZERO_COMMANDS,
   VIB_ACC_MASK,
   arpeggioOffset,
@@ -91,7 +95,12 @@ import { RegisterFile, SWEEP_OFF } from './registers'
 import { RowAccumulator, cycleOfTick } from './tempo'
 import { NTSC_CPU_HZ } from '../../audio/core/constants'
 import { DMC_RATE_NTSC } from '../../audio/core/tables'
-import { pulseTimerForMidi, triangleTimerForMidi } from '../../audio/host/pitch'
+import {
+  pulseTimerForMidi,
+  triangleTimerForMidi,
+  vrc6PulseTimerForMidi,
+  vrc6SawTimerForMidi,
+} from '../../audio/host/pitch'
 import { msToCycles } from '../../audio/timeline/clockMap'
 import type { NesCycle, WriteSink } from '../../audio/timeline/types'
 
@@ -142,9 +151,16 @@ export interface DriverStats {
  *  past on a busy main thread (design §2.6). */
 export const START_LATENCY_MS = 40
 
-/** Every allocation is sized for the canonical five lanes, so a song with fewer
- *  channels never forces a re-allocation and `loadSong` stays a compile + rebind. */
+/** Every allocation is sized for the full canonical lane list — five 2A03 lanes plus
+ *  the three VRC6 ones — so a song with fewer channels never forces a re-allocation
+ *  and `loadSong` stays a compile + rebind. Derived, never written out: adding a lane
+ *  to `CANONICAL_CHANNELS` must grow every per-channel array with it, and `applySong`
+ *  clamps `channelCount` to this, so a literal 5 here would silently drop lanes 5–7. */
 const MAX_CHANNELS = CANONICAL_CHANNELS.length
+
+/** How many lanes the 2A03 itself owns. A song whose `channels` is longer than this
+ *  declares the VRC6, which is the only thing that makes the driver touch `$9000+`. */
+const CHIP_2A03_LANES = CHIP_2A03_CHANNELS.length
 /** Ten fingers plus slack, matching the stopped-mode LiveScheduler policy. */
 const LIVE_HELD_CAPACITY = 16
 
@@ -160,6 +176,18 @@ const ROW_LOG_CAPACITY = 256
 export function noisePeriodIndex(note: number): number {
   return 15 - (((note % 16) + 16) % 16)
 }
+
+/** Is this lane on the expansion chip? The three VRC6 lanes share one set of rules —
+ *  12-bit periods, no `$4015` bit, `$x002` as the side-effect register — so the driver
+ *  asks this question once rather than listing three ids at each branch. */
+function isVrc6Lane(id: ChannelId): boolean {
+  return id === 'vrc6p1' || id === 'vrc6p2' || id === 'vrc6saw'
+}
+
+/** `$x000`'s duty field when neither a duty macro nor a `Vxx` has set one: 7 is
+ *  "output high for 8 of 16 steps" — a 50 % square, the VRC6's plainest voice. The
+ *  2A03 pulses keep their own default of 2 (`DD = 10`, also 50 %). */
+const VRC6_DEFAULT_DUTY = 7
 
 /** One-shot DPCM sample duration in CPU cycles: `16·L + 1` bytes ($4013) at eight
  *  output clocks per byte, the $4010 rate index giving the output-unit period — the
@@ -259,6 +287,16 @@ export class TrackerDriver {
   private soloChannel = -1
   private liveChannel = 0
   private editStep = 1
+
+  /** Has `$9003` gone out during this playback? It is written once, as `0x00`, on the
+   *  first tick of a song that declares a VRC6 lane, and never again — and the flag is
+   *  also what tells `stop()` whether it owes the expansion chip a silence sequence.
+   *
+   *  Gating on "the song declares a VRC6 lane" rather than writing it unconditionally
+   *  is deliberate: a 2A03-only song must produce exactly the register timeline it
+   *  produced before these lanes existed, which is asserted by
+   *  `trackerVrc6Regression.test.ts`. */
+  private vrc6Touched = false
 
   // Flow effects recorded at the row latch (§3.1 step 1), applied at end of tick.
   private flowJump = -1
@@ -422,6 +460,7 @@ export class TrackerDriver {
     this.flowSkip = -1
     this.flowHalt = false
     this.flowSpeed = -1
+    this.vrc6Touched = false
     const s = this.stats
     s.ticksGenerated = 0
     s.writesEmitted = 0
@@ -448,8 +487,13 @@ export class TrackerDriver {
 
   private haltAt(cycle: NesCycle): void {
     this.playingValue = false
-    this.regs.enable = 0
+    this.regs.disarmAll()
     this.regs.status(this.sink, cycle, true)
+    // `$4015 = 0` says nothing to the VRC6, so its three lanes need their own silence:
+    // `$9000 $9002 $A000 $A002 $B000 $B002`, the order OCTET's `stop()` uses. Only for
+    // a song that actually armed the chip — a 2A03 song's all-channels-off is exactly
+    // the one byte it has always been.
+    if (this.vrc6Touched) this.regs.vrc6AllOff(this.sink, cycle)
     for (let ch = 0; ch < MAX_CHANNELS; ch++) {
       this.sounding[ch] = 0
       this.position.levels[ch] = 0
@@ -601,6 +645,15 @@ export class TrackerDriver {
 
   private tickOnce(cycle: NesCycle): void {
     this.lastCycleHint = cycle
+    // The VRC6's one standing register, written before any lane's: `$9003 = 0x00`
+    // means "no halt, no period shift", so every lane runs at the period the driver
+    // wrote. It goes out on the first tick rather than in `play()` because `play()`
+    // runs BEFORE the coordinator sets `originCycle` — a write there would carry the
+    // wrong cycle and would move `regs.lastCycle` behind the handoff point.
+    if (!this.vrc6Touched && this.channelCount > CHIP_2A03_LANES) {
+      this.vrc6Touched = true
+      this.regs.vrc6FrequencyControl(this.sink, cycle)
+    }
     if (this.rowStart) {
       this.latchRow()
       this.rowStart = false
@@ -643,8 +696,14 @@ export class TrackerDriver {
       if (this.liveHeldCount[ch] === 0 && this.liveNote[ch] >= 0) {
         this.liveNote[ch] = -1
         this.sounding[ch] = 0
+        const wasArmed = this.regs.isEnabled(ch)
         this.regs.setEnabled(ch, false)
         this.regs.invalidate(ch)
+        // A 2A03 lane's silence is the shared `$4015` byte, written once after the
+        // loop; a VRC6 lane's is its own pair and goes out here, per lane.
+        if (wasArmed && isVrc6Lane(compiled.channels[ch])) {
+          this.regs.vrc6Off(this.sink, this.lastCycleHint, ch)
+        }
         handedBack = true
       }
 
@@ -866,7 +925,7 @@ export class TrackerDriver {
     if (this.isSuppressed(ch)) {
       if (this.regs.isEnabled(ch)) {
         this.regs.setEnabled(ch, false)
-        this.regs.status(this.sink, cycle, false)
+        this.silenceLane(ch, cycle, true)
       }
       this.triggerFlag[ch] = 0
     } else if (this.sounding[ch] === 1) {
@@ -1001,9 +1060,10 @@ export class TrackerDriver {
     this.noteSlideActive[ch] = 0
     this.noteSlidePending[ch] = 0
     this.dpcmEndsAt[ch] = -1
+    const wasArmed = this.regs.isEnabled(ch)
     this.regs.setEnabled(ch, false)
     this.regs.invalidate(ch)
-    this.regs.status(this.sink, this.lastCycleHint, false)
+    this.silenceLane(ch, this.lastCycleHint, wasArmed)
     this.position.levels[ch] = 0
   }
 
@@ -1025,11 +1085,28 @@ export class TrackerDriver {
 
   // --- emission ----------------------------------------------------------------------------
 
+  /** Emit whatever takes lane `ch` off the air on its own chip.
+   *
+   *  The `$4015` byte covers the five 2A03 lanes and is write-on-change, so calling
+   *  this on a lane whose bit is already clear costs nothing. A VRC6 lane has no bit
+   *  in that byte: it needs its own `$x000 = 0` (volume, or rate for the saw) and
+   *  `$x002 = 0` (enable cleared), which is silence AND the phase reset. `armed` is
+   *  the lane's state BEFORE it was disarmed — a VRC6 lane that was never on has
+   *  nothing to say. */
+  private silenceLane(ch: number, cycle: NesCycle, armed: boolean): void {
+    this.regs.status(this.sink, cycle, false)
+    if (armed && isVrc6Lane(this.compiled.channels[ch])) {
+      this.regs.vrc6Off(this.sink, cycle, ch)
+    }
+  }
+
   private periodOf(ch: number, note: number): number {
     const id = this.compiled.channels[ch]
     const n = clampNote(note)
     if (id === 'triangle') return triangleTimerForMidi(n, this.clockRate)
     if (id === 'noise') return noisePeriodIndex(n)
+    if (id === 'vrc6saw') return vrc6SawTimerForMidi(n, this.clockRate)
+    if (id === 'vrc6p1' || id === 'vrc6p2') return vrc6PulseTimerForMidi(n, this.clockRate)
     return pulseTimerForMidi(n, this.clockRate)
   }
 
@@ -1061,6 +1138,32 @@ export class TrackerDriver {
       const timer = clampPeriod(this.periodOf(ch, note) + offset, MIN_TRIANGLE_PERIOD)
       // On the triangle the composed volume is a GATE, not a level (§3.3).
       this.regs.triangle(this.sink, cycle, ch, trigger, volume > 0, timer)
+      return
+    }
+    if (id === 'vrc6p1' || id === 'vrc6p2') {
+      // The duty FIELD is four bits here, not two: bits 0-2 are the duty (high for
+      // `duty+1` of 16 steps) and bit 3 is the mode bit. Masking `& 0xF` rather than
+      // `& 3` is the whole difference, and it is what lets a duty macro value of 8-15
+      // reach the mode bit — OCTET's V08+ convention, kept so its instruments port.
+      let duty = VRC6_DEFAULT_DUTY
+      if (this.dutyOverride[ch] >= 0) duty = this.dutyOverride[ch] & 0x0f
+      if (macroDuty >= 0) duty = macroDuty & 0x0f
+      const timer = clampPeriod(
+        this.periodOf(ch, note) + offset,
+        MIN_VRC6_PERIOD,
+        MAX_VRC6_PERIOD,
+      )
+      this.regs.vrc6Pulse(this.sink, cycle, ch, trigger, duty, volume, timer)
+      return
+    }
+    if (id === 'vrc6saw') {
+      // The saw has no duty: the composed volume becomes the accumulator rate.
+      const timer = clampPeriod(
+        this.periodOf(ch, note) + offset,
+        MIN_VRC6_PERIOD,
+        MAX_VRC6_PERIOD,
+      )
+      this.regs.vrc6Saw(this.sink, cycle, ch, trigger, volume, timer)
       return
     }
     if (id === 'noise') {
@@ -1124,7 +1227,7 @@ export class TrackerDriver {
     if (this.isSuppressed(ch)) {
       if (this.regs.isEnabled(ch)) {
         this.regs.setEnabled(ch, false)
-        this.regs.status(this.sink, cycle, false)
+        this.silenceLane(ch, cycle, true)
       }
       this.triggerFlag[ch] = 0
       return
