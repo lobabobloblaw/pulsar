@@ -3,8 +3,12 @@
  *  WAV export driver) is just another `WriteSink` producer, which is what guarantees
  *  tracker playback will be bit-identical to live play.
  *
- *  Complete 2A03: two pulses, triangle, noise, DPCM and the frame counter, all six
- *  driven by one merged chronological event loop over a single CPU-cycle timeline.
+ *  Complete 2A03: two pulses, triangle, noise, DPCM and the frame counter, plus the
+ *  VRC6 expansion chip's two pulses and sawtooth — nine event sources driven by one
+ *  merged chronological event loop over a single CPU-cycle timeline. The 2A03's five
+ *  channels mix through the hardware's non-linear ladders; the VRC6's three sum
+ *  linearly on top (see `VRC6_GAIN` in mixer.ts), because that is how the expansion
+ *  audio pin works.
  *
  *  Load-bearing structure:
  *    - channels are NAMED FIELDS, never an array (monomorphic property access)
@@ -23,8 +27,9 @@ import { PulseChannel } from './channels/pulseChannel'
 import { TriangleChannel } from './channels/triangleChannel'
 import { FrameCounter } from './frameCounter'
 import { AnalogFilterChain, type ConsoleModel } from './filters'
+import { Vrc6 } from './vrc6/vrc6'
 import { DEFAULT_MASTER_GAIN, NTSC_CPU_HZ, PAL_CPU_HZ } from './constants'
-import { mixLinear, mixLut, type MixerMode } from './mixer'
+import { VRC6_GAIN, mixLinear, mixLut, type MixerMode } from './mixer'
 import { ApuStats } from './stats'
 import type { NesCycle, RegAddr, WriteSink } from '../timeline/types'
 
@@ -44,13 +49,24 @@ export interface Apu2A03Options {
 }
 
 export class Apu2A03 implements WriteSink {
-  // --- six named event sources -------------------------------------------------
+  // --- nine named event sources ------------------------------------------------
   readonly pulse1 = new PulseChannel(true)
   readonly pulse2 = new PulseChannel(false)
   readonly triangle = new TriangleChannel()
   readonly noise = new NoiseChannel()
   readonly dmc = new DmcChannel()
   readonly frameCounter = new FrameCounter()
+
+  /** The VRC6 expansion chip. Always present and silent until written — there is no
+   *  option flag, because a chip nobody writes costs one Infinity comparison per scan
+   *  iteration and adds exactly 0.0 to the mix. */
+  readonly vrc6 = new Vrc6()
+  /** The VRC6's three channels, aliased as named fields so the min scan below reads
+   *  them exactly the way it reads the 2A03's — one monomorphic load each, hoisted
+   *  into locals once per `runTo`. Same objects as `vrc6.pulse1` / `.pulse2` / `.saw`. */
+  readonly vrc6p1 = this.vrc6.pulse1
+  readonly vrc6p2 = this.vrc6.pulse2
+  readonly vrc6saw = this.vrc6.saw
 
   readonly buf: BandlimitedBuf
   readonly filters = new AnalogFilterChain()
@@ -67,6 +83,14 @@ export class Apu2A03 implements WriteSink {
 
   /** 32 KiB of $8000–$FFFF for the DMC memory reader. Loaded by the host. */
   dpcmMemory: Uint8Array | null = null
+
+  /** Cached `vrc6p1.out + vrc6p2.out + vrc6saw.out`. The VRC6 sums LINEARLY, so the
+   *  mix only ever needs the total — caching it keeps `emit()` at one load instead of
+   *  six, which is what pays for a ninth, tenth and eleventh event source inside the
+   *  same per-quantum budget. Derived state, so it is restored at the only two places
+   *  a VRC6 output can move: after a step in `runTo`'s scan, and after a register
+   *  write in `writeVrc6`. `vrc6.test.ts` asserts the invariant over a long trace. */
+  private vrc6SumValue = 0
 
   private cycleValue: NesCycle = 0
   private frameOriginValue: NesCycle = 0
@@ -105,6 +129,11 @@ export class Apu2A03 implements WriteSink {
    *  to it, which keeps `cycleTime · factor` an exact integer forever. */
   get frameOrigin(): NesCycle {
     return this.frameOriginValue
+  }
+
+  /** The VRC6's summed output level, 0..61. Read-only derived state — see the field. */
+  get vrc6Sum(): number {
+    return this.vrc6SumValue
   }
 
   // --- WriteSink ---------------------------------------------------------------
@@ -152,8 +181,15 @@ export class Apu2A03 implements WriteSink {
 
   // --- run loop ----------------------------------------------------------------
 
-  /** Merged chronological min scan over the six named sources. Every source due at the
-   *  winning cycle steps, then the mix is re-evaluated exactly once for that cycle. */
+  /** Merged chronological min scan over the nine named sources. Every source due at the
+   *  winning cycle steps, then the mix is re-evaluated exactly once for that cycle.
+   *
+   *  The three VRC6 reads are adjacent and monomorphic, and they fold into their own
+   *  minimum (`v6next`) before joining the scan. That second level is not decoration:
+   *  a chip nobody wrote advertises Infinity on all three, `v6next === next` is false
+   *  once per iteration, and the three dispatch tests never run. Measured on the
+   *  worst-case bench scenario, which uses no VRC6 at all, the gate is worth ~8 µs per
+   *  quantum against the flat nine-way form. */
   runTo(target: NesCycle): void {
     const p1 = this.pulse1
     const p2 = this.pulse2
@@ -161,6 +197,9 @@ export class Apu2A03 implements WriteSink {
     const nz = this.noise
     const dmc = this.dmc
     const fc = this.frameCounter
+    const v1 = this.vrc6p1
+    const v2 = this.vrc6p2
+    const vs = this.vrc6saw
     let events = 0
     let frames = 0
     for (;;) {
@@ -175,6 +214,12 @@ export class Apu2A03 implements WriteSink {
       if (c5 < next) next = c5
       const c6 = fc.nextCycle
       if (c6 < next) next = c6
+      let v6next = v1.nextCycle
+      const c8 = v2.nextCycle
+      if (c8 < v6next) v6next = c8
+      const c9 = vs.nextCycle
+      if (c9 < v6next) v6next = c9
+      if (v6next < next) next = v6next
       if (!(next <= target)) break
 
       this.cycleValue = next
@@ -203,6 +248,21 @@ export class Apu2A03 implements WriteSink {
         if (fc.quarterClock) this.clockQuarter(next)
         if (fc.halfClock) this.clockHalf(next)
         frames++
+      }
+      if (v6next === next) {
+        if (v1.nextCycle === next) {
+          v1.stepTimer()
+          events++
+        }
+        if (v2.nextCycle === next) {
+          v2.stepTimer()
+          events++
+        }
+        if (vs.nextCycle === next) {
+          vs.stepTimer()
+          events++
+        }
+        this.vrc6SumValue = v1.out + v2.out + vs.out
       }
       this.emit(next)
     }
@@ -280,6 +340,7 @@ export class Apu2A03 implements WriteSink {
     shiftSource(this.noise, delta)
     shiftSource(this.dmc, delta)
     this.frameCounter.shiftBy(delta)
+    this.vrc6.shiftBy(delta)
   }
 
   reset(): void {
@@ -290,6 +351,8 @@ export class Apu2A03 implements WriteSink {
     this.dmc.reset()
     this.dmc.setMemory(this.dpcmMemory)
     this.frameCounter.reset()
+    this.vrc6.reset()
+    this.vrc6SumValue = 0
     this.noise.setRegion(this.region)
     this.dmc.setRegion(this.region)
     this.buf.clear()
@@ -388,12 +451,66 @@ export class Apu2A03 implements WriteSink {
       case 0x4017:
         this.frameCounter.write(value, cycle)
         return
+      // --- vrc6 expansion audio -------------------------------------------------
+      // All ten in one arm so the cached sum is restored at exactly one place; the
+      // per-register dispatch is `writeVrc6` below. Register writes are the cold path
+      // (a few hundred a second), so the extra call costs nothing measurable.
+      case 0x9000:
+      case 0x9001:
+      case 0x9002:
+      case 0x9003:
+      case 0xa000:
+      case 0xa001:
+      case 0xa002:
+      case 0xb000:
+      case 0xb001:
+      case 0xb002:
+        this.writeVrc6(addr, value, cycle)
+        return
       default:
         // $4009 / $400D are unused on the chip; $4014 (OAM DMA) and $4016
         // (controller strobe) are not APU registers at all. Their writes are still
         // ordered, timestamped and counted so a recorded trace stays replayable.
         return
     }
+  }
+
+  /** The VRC6's ten registers. $9003 is the only one that is not per-channel: it halts
+   *  and shifts all three at once. Every path out of here restores `vrc6SumValue`. */
+  private writeVrc6(addr: RegAddr, value: number, cycle: NesCycle): void {
+    switch (addr) {
+      case 0x9000:
+        this.vrc6p1.writeControl(value, cycle)
+        break
+      case 0x9001:
+        this.vrc6p1.writeTimerLow(value, cycle)
+        break
+      case 0x9002:
+        this.vrc6p1.writeEnable(value, cycle)
+        break
+      case 0x9003:
+        this.vrc6.writeFrequencyControl(value, cycle)
+        break
+      case 0xa000:
+        this.vrc6p2.writeControl(value, cycle)
+        break
+      case 0xa001:
+        this.vrc6p2.writeTimerLow(value, cycle)
+        break
+      case 0xa002:
+        this.vrc6p2.writeEnable(value, cycle)
+        break
+      case 0xb000:
+        this.vrc6saw.writeRate(value, cycle)
+        break
+      case 0xb001:
+        this.vrc6saw.writeTimerLow(value, cycle)
+        break
+      default:
+        this.vrc6saw.writeEnable(value, cycle)
+        break
+    }
+    this.vrc6SumValue = this.vrc6p1.out + this.vrc6p2.out + this.vrc6saw.out
   }
 
   /** Re-evaluate the whole non-linear mix and emit one delta if it moved. Called after
@@ -406,9 +523,13 @@ export class Apu2A03 implements WriteSink {
     const tri = this.triangle.out
     const nz = this.noise.out
     const dmc = this.dmc.out
-    const mix = this.useLut
-      ? mixLut(p1, p2, tri, nz, dmc)
-      : mixLinear(p1, p2, tri, nz, dmc)
+    // The VRC6 sums linearly and is added to BOTH mixer modes. When the chip is
+    // untouched all three outs are 0, the product is exactly 0.0, and `x + 0` returns
+    // `x` unchanged — which is why every pre-VRC6 golden checksum still holds.
+    const v6 = this.vrc6SumValue
+    const mix =
+      (this.useLut ? mixLut(p1, p2, tri, nz, dmc) : mixLinear(p1, p2, tri, nz, dmc)) +
+      v6 * VRC6_GAIN
     const last = this.lastMix
     if (mix !== last) {
       this.buf.addDelta(cycle - this.frameOriginValue, mix - last)

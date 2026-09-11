@@ -24,7 +24,10 @@ export const PULSE_MIN_TIMER = 8
 /** Highest volume / envelope level. */
 export const MAX_VOLUME = 15
 
-/** Register block. */
+/** The 2A03's register block. NOT the engine's whole address space: the VRC6 answers
+ *  at $9000..$9003, $A000..$A002 and $B000..$B002, which are not contiguous with this
+ *  one, so nothing may read `REG_BASE..REG_LAST` as "every address a write may carry".
+ *  The authority on what the engine accepts is `Apu2A03.applyWrite`. */
 export const REG_BASE = 0x4000
 export const REG_LAST = 0x4017
 export const REG_STATUS = 0x4015
