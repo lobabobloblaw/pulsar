@@ -1,11 +1,12 @@
 <!--
-  pulsar — the order list (design §4.1, §4.4).
+  pulsar — the order strip (design §4.1, §4.4; Ivory).
 
   Plain DOM, on purpose. It is small, it is where a screen-reader user actually
   builds a song's structure, and drawing it on canvas would cost accessibility
-  for nothing (§4.1). A real `<table>`: rows are frames, columns are lanes, and
-  every pattern index is a number input, so the browser's own editing,
-  selection and announcement all come free.
+  for nothing (§4.1). A horizontal strip of frame caps — the hex index over
+  the five pattern indices — so a short song's whole structure is visible at
+  once; the current frame's five pattern numbers are editable in the compact
+  row under the strip, one hex field per lane.
 
   Every mutation goes through the command layer, so the order list shares one
   undo stack with the grid (§4.6).
@@ -14,7 +15,6 @@
   import { song } from '../../state/song.svelte'
   import { CHANNEL_LABELS, newFrame, type Frame } from '../../state/songModel'
   import { tracker } from '../../state/tracker.svelte'
-  import Icon from '../Icon.svelte'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
@@ -22,15 +22,9 @@
   let { announce }: Props = $props()
 
   const labels = $derived(song.doc.channels.map((c) => CHANNEL_LABELS[c]))
-  const hex2 = (n: number): string => n.toString(16).padStart(2, '0')
-
-  /** `pulse 1` -> `p1`, `triangle` -> `tri`. Visible text only. */
-  function short(label: string): string {
-    const parts = label.split(' ')
-    return parts.length > 1
-      ? `${(parts[0] as string)[0]}${parts[1]}`
-      : label.slice(0, 3)
-  }
+  const current = $derived<Frame>(song.doc.order[tracker.frame] ?? [])
+  const hex2 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0')
+  const hex = (n: number): string => n.toString(16).toUpperCase()
 
   function setEntry(frame: number, channel: number, value: string): void {
     const n = Number.parseInt(value, 16)
@@ -45,10 +39,10 @@
 
   function addFrame(duplicate: boolean): void {
     const at = tracker.frame + 1
-    const current = song.doc.order[tracker.frame]
+    const currentFrame = song.doc.order[tracker.frame]
     // "add" gets fresh pattern numbers, "clone" gets this frame's — the two ways
     // a tracker player extends a song, and the only difference is this value.
-    const value = duplicate && current ? [...current] : newFrame(song.doc)
+    const value = duplicate && currentFrame ? [...currentFrame] : newFrame(song.doc)
     song.run({ kind: 'insertFrame', frame: at, value })
     tracker.setFrame(at)
     announce?.(`frame ${at} added`)
@@ -78,236 +72,151 @@
   }
 </script>
 
-<section class="order" aria-labelledby="order-title">
-  <div class="head">
-    <h2 id="order-title" class="t-label">order</h2>
-    <span class="t-micro count"
-      >{song.doc.order.length} {song.doc.order.length === 1 ? 'frame' : 'frames'}</span
-    >
+<section class="order" aria-labelledby="order-title" aria-describedby="order-desc">
+  <div class="caps">
+    <h2 id="order-title" class="t-micro">Order / Patterns per channel</h2>
+    <span class="t-micro">{song.doc.order.length} {song.doc.order.length === 1 ? 'frame' : 'frames'}</span>
   </div>
+  <p id="order-desc" class="sr">
+    song order: one button per frame, showing its pattern numbers per channel in hex; the row
+    under the strip edits the current frame's pattern numbers
+  </p>
 
-  <div class="scroll">
-    <table>
-      <caption class="sr">
-        song order: one row per frame, one column per channel, values are pattern numbers in hex
-      </caption>
-      <thead>
-        <tr>
-          <th scope="col" class="t-micro">frm</th>
-          <!-- Abbreviated so five lanes fit the narrow column; the full channel
-               name still reaches assistive tech through aria-label. -->
-          {#each labels as label, c (c)}
-            <th scope="col" class="t-micro" aria-label={label}>{short(label)}</th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#each song.doc.order as frame, f (f)}
-          <tr class:current={f === tracker.frame}>
-            <th scope="row">
-              <button
-                type="button"
-                class="t-micro frame"
-                aria-current={f === tracker.frame ? 'true' : undefined}
-                onclick={() => tracker.setFrame(f)}
-              >
-                {hex2(f)}
-              </button>
-            </th>
-            {#each frame as pattern, c (c)}
-              <td>
-                <input
-                  class="t-value"
-                  type="text"
-                  inputmode="numeric"
-                  maxlength="2"
-                  size="2"
-                  value={hex2(pattern)}
-                  aria-label="frame {f} {labels[c]} pattern"
-                  onchange={(e) => setEntry(f, c, e.currentTarget.value)}
-                  onfocus={() => tracker.setFrame(f)}
-                />
-              </td>
-            {/each}
-          </tr>
-        {/each}
-      </tbody>
-    </table>
+  <div class="strip">
+    {#each song.doc.order as frame, f (f)}
+      <button
+        type="button"
+        class="key frame"
+        aria-pressed={f === tracker.frame}
+        onclick={() => tracker.setFrame(f)}
+      >
+        <span class="index">{hex2(f)}</span>
+        <small>{frame.map(hex).join(' ')}</small>
+      </button>
+    {/each}
   </div>
 
   <div class="ops">
-    <span class="keyed">
-      <button type="button" class="key mini" aria-label="add frame" onclick={() => addFrame(false)}>
-        <Icon name="plus" size={10} />
-      </button>
-      <span class="silk">add</span>
-    </span>
-    <span class="keyed">
-      <button type="button" class="key mini" aria-label="clone frame" onclick={() => addFrame(true)}>
-        <Icon name="clone" size={10} />
-      </button>
-      <span class="silk">clone</span>
-    </span>
-    <span class="keyed">
-      <button type="button" class="key mini" aria-label="remove frame" onclick={removeFrame}>
-        <Icon name="minus" size={10} />
-      </button>
-      <span class="silk">remove</span>
-    </span>
-    <span class="keyed">
-      <button type="button" class="key mini" aria-label="move frame up" onclick={() => moveFrame(-1)}>
-        <Icon name="up" size={10} />
-      </button>
-      <span class="silk">up</span>
-    </span>
-    <span class="keyed">
-      <button type="button" class="key mini" aria-label="move frame down" onclick={() => moveFrame(1)}>
-        <Icon name="down" size={10} />
-      </button>
-      <span class="silk">down</span>
-    </span>
+    <button type="button" class="key mini" onclick={() => addFrame(false)}>Add frame</button>
+    <button type="button" class="key mini" onclick={() => addFrame(true)}>Clone frame</button>
+    <button type="button" class="key mini" onclick={removeFrame}>Remove frame</button>
+    <button type="button" class="key mini" disabled={tracker.frame <= 0} onclick={() => moveFrame(-1)}>
+      Move up
+    </button>
+    <button
+      type="button"
+      class="key mini"
+      disabled={tracker.frame >= song.doc.order.length - 1}
+      onclick={() => moveFrame(1)}
+    >
+      Move down
+    </button>
+
+    <div class="edit" role="group" aria-label="frame {tracker.frame} patterns">
+      <span class="t-micro">Frame {hex2(tracker.frame)}</span>
+      {#each current as pattern, c (c)}
+        <label class="cell">
+          <span class="t-micro">{labels[c]}</span>
+          <input
+            class="window"
+            type="text"
+            inputmode="numeric"
+            maxlength="2"
+            size="2"
+            value={hex2(pattern)}
+            aria-label="frame {tracker.frame} {labels[c]} pattern"
+            onchange={(e) => setEntry(tracker.frame, c, e.currentTarget.value)}
+          />
+        </label>
+      {/each}
+    </div>
   </div>
 </section>
 
 <style>
   .order {
     display: grid;
-    /* minmax(0, 1fr), not bare 1fr: inside the workbench bay the scroll row
-       must be able to shrink BELOW its content and scroll, or a long song
-       stretches the whole pane past the grid. */
-    grid-template-rows: auto minmax(0, 1fr) auto;
-    gap: var(--s-2);
+    gap: 8px;
     min-width: 0;
-    min-height: 0;
+    padding-bottom: 8px;
   }
 
-  .head {
+  .caps {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: var(--s-2);
+    gap: 8px;
   }
 
   h2 {
     margin: 0;
-    color: var(--enclosure-ink-2);
   }
 
-  .count {
-    color: var(--enclosure-ink-2);
-  }
-
-  /* The order table is display glass like the grid beside it. */
-  .scroll {
-    overflow: auto;
-    max-height: clamp(200px, 40vh, 460px);
-    background: var(--grid-bg);
-    border-radius: var(--r-2);
-    box-shadow:
-      inset 0 3px 8px rgb(0 0 0 / 0.45),
-      0 0 0 1px rgb(0 0 0 / 0.4),
-      0 1px 0 rgb(255 255 255 / 0.35);
-  }
-
-  table {
-    border-collapse: collapse;
-    width: 100%;
-  }
-
-  caption {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  th,
-  td {
-    padding: 1px var(--s-1);
-    text-align: left;
-    color: var(--grid-ink-dim);
-  }
-
-  /* Not a spreadsheet header — a faint printed legend IN the glass: same
-     ground as the field (opaque, so rows scroll under it), dim ink (7:1 —
-     muted would fail contrast), no rule under it. */
-  thead th {
-    position: sticky;
-    top: 0;
-    background: var(--grid-bg);
-    color: var(--grid-ink-dim);
-    white-space: nowrap;
-  }
-
-  tbody tr.current {
-    background: var(--grid-bg-beat);
+  /* The strip scrolls inside its own region; the document never does. */
+  .strip {
+    display: flex;
+    gap: 5px;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: thin;
   }
 
   .frame {
-    padding: 1px var(--s-1);
-    color: var(--grid-ink-dim);
-    background: transparent;
-    border: 0;
-    border-radius: var(--r-1);
-    cursor: pointer;
-  }
-
-  .frame[aria-current='true'] {
-    /* Glass ink on the amber accent — 9.9:1; white on amber would vanish. */
-    color: var(--grid-bg);
-    background: var(--grid-accent);
-  }
-
-  /* Values printed on the glass, never boxed: the old hover border made the
-     whole table sprout outlines under the pointer — pure spreadsheet. The
-     in-glass focus ring below is the only chrome a cell ever grows. */
-  input {
-    width: 3ch;
-    padding: 2px 3px;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 76px;
+    padding: 6px;
     font-family: var(--font-ui);
-    color: var(--grid-ink);
-    background: transparent;
-    border: 0;
-    border-radius: var(--r-1);
+    font-size: 12px;
+    line-height: 1.3;
   }
 
-  @media (pointer: coarse) {
-    .frame {
-      min-width: 44px;
-      min-height: 44px;
-    }
-    input {
-      font-size: 16px;
-      min-width: 44px;
-      min-height: 44px;
-    }
+  .frame small {
+    font-size: 9px;
+    letter-spacing: 1px;
+    white-space: nowrap;
   }
 
   .ops {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--s-2);
+    align-items: center;
+    gap: 6px;
   }
 
-  .sr {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
+  .edit {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+    margin-inline-start: auto;
+  }
+
+  .cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .cell input {
+    width: 3.5ch;
+    padding: 4px 3px;
+    text-align: center;
+    font-size: var(--t-value-size);
+    font-weight: 400;
+  }
+
+  @media (pointer: coarse) {
+    .cell input {
+      width: 44px;
+    }
   }
 
   button:focus-visible,
   input:focus-visible {
     outline: none;
     box-shadow: var(--focus);
-  }
-
-  /* Controls sitting ON the glass take the screen's focus ring — the
-     aluminium ring's white halo vanishes against dark glass. */
-  .scroll button:focus-visible,
-  .scroll input:focus-visible {
-    box-shadow: var(--focus-screen);
   }
 </style>

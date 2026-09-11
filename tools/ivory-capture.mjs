@@ -11,6 +11,11 @@
 //        node tools/ivory-capture.mjs              # captures + assertions
 //        node tools/ivory-capture.mjs --selftest   # headless audio gate
 //
+// Captures load the first registered song before shooting, so the pattern
+// grid and the order strip show real content and the play key is live — the
+// state the design references were drawn in. `--empty` skips that and shoots
+// the fresh empty document instead.
+//
 // Playwright is intentionally NOT a devDependency of this repo — it is
 // imported from an absolute path outside the repo (see IMPORT below), and
 // the script adds nothing to package.json / pnpm-lock.yaml.
@@ -32,9 +37,11 @@ function parseArgs(argv) {
     base: 'http://localhost:4173',
     out: '/private/tmp/claude-501/-Users-alexvoigt-Documents-GPT-5-os/5758cfc0-ed5c-41b8-a4e7-6c97302c20ce/scratchpad/ivory/out',
     selftest: false,
+    empty: false,
   }
   for (const arg of argv) {
     if (arg === '--selftest') out.selftest = true
+    else if (arg === '--empty') out.empty = true
     else if (arg.startsWith('--base=')) out.base = arg.slice('--base='.length)
     else if (arg.startsWith('--out=')) out.out = arg.slice('--out='.length)
   }
@@ -124,7 +131,7 @@ async function checkUnnamedControls(page) {
   }, accessibleNameFn.toString())
 }
 
-async function runCaptures(base, outDir) {
+async function runCaptures(base, outDir, loadSong) {
   await mkdir(outDir, { recursive: true })
 
   const browser = await chromium.launch({
@@ -151,6 +158,12 @@ async function runCaptures(base, outDir) {
           await page.waitForSelector('main[aria-label="pulsar"]')
           await page.waitForSelector('nav[aria-label="Workspace"] button')
           await page.waitForTimeout(400)
+          if (loadSong) {
+            // The song picker is a native select; the first option is the
+            // disabled placeholder, index 1 is the first registered song.
+            await page.selectOption('[data-slot="preset-bar"] select', { index: 1 })
+            await page.waitForTimeout(250)
+          }
 
           const captureFailures = []
 
@@ -376,7 +389,9 @@ async function runSelftest(base) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
-  const code = args.selftest ? await runSelftest(args.base) : await runCaptures(args.base, args.out)
+  const code = args.selftest
+    ? await runSelftest(args.base)
+    : await runCaptures(args.base, args.out, !args.empty)
   process.exit(code)
 }
 

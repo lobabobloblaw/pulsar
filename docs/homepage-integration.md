@@ -12,11 +12,31 @@ The homepage's `npm run pulsar:sync` runs the install/build and mirrors only the
 runtime and notices into its website checkout. Its existing Cloudflare deploy
 script owns publication; a Pulsar source change alone does not update the site.
 
-`?embed` removes the standalone desk, screws and outside slab border. It fills
-the host window with a scrollable instrument. The live view always exposes the
-song picker and play/stop. Below 721px an open tracker yields to that view;
-resizing back restores the editor over the same song, preset and cursor. No
-responsive component owns playback synchronization: App owns the document effect.
+`?embed` removes the standalone desk and the slab's border, radius and shadow.
+It fills the host window with a scrollable instrument. The transport row
+(song picker, play/stop, BPM, position) is in the enclosure in both
+workspaces. Below 721px an open tracker yields to the instrument workspace and
+the workspace switch says so; resizing back restores the editor over the same
+song, preset and cursor. No responsive component owns playback
+synchronization: App owns the document effect.
+
+## Ivory shell
+
+The face is the Ivory design (`docs/ivory-gui.md`). The head carries the
+wordmark, a segmented Instrument / Tracker switch (`nav[aria-label="Workspace"]`,
+`aria-pressed`), a Settings button that expands a strip under the head
+(console model and room as native selects, MIDI as a Connect button or
+printed status, audio status) and the master Output range input
+(`aria-label="Master output"`). Under it sits the transport row
+(`.transport.player`: Play song / Stop song with `aria-pressed`, Start / Retry
+audio while the engine is idle or failed, the Song picker in
+`[data-slot="preset-bar"]`, BPM, ORDER / ROW, state). The instrument
+workspace is the captioned screen well beside the three voice dials; the
+tracker workspace replaces those two modules. The keytop (octave caps) and
+the keybed (`[role="toolbar"][aria-label^="keybed"]`) are below either
+workspace, and the footer carries the save state, project actions, undo and
+redo. Phone order (≤600px): head, settings, transport, keytop, keys, screen,
+voice, footer; the keybed shows one octave there and the octave caps move it.
 
 The trusted host delegates `midi` and `autoplay` without requesting device
 permission. MIDI access remains a separate user action. Power starts on click;
@@ -64,17 +84,20 @@ the app. Returning upright does not restart playback. First playing gestures
 queue only still-held notes until the audio engine is ready; early release,
 panic, failure and teardown cancel those notes.
 
-Piano drags hit-test the current key for mouse and touch. Narrow layouts have
-explicit lower/upper range controls. The editor gives the grid full width,
-places the piano directly beneath it, and moves the song display into a
-secondary disclosure. Touch drags scroll the grid unless Select cells is on;
-buttons and wheel input also navigate it. Edit mode routes piano notes into the
+Piano drags hit-test the current key for mouse and touch. Below 600px the
+keybed shows one octave and the keytop's octave caps move it; nothing in the
+bed scrolls. The tracker workspace stacks editbar, order strip, lane mute/solo
+caps, the grid well, a navigation row under the well (rows, scroll/select
+mode, channel pan) and the instrument section; the keybed stays under it in
+the enclosure. Touch drags scroll the grid unless Select cells is on; buttons
+and wheel input also navigate it. Edit mode routes piano notes into the
 selected channel through the same note-writing path as hardware key entry.
 Effect-code entry continues to use a hardware keyboard.
 
-Settings holds optional MIDI, room and console controls. Empty player documents
-invite song selection; live voice knobs yield to an explicit song-playback state
-with master volume retained. Smaller displays put the piano before voice knobs.
+Settings holds optional MIDI, room and console controls. Empty documents
+invite song selection under the transport row; while a song plays the three
+voice dials are disabled and say so, and the master output stays live in the
+head. Smaller displays put the piano before the screen and the dials.
 The two browser suites in the homepage repository cover normal integration and
 the UX recovery/gesture/error journeys. Screenshots and regression receipts for
 this pass are under its out/pulsar-remediation directory.

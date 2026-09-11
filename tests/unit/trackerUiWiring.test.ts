@@ -64,6 +64,7 @@ describe('the preset bar is mounted', () => {
     // Two mounts would be two selects fighting over one document; the old
     // TrackerPanel seam is gone and App must not grow a second one.
     expect(app).not.toMatch(/<PresetBar/)
+    expect(codeOf('ui', 'tracker', 'TrackerPanel.svelte')).not.toMatch(/<PresetBar|presetBar/)
     expect(bar.match(/<PresetBar/g)).toHaveLength(1)
   })
 })

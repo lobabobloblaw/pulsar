@@ -1,15 +1,20 @@
 <!--
-  pulsar — the instrument / macro editor (design §4.1, §3.4).
+  pulsar — the instrument / macro editor (design §4.1, §3.4; Ivory).
 
   Plain DOM for the structure, one small canvas for the envelope — the split
-  §4.1 asks for. The canvas is aria-hidden; beside it sits a single focusable
+  §4.1 asks for. The canvas is aria-hidden; over it sits a single focusable
   `role="slider"` that carries the whole editor's state in `aria-valuetext`
   ("step 3 of 5, value 12, loops here"), which is the same honest device the
-  knobs use: one control, arrows to operate it, the drawing as the visual.
+  dials use: one control, arrows to operate it, the drawing as the visual.
+
+  Two columns: the song instrument (slot, name, add, sharing) on the left, the
+  macro bank on the right — the macro caps, the envelope drawn as ink bars on
+  the slab with a hairline baseline, the STEPS · LOOP · RELEASE line, the
+  New sequence / Clear actions and the editing reference.
 
   Macros are shared BY INDEX across instruments (§1.2) — the number beside each
   macro name is a slot in the song's sequence bank, not a private envelope, and
-  the editor says so rather than pretending otherwise.
+  the sharing line says how many instruments read the selected slot.
 -->
 <script lang="ts">
   import { song } from '../../state/song.svelte'
@@ -21,9 +26,7 @@
     type MacroKind,
     type Sequence,
   } from '../../state/songModel'
-  import { resolvePalette, watchRoom, deviceRatio } from '../canvas/gridMetrics'
-  import type { GridPalette } from '../canvas/patternRenderer'
-  import Icon from '../Icon.svelte'
+  import { watchRoom, deviceRatio } from '../canvas/gridMetrics'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
@@ -34,7 +37,25 @@
   let macro = $state<MacroKind>('volume')
   let step = $state(0)
   let canvas = $state<HTMLCanvasElement | null>(null)
-  let palette: GridPalette | null = null
+
+  /** The slab's own colours, resolved once and again on a room change — the
+   *  bars are drawn on the enclosure, whose tokens dim with the room. */
+  interface Ink {
+    ink: string
+    hairline: string
+    accent: string
+  }
+  let ink: Ink | null = null
+
+  function resolveInk(): Ink {
+    const cs = getComputedStyle(document.documentElement)
+    const read = (name: string, fallback: string): string => cs.getPropertyValue(name).trim() || fallback
+    return {
+      ink: read('--enclosure-ink', '#252720'),
+      hairline: read('--enclosure-hairline', '#b9bcb0'),
+      accent: read('--enclosure-accent', '#df4a28'),
+    }
+  }
 
   const RANGE: Readonly<Record<MacroKind, readonly [number, number]>> = {
     volume: [0, 15],
@@ -43,6 +64,16 @@
     hiPitch: [-127, 126],
     duty: [0, 3],
   }
+
+  const MACRO_NAMES: Readonly<Record<MacroKind, string>> = {
+    volume: 'Volume',
+    arpeggio: 'Arpeggio',
+    pitch: 'Pitch',
+    hiPitch: 'High pitch',
+    duty: 'Duty',
+  }
+
+  const hex2 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0')
 
   const instrument = $derived<Instrument>(song.doc.instruments[selected] ?? emptyInstrument())
   const macroIndex = $derived(instrument.macros[macro] ?? -1)
@@ -58,6 +89,38 @@
     if (sequence.loop === step) marks.push('loop point')
     if (sequence.release === step) marks.push('release point')
     return `step ${step + 1} of ${values.length}, value ${valueAt}${marks.length ? `, ${marks.join(' and ')}` : ''}`
+  })
+
+  /** How many instruments read the selected slot — the format shares by index. */
+  const sharing = $derived.by(() => {
+    if (macroIndex < 0) return 'No sequence assigned'
+    const n = song.doc.instruments.filter((i) => i.macros[macro] === macroIndex).length
+    return `Shared sequence ${hex2(macroIndex)} · ${n} ${n === 1 ? 'instrument' : 'instruments'}`
+  })
+
+  const meta = $derived.by(() => {
+    if (sequence === null) return 'No sequence on this slot'
+    const loop = sequence.loop < 0 ? 'OFF' : hex2(sequence.loop)
+    const release = sequence.release < 0 ? 'OFF' : hex2(sequence.release)
+    return `${values.length} steps · loop ${loop} · release ${release}`
+  })
+
+  /** FamiTracker's note spelling, `C-4` / `A#3`, for the DPCM key map. */
+  const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'] as const
+  function noteLabel(note: number): string {
+    return `${NOTE_NAMES[((note % 12) + 12) % 12]}${Math.floor(note / 12) - 1}`
+  }
+
+  const dpcmKeys = $derived.by(() => {
+    const map = instrument.dpcm
+    if (!map) return []
+    return Object.entries(map)
+      .map(([note, a]) => ({
+        note: Number(note),
+        sample: song.doc.samples[a.sample]?.name ?? `sample ${a.sample}`,
+        rate: a.pitch,
+      }))
+      .sort((a, b) => a.note - b.note)
   })
 
   function setInstrumentName(name: string): void {
@@ -185,44 +248,51 @@
     e.stopPropagation()
   }
 
+  const BAR_H = 57
+  const BAR_GAP = 3
+  const BAR_MAX_W = 34
+
+  /** Ink bars on the slab: a transparent canvas, so the enclosure's own face
+   *  shows through; the current step in the accent; loop and release as
+   *  1px ink marks; a hairline baseline where the values cross zero. */
   function draw(): void {
     const el = canvas
     if (!el) return
-    const ctx = el.getContext('2d', { alpha: false })
+    const ctx = el.getContext('2d')
     if (!ctx) return
-    palette ??= resolvePalette()
-    const p = palette
+    ink ??= resolveInk()
+    const p = ink
     const dpr = deviceRatio()
     const cssW = el.clientWidth || 240
-    const cssH = 72
+    const cssH = BAR_H
     el.width = Math.round(cssW * dpr)
     el.height = Math.round(cssH * dpr)
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-    ctx.fillStyle = p.bg
-    ctx.fillRect(0, 0, cssW, cssH)
+    ctx.clearRect(0, 0, cssW, cssH)
 
     const n = Math.max(1, values.length)
-    const bw = cssW / n
+    const bw = Math.min(BAR_MAX_W, (cssW - BAR_GAP * (n - 1)) / n)
     const [lo, hi] = range
     const span = hi - lo || 1
     const zeroY = cssH - ((0 - lo) / span) * cssH
 
-    ctx.fillStyle = p.bgBeat
-    ctx.fillRect(0, zeroY - 0.5, cssW, 1)
+    // The baseline: a hairline where zero sits (the floor for volume).
+    ctx.fillStyle = p.hairline
+    ctx.fillRect(0, Math.min(cssH - 1, Math.round(zeroY) - (zeroY >= cssH ? 1 : 0)), cssW, 1)
 
     for (let i = 0; i < values.length; i++) {
       const v = values[i] as number
       const y = cssH - ((v - lo) / span) * cssH
-      ctx.fillStyle = i === step ? p.accent : p.inkDim
+      ctx.fillStyle = i === step ? p.accent : p.ink
       const top = Math.min(y, zeroY)
-      const h = Math.max(1, Math.abs(zeroY - y))
-      ctx.fillRect(i * bw + 1, top, Math.max(1, bw - 2), h)
+      const h = Math.max(2, Math.abs(zeroY - y))
+      ctx.fillRect(i * (bw + BAR_GAP), top, Math.max(1, bw), h)
     }
 
     if (sequence !== null) {
       ctx.fillStyle = p.ink
-      if (sequence.loop >= 0) ctx.fillRect(sequence.loop * bw, 0, 1, cssH)
-      if (sequence.release >= 0) ctx.fillRect((sequence.release + 1) * bw - 1, 0, 1, cssH)
+      if (sequence.loop >= 0) ctx.fillRect(sequence.loop * (bw + BAR_GAP), 0, 1, cssH)
+      if (sequence.release >= 0) ctx.fillRect((sequence.release + 1) * (bw + BAR_GAP) - BAR_GAP - 1, 0, 1, cssH)
     }
   }
 
@@ -241,10 +311,18 @@
 
   $effect(() => {
     const stop = watchRoom(() => {
-      palette = resolvePalette()
+      ink = resolveInk()
       draw()
     })
     return stop
+  })
+
+  $effect(() => {
+    const el = canvas
+    if (!el) return
+    const ro = new ResizeObserver(() => draw())
+    ro.observe(el)
+    return () => ro.disconnect()
   })
 
   function onCanvasPointer(e: PointerEvent): void {
@@ -252,7 +330,8 @@
     if (!el || sequence === null) return
     const box = el.getBoundingClientRect()
     const n = Math.max(1, values.length)
-    const i = Math.floor(((e.clientX - box.left) / box.width) * n)
+    const bw = Math.min(BAR_MAX_W, (box.width - BAR_GAP * (n - 1)) / n)
+    const i = Math.floor((e.clientX - box.left) / (bw + BAR_GAP))
     if (i < 0 || i >= values.length) return
     step = i
     const [lo, hi] = range
@@ -265,21 +344,11 @@
 </script>
 
 <section class="inst" aria-labelledby="inst-title">
-  <div class="head">
-    <h2 id="inst-title" class="t-label">instrument</h2>
-    <span class="keyed">
-      <button type="button" class="key mini" aria-label="add instrument" onclick={addInstrument}>
-        <Icon name="plus" size={10} />
-      </button>
-      <span class="silk">add</span>
-    </span>
-  </div>
-
-  <div class="row">
-    <label class="t-micro" for="inst-pick">slot</label>
+  <div class="pick">
+    <label class="t-micro" for="inst-pick" id="inst-title">Song instrument</label>
     <select
       id="inst-pick"
-      class="t-value window"
+      class="window"
       value={selected}
       onchange={(e) => {
         selected = Number(e.currentTarget.value)
@@ -287,213 +356,228 @@
       }}
     >
       {#each song.doc.instruments as inst, i (i)}
-        <option value={i}>{i.toString(16).padStart(2, '0')} · {inst.name}</option>
+        <option value={i}>{hex2(i)} · {inst.name}</option>
       {/each}
     </select>
-    <label class="t-micro" for="inst-name">name</label>
+    <label class="t-micro" for="inst-name">Name</label>
     <input
       id="inst-name"
-      class="t-value window"
+      class="window"
       type="text"
       value={instrument.name}
       oninput={(e) => setInstrumentName(e.currentTarget.value)}
     />
+    <div class="pick-actions">
+      <button type="button" class="key mini" onclick={addInstrument}>Add instrument</button>
+    </div>
+    <span class="shared">{sharing}</span>
   </div>
 
-  <ul class="macros">
-    {#each MACRO_KINDS as kind (kind)}
-      <li>
+  <div class="work">
+    <div class="macros" role="group" aria-label="macro">
+      {#each MACRO_KINDS as kind (kind)}
         <button
           type="button"
-          class="t-micro kind"
+          class="key mini"
           aria-pressed={macro === kind}
           onclick={() => {
             macro = kind
             step = 0
           }}
         >
-          {kind === 'hiPitch' ? 'hi pitch' : kind}
+          {MACRO_NAMES[kind]}
         </button>
-        <span class="t-micro slot">
-          {instrument.macros[kind] < 0 ? 'none' : `slot ${instrument.macros[kind]}`}
-        </span>
-        {#if instrument.macros[kind] < 0}
-          <button
-            type="button"
-            class="key mini"
-            aria-label="new {kind} sequence"
-            onclick={() => newSequence(kind)}
-          >
-            <Icon name="plus" size={10} />
-          </button>
-        {:else}
-          <button
-            type="button"
-            class="key mini"
-            aria-label="clear {kind} macro"
-            onclick={() => setMacroSlot(kind, -1)}
-          >
-            <Icon name="clear" size={10} />
-          </button>
-        {/if}
-      </li>
-    {/each}
-  </ul>
+      {/each}
+    </div>
 
-  <div class="envelope">
-    <canvas bind:this={canvas} aria-hidden="true" onpointerdown={onCanvasPointer}></canvas>
-    <div
-      class="handle"
-      role="slider"
-      tabindex="0"
-      aria-label="{macro === 'hiPitch' ? 'hi pitch' : macro} envelope"
-      aria-valuemin={range[0]}
-      aria-valuemax={range[1]}
-      aria-valuenow={valueAt}
-      aria-valuetext={valueText}
-      onkeydown={onKeyDown}
-    ></div>
+    <div class="envelope">
+      <canvas bind:this={canvas} aria-hidden="true" onpointerdown={onCanvasPointer}></canvas>
+      <div
+        class="handle"
+        role="slider"
+        tabindex="0"
+        aria-label="{MACRO_NAMES[macro]} envelope"
+        aria-valuemin={range[0]}
+        aria-valuemax={range[1]}
+        aria-valuenow={valueAt}
+        aria-valuetext={valueText}
+        onkeydown={onKeyDown}
+      ></div>
+    </div>
+
+    <p class="meta t-micro">{meta}</p>
+
+    {#if dpcmKeys.length > 0}
+      <ul class="dpcm t-micro" aria-label="DPCM key assignments">
+        {#each dpcmKeys as k (k.note)}
+          <li>{noteLabel(k.note)} → {k.sample} / rate {k.rate}</li>
+        {/each}
+      </ul>
+    {/if}
+
+    <div class="actions">
+      {#if macroIndex < 0}
+        <button type="button" class="key mini" onclick={() => newSequence(macro)}>New sequence</button>
+      {:else}
+        <button type="button" class="key mini" onclick={() => setMacroSlot(macro, -1)}>Clear</button>
+      {/if}
+
+      <details class="help">
+        <summary class="key mini" title="editing reference">
+          <span aria-hidden="true">?</span>
+          <span class="sr">editing reference</span>
+        </summary>
+        <p class="t-body">
+          Arrows edit · Shift for bigger steps · + and − change length · L sets the loop point ·
+          R sets the release point · click a bar to set it. Macros are shared by index, so two
+          instruments on the same slot share the envelope.
+        </p>
+      </details>
+    </div>
   </div>
-
-  <details class="help">
-    <summary class="key mini" title="editing reference">
-      <span aria-hidden="true">?</span>
-      <span class="sr">editing reference</span>
-    </summary>
-    <p class="t-micro">
-      arrows edit · shift for bigger steps · + and − change length · l sets the loop point · r
-      sets the release point. macros are shared by index, so two instruments on the same slot
-      share the envelope.
-    </p>
-  </details>
 </section>
 
 <style>
   .inst {
     display: grid;
-    gap: var(--s-2);
-    align-content: start;
+    grid-template-columns: 210px minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+    min-width: 0;
+    padding: 17px 0 23px;
+  }
+
+  .pick {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
     min-width: 0;
   }
 
-  .head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--s-2);
-  }
-
-  h2 {
-    margin: 0;
-    color: var(--enclosure-ink-2);
-  }
-
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--s-1) var(--s-2);
-  }
-
-  label {
-    color: var(--enclosure-ink-2);
-  }
-
-  /* The ground and chevron come from tokens' `.window`; only layout is local. */
-  select,
-  input {
+  .pick select,
+  .pick input {
+    width: 100%;
     min-width: 0;
+    font-size: 12px;
   }
 
-  input {
-    flex: 1 1 8ch;
+  .pick-actions {
+    margin-top: 4px;
+  }
+
+  .shared {
+    margin-top: 5px;
+    font-size: 11px;
+    color: var(--enclosure-ink-2);
+  }
+
+  .work {
+    display: grid;
+    gap: 0;
+    min-width: 0;
   }
 
   .macros {
-    display: grid;
-    gap: 2px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
   }
 
-  .macros li {
-    display: grid;
-    grid-template-columns: 8ch 1fr auto;
-    align-items: center;
-    gap: var(--s-2);
-  }
-
-  .kind {
-    padding: 2px var(--s-1);
-    text-align: left;
-    color: var(--enclosure-ink);
+  .macros .key {
+    min-height: 25px;
+    padding: 3px 7px;
+    font-size: 10px;
     background: transparent;
-    border: 0;
-    border-radius: var(--r-1);
-    cursor: pointer;
+    box-shadow: none;
   }
 
-  /* The caps' latch vocabulary, not the glass accent: this button sits on the
-     ALUMINIUM, where amber is banned and white-on-amber is ~1.7:1. */
-  .kind[aria-pressed='true'] {
-    color: var(--n-000);
-    background: var(--chip-accent);
+  .macros .key[aria-pressed='true'] {
+    background: var(--enclosure-ink);
   }
 
-  .slot {
-    color: var(--enclosure-ink-2);
-  }
-
-  /* The envelope is display glass like the grid — rim outside, recess in. */
+  /* The envelope is drawn ON the slab: a transparent canvas over the face, a
+     hairline under it, the handle laid over both. */
   .envelope {
     position: relative;
-    background: var(--grid-bg);
-    border-radius: var(--r-2);
-    box-shadow:
-      inset 0 2px 6px rgb(0 0 0 / 0.45),
-      0 0 0 1px rgb(0 0 0 / 0.4),
-      0 1px 0 rgb(255 255 255 / 0.35);
+    margin: 12px 0 7px;
+    border-bottom: 1px solid var(--enclosure-hairline);
   }
 
   canvas {
     display: block;
     width: 100%;
-    height: 72px;
+    height: 57px;
     touch-action: none;
   }
 
   .handle {
     position: absolute;
     inset: 0;
-    border-radius: inherit;
+    border-radius: var(--r-1);
   }
 
   .handle:focus-visible {
     outline: none;
-    /* On the glass, the screen's ring — the aluminium ring vanishes here. */
-    box-shadow: var(--focus-screen);
+    box-shadow: var(--focus);
+  }
+
+  .meta {
+    margin: 0;
+  }
+
+  .dpcm {
+    margin: 6px 0 0;
+    padding: 0;
+    list-style: none;
+    text-transform: none;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
   }
 
   .help {
+    position: relative;
     color: var(--enclosure-ink-2);
     line-height: 1.5;
   }
 
   .help summary {
     list-style: none;
-    font-size: var(--t-micro-size);
+    font-family: var(--font-ui);
     font-weight: 700;
+    width: 28px;
+    padding: 3px 0;
   }
 
   .help summary::-webkit-details-marker {
     display: none;
   }
 
-  .help[open] summary {
-    margin-block-end: var(--s-1);
+  .help[open] p {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 8px);
+    z-index: 5;
+    width: min(56ch, 80vw);
+    margin: 0;
+    padding: 12px 14px;
+    color: var(--enclosure-ink);
+    background: var(--chip-bg);
+    border: 1px solid var(--enclosure-hairline);
+    border-radius: 8px;
+    box-shadow: 0 8px 16px rgb(0 0 0 / 0.15);
   }
 
+  @media (max-width: 850px) {
+    .inst {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
 
   button:focus-visible,
   select:focus-visible,

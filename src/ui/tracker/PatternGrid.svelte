@@ -112,6 +112,12 @@
     window.addEventListener('pulsar:enter-note', enter)
     return () => window.removeEventListener('pulsar:enter-note', enter)
   })
+  /** The grid-nav row's visible-range caption. Written from the frame path
+   *  through `textContent`, never `$state`: `scrollRow` moves under follow
+   *  every frame while a song plays. */
+  let rangeEl = $state<HTMLElement | null>(null)
+  let lastRangeText = ''
+  const NAV_ROWS = 8
   let lastPlayRow = -1
   let lastPlayFrame = -1
   let lastAnnounceAt = 0
@@ -138,6 +144,11 @@
   const channelCount = $derived(song.doc.channels.length)
   const rowsPerPattern = $derived(song.doc.meta.rowsPerPattern)
   const labels = $derived(song.doc.channels.map((c) => CHANNEL_LABELS[c]))
+  /** The header band prints the lane names in sentence case (`Pulse 1`,
+   *  `DPCM`); announcements keep the store's lowercase spelling. */
+  const headerLabels = $derived(
+    labels.map((l) => (l === 'dpcm' ? 'DPCM' : l.charAt(0).toUpperCase() + l.slice(1))),
+  )
   /** Changes only when the grid's COLUMN geometry changes — not on every edit. */
   const shape = $derived(`${song.doc.channels.length}:${song.doc.effectColumns.join(',')}`)
 
@@ -181,7 +192,7 @@
     cssW = Math.max(240, Math.floor(box.clientWidth))
     const lastChannel = layout.channels.at(-1)
     horizontalOverflow = !!lastChannel && lastChannel.x + lastChannel.w > cssW
-    cssH = Math.max(ROW_H * 8 + HEADER_H, Math.floor(box.clientHeight) - 48)
+    cssH = Math.max(ROW_H * 8 + HEADER_H, Math.floor(box.clientHeight))
     el.style.width = `${cssW}px`
     el.style.height = `${cssH}px`
     el.width = Math.round(cssW * dpr)
@@ -208,7 +219,7 @@
     if (!fc) return
     fc.setTransform(dpr, 0, 0, dpr, 0, 0)
     fc.imageSmoothingEnabled = false
-    drawFurniture(fc, layout, palette, labels, cssW, cssH, scrollX, tracker.muted)
+    drawFurniture(fc, layout, palette, headerLabels, cssW, cssH, scrollX, tracker.muted)
     furnitureDirty = false
   }
 
@@ -277,6 +288,21 @@
       muted: tracker.muted,
     })
     dirty = false
+    updateRangeCaption()
+  }
+
+  /** `00–07 / 32 ROWS`: the rows the well shows, hex, for the nav row. */
+  function updateRangeCaption(): void {
+    const el = rangeEl
+    if (el === null) return
+    const visible = Math.max(1, Math.floor((cssH - HEADER_H) / ROW_H))
+    const first = Math.max(0, Math.floor(scrollRow))
+    const last = Math.min(rowsPerPattern - 1, first + visible - 1)
+    const hex2 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0')
+    const next = `${hex2(first)}–${hex2(last)} / ${rowsPerPattern} ROWS`
+    if (next === lastRangeText) return
+    lastRangeText = next
+    el.textContent = next
   }
 
   /* ---- edits -------------------------------------------------------------- */
@@ -774,16 +800,19 @@
     void shape
     untrack(rebuild)
   })
+
+  // Mute and solo are painted into the header band (furniture), and the
+  // panel's M / S caps toggle them from outside this component.
+  $effect(() => {
+    void tracker.muted
+    void tracker.solo
+    furnitureDirty = true
+    dirty = true
+  })
 </script>
 
+<div class="grid">
 <div class="grid-host" bind:this={host}>
-  <div class="grid-navigation" aria-label="pattern navigation">
-    <button type="button" disabled={!horizontalOverflow} aria-label="previous channels" onclick={() => pan(-240, 0)}>←</button>
-    <button type="button" disabled={!horizontalOverflow} aria-label="next channels" onclick={() => pan(240, 0)}>→</button>
-    <button type="button" aria-label="earlier rows" onclick={() => pan(0, -16)}>↑ Rows</button>
-    <button type="button" aria-label="later rows" onclick={() => pan(0, 16)}>↓ Rows</button>
-    <button type="button" aria-pressed={selectDrag} onclick={() => { selectDrag = !selectDrag }}>{selectDrag ? 'Select cells' : 'Scroll grid'}</button>
-  </div>
   <canvas
     bind:this={canvas}
     aria-hidden="true"
@@ -828,45 +857,76 @@
   </div>
 </div>
 
-<style>
-  .grid-navigation { position: absolute; bottom: 0; left: 0; right: 0; height: 48px; display: flex; align-items: center; gap: 6px; padding: 2px 6px; background: var(--enclosure-bg); z-index: 2; }
-  .grid-navigation button { min-width: 44px; min-height: 44px; padding: 4px 8px; font-size: 12px; color: var(--enclosure-ink); background: var(--enclosure-bg); border: 1px solid var(--enclosure-hairline); border-radius: 4px; }
-  .grid-navigation button:disabled { opacity: .4; }
-  .grid-navigation button[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--chip-accent); }
+<!-- The nav row sits UNDER the well, on the slab: nothing overlays the
+     canvas, so the last visible rows are never hidden behind chrome. -->
+<div class="grid-nav" role="group" aria-label="pattern navigation">
+  <button type="button" class="key mini" onclick={() => pan(0, -NAV_ROWS)}>↑ 8 rows</button>
+  <span class="range" bind:this={rangeEl}>00–07 ROWS</span>
+  <button type="button" class="key mini" onclick={() => pan(0, NAV_ROWS)}>↓ 8 rows</button>
+  <button type="button" class="key mini" aria-pressed={selectDrag} onclick={() => { selectDrag = !selectDrag }}>
+    {selectDrag ? 'Select cells' : 'Scroll grid'}
+  </button>
+  <button type="button" class="key mini" disabled={!horizontalOverflow} aria-label="Previous channels" onclick={() => pan(-240, 0)}>←</button>
+  <button type="button" class="key mini" disabled={!horizontalOverflow} aria-label="Next channels" onclick={() => pan(240, 0)}>→</button>
+  <span class="legend">Note / Instrument / Volume / FX</span>
+</div>
+</div>
 
-  /* The grid is a lit display module, same glass as the dot-matrix well:
-     machined rim outside, recess and one faint reflection overlaid inside
-     (the canvas is opaque, so the inner light must sit above it). */
+<style>
+  .grid {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+  }
+
+  /* The grid is a lit display module, the same glass as the screen well: a
+     thick bezel around the field, the canvas filling the inside. */
   .grid-host {
     position: relative;
     min-width: 0;
-    height: clamp(280px, 46vh, 520px);
+    height: clamp(240px, 40vh, 480px);
     overflow: hidden;
     background: var(--grid-bg);
+    border: 5px solid var(--grid-well-border);
     border-radius: var(--r-2);
-    box-shadow:
-      0 0 0 1px rgb(0 0 0 / 0.4),
-      0 1px 0 rgb(255 255 255 / 0.35);
   }
 
-  .grid-host::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    box-shadow: inset 0 3px 8px rgb(0 0 0 / 0.45);
-    background: linear-gradient(
-      115deg,
-      rgb(255 255 255 / 0.05),
-      rgb(255 255 255 / 0.012) 30%,
-      transparent 46%
-    );
+  .grid-nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-family: var(--font-ui);
+    font-size: var(--t-caption-size);
+    line-height: 1.4;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--enclosure-ink-2);
   }
 
-  @media (prefers-contrast: more) {
-    .grid-host::after {
-      background: none;
+  .grid-nav .key {
+    min-height: 28px;
+    padding: 3px 8px;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .range {
+    white-space: nowrap;
+  }
+
+  .legend {
+    margin-inline-start: auto;
+    white-space: nowrap;
+  }
+
+  @media (pointer: coarse) {
+    .grid-nav .key {
+      min-width: 44px;
+      min-height: 44px;
     }
   }
 
