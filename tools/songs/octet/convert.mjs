@@ -4,13 +4,14 @@
  *
  *  The OCTET document is an eight-lane dense grid — `rows[lane][row] = [note, inst, vol,
  *  fx, param]`, lanes 0–4 the 2A03 (pulse 1, pulse 2, triangle, noise, DMC), lanes 5–7 the
- *  VRC6 expansion. pulsar has the five 2A03 lanes only, so a song module (`skyline-run.mjs`,
- *  `cathedral-of-gears.mjs`, `tide-tables.mjs`) first REDUCES the document to lanes 0–4 —
- *  every voice-allocation decision is code in that module — and this file then maps what
- *  is left one-to-one:
+ *  VRC6 expansion (two pulses and the sawtooth). pulsar now has the same eight lanes, so
+ *  every lane maps straight across. A song module (`skyline-run.mjs`, `cathedral-of-gears
+ *  .mjs`, `tide-tables.mjs`) may still adjust the document in its `reduce`, but only for a
+ *  target-driver difference — never to re-voice the music:
  *
  *    note 0..95 (A-4 = 57)            -> MIDI, +12 on the melodic lanes (A4 = 69; the
- *                                        triangle sounds at written pitch in both engines)
+ *                                        triangle, the VRC6 pulses and the sawtooth all
+ *                                        sound at written pitch in both engines)
  *    noise note n                     -> 32 + (n & 15): both engines write
  *                                        $400E = 15 - (note mod 16), so the residue is what
  *                                        must survive, and 32..47 is the lint's window
@@ -22,6 +23,10 @@
  *    one pattern of eight lanes       -> one pattern per channel, de-duplicated, order
  *                                        frames of per-channel indices
  *
+ *  `channels` is a PREFIX of the canonical eight, so a song that uses a VRC6 lane declares
+ *  `dpcm` as well — empty pattern, index 0 in every order frame — and a 2A03-only song
+ *  still ends at five.
+ *
  *  The output is written in exactly the shape `serializeSong` emits (key order, sorting,
  *  trailing-null trimming, two-space indent), so gate A's byte-identical round trip holds
  *  on the committed file — `tests/unit/soundtrack.test.ts` asserts it.
@@ -29,10 +34,15 @@
 import { readFileSync } from 'node:fs'
 
 export const LANE = Object.freeze({ P1: 0, P2: 1, TRI: 2, NOISE: 3, DMC: 4, V1: 5, V2: 6, SAW: 7 })
-export const CHANNELS = Object.freeze(['pulse1', 'pulse2', 'triangle', 'noise', 'dpcm'])
+export const CHANNELS = Object.freeze([
+  'pulse1', 'pulse2', 'triangle', 'noise', 'dpcm', 'vrc6p1', 'vrc6p2', 'vrc6saw',
+])
+/** The lanes that carry pitched notes: everything but noise (a period index) and DMC. */
+const MELODIC_LANES = Object.freeze([LANE.P1, LANE.P2, LANE.TRI, LANE.V1, LANE.V2, LANE.SAW])
+/** Every lane that carries an instrument reference (all but DMC, which uses the kit). */
+const INSTRUMENT_LANES = Object.freeze([LANE.P1, LANE.P2, LANE.TRI, LANE.NOISE, LANE.V1, LANE.V2, LANE.SAW])
 export const OFF = -1
 export const REL = -2
-const MACRO_KINDS = ['volume', 'arpeggio', 'pitch', 'hiPitch', 'duty']
 
 // --- reading -------------------------------------------------------------------------------
 
@@ -88,12 +98,6 @@ function macro(m) {
 
 // --- helpers the song modules share ---------------------------------------------------------
 
-/** VRC6 pulse duty (0–7, D+1 sixteenths high) → 2A03 duty (0–3), per the port's mapping
- *  table: 0→12.5 %, 1→25 %, 2–3→25 %, 4–7→50 %. */
-export function vrc6DutyTo2a03(values) {
-  return values.map((d) => (d <= 0 ? 0 : d <= 3 ? 1 : 2))
-}
-
 /** A cell's effects as `[cmd, param]` pairs (the primary column first). */
 export function cellFx(cell) {
   if (!cell) return []
@@ -115,6 +119,66 @@ export function withFx(cell, fx) {
 
 export function slug(name) {
   return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'inst'
+}
+
+export function hasNote(cell) {
+  return !!cell && cell[0] !== null && cell[0] !== undefined
+}
+
+/** The lane's cells across the whole order as one array (`absolute row = frame ·
+ *  rowsPerPattern + row`; cells are shared, not copied). Both VRC6 demos use an identity
+ *  order, so a timeline maps back onto the patterns one-to-one; this asserts that. */
+export function timeline(doc, lane) {
+  doc.order.forEach((p, f) => {
+    if (p !== f) throw new Error(`order[${f}] = ${p}: a lane timeline needs an identity order`)
+  })
+  const out = []
+  for (const p of doc.order) for (const cell of doc.patterns[p].rows[lane]) out.push(cell)
+  return out
+}
+
+export function writeTimeline(doc, lane, cells) {
+  const rows = doc.rowsPerPattern
+  for (let i = 0; i < cells.length; i++) {
+    doc.patterns[doc.order[Math.floor(i / rows)]].rows[lane][i % rows] = cells[i] ?? null
+  }
+}
+
+/** Row 0 of the loop frame must state note, instrument and volume on every lane that
+ *  sounds — pulsar's presets declare their entry state rather than inheriting whatever the
+ *  previous pass left in the register file. `policy[lane]` is `'cut'` (nothing was sounding
+ *  across the seam) or `[note, inst, vol]` (restate the note that carries across it).
+ *  Returns the lanes it actually had to write, so a module can assert the short list its
+ *  header comment claims instead of letting a silent document change widen it. */
+export function ensureLoopEntry(doc, frame, policy) {
+  const pattern = doc.patterns[doc.order[frame]]
+  const written = []
+  for (const [laneKey, rule] of Object.entries(policy)) {
+    const lane = Number(laneKey)
+    const cell = pattern.rows[lane][0] ?? [null, null, null, null, null]
+    if (hasNote(cell) && cell[0] >= 0 && cell[1] !== null && cell[2] !== null) continue
+    if (hasNote(cell) && cell[0] === OFF) continue
+    const next = cell.slice()
+    while (next.length < 5) next.push(null)
+    if (rule === 'cut') {
+      if (!hasNote(next)) next[0] = OFF
+    } else {
+      if (!hasNote(next)) next[0] = rule[0]
+      if (next[1] === null) next[1] = rule[1]
+      if (next[2] === null) next[2] = rule[2]
+    }
+    pattern.rows[lane][0] = isEmptyCell(next) ? null : next
+    written.push(lane)
+  }
+  return written.sort((a, b) => a - b)
+}
+
+/** Throw unless `lanes` is exactly `expected` — the assertion a module's header comment
+ *  makes when it says which lanes a correction touches. */
+export function expectLanes(label, lanes, expected) {
+  const got = lanes.join(',')
+  const want = [...expected].sort((a, b) => a - b).join(',')
+  if (got !== want) throw new Error(`${label}: touched lanes [${got}], expected [${want}]`)
 }
 
 // --- instruments and sequences --------------------------------------------------------------
@@ -184,10 +248,11 @@ function fixEffect(cmd, param) {
 /** OCTET's 3xx glides the note on ITS row only — a later plain note retriggers and snaps.
  *  pulsar's 3xx is a channel mode that keeps later notes from retriggering until 1xx/2xx
  *  cancels it, so the first plain note after a glide (or after a Qxy/Rxy scoop) gets an
- *  explicit `100`: cancel, no slide, hard trigger. */
+ *  explicit `100`: cancel, no slide, hard trigger. The VRC6 pulses and the sawtooth take
+ *  exactly the same treatment as the 2A03 pulses — same effect set, same slide semantics. */
 function applyEngineDifferences(doc) {
   const rows = doc.rowsPerPattern
-  const lanes = [LANE.P1, LANE.P2, LANE.TRI, LANE.NOISE]
+  const lanes = [LANE.P1, LANE.P2, LANE.TRI, LANE.NOISE, LANE.V1, LANE.V2, LANE.SAW]
   for (const p of new Set(doc.order)) {
     for (const c of lanes) {
       const lane = doc.patterns[p].rows[c]
@@ -200,7 +265,7 @@ function applyEngineDifferences(doc) {
       }
     }
   }
-  for (const c of [LANE.P1, LANE.P2, LANE.TRI]) {
+  for (const c of MELODIC_LANES) {
     let porta = false
     let inst = 0
     for (const p of doc.order) {
@@ -260,7 +325,7 @@ export function convert(doc, song) {
   // Instruments referenced by the melodic/noise lanes, compacted and renumbered.
   const used = new Set()
   for (const p of referenced) {
-    for (let c = 0; c < LANE.DMC; c++) {
+    for (const c of INSTRUMENT_LANES) {
       for (const cell of reduced.patterns[p].rows[c]) if (cell && cell[1] !== null) used.add(cell[1])
     }
   }
@@ -291,10 +356,13 @@ export function convert(doc, song) {
     })
   }
 
-  // Lanes that actually carry anything decide the channel prefix.
+  // Lanes that actually carry anything decide the channel prefix. `channels` must be a
+  // prefix of the canonical eight, so a VRC6 lane pulls the unused dpcm lane in with it:
+  // an empty pattern and a 0 in every order frame, which the preset lint accepts because
+  // the lane claims nothing and carries no events.
   let lastLane = 0
   for (const p of referenced) {
-    for (let c = 0; c < 5; c++) if (reduced.patterns[p].rows[c].some((cell) => cell !== null)) lastLane = Math.max(lastLane, c)
+    for (let c = 0; c < 8; c++) if (reduced.patterns[p].rows[c].some((cell) => cell !== null)) lastLane = Math.max(lastLane, c)
   }
   const channels = CHANNELS.slice(0, lastLane + 1)
   const effectColumns = channels.map(() => 1)
