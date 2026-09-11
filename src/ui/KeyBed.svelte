@@ -418,4 +418,16 @@
       height: 100px;
     }
   }
+
+  /* A phone page has to fit a 759px frame: the coarse bed is 140px there,
+     still three times a touch target tall. */
+  @media (pointer: coarse) and (max-width: 600px) {
+    .bed {
+      height: 140px;
+    }
+
+    .black {
+      height: 84px;
+    }
+  }
 </style>

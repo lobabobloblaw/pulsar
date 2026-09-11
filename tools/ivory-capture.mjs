@@ -53,10 +53,18 @@ const CHROME_PATH =
 /** Wide widths: the Instrument / Tracker pass. The phone widths are the
  *  paged pass below. */
 const WIDTHS = [1024, 736]
+/** Phone widths with the frame heights they are shot at. The first height
+ *  is the raw viewport; the others are the homepage phone shell's frame
+ *  (viewport minus the device insets): 390x844 with insets 47/34 leaves 810,
+ *  an iPhone 14 Pro / 15 at 393x852 with insets 59/34 leaves 759. Both pages
+ *  must fit those frames without vertical scrolling, fine and coarse,
+ *  standalone and embedded. 320x568 is reported only. */
 const PHONE = [
-  { width: 390, height: 844 },
-  { width: 320, height: 568 },
+  { width: 390, heights: [844, 810] },
+  { width: 393, heights: [759] },
+  { width: 320, heights: [568] },
 ]
+const FRAMES = new Set([810, 759])
 const PAGES = ['play', 'voice']
 /** The coarse-pointer pass: phone portrait twice, then a tablet that can
  *  open the tracker. */
@@ -589,7 +597,10 @@ async function runPhone(base, outDir, loadSong, coarse) {
   const failures = []
   const label = coarse ? 'coarse' : 'fine'
   try {
-    for (const t of PHONE) {
+    for (const spec of PHONE) {
+      for (const height of spec.heights) {
+        const t = { width: spec.width, height }
+        const first = height === spec.heights[0]
       for (const variant of VARIANTS) {
         const context = await browser.newContext({
           viewport: { width: t.width, height: t.height },
@@ -656,7 +667,18 @@ async function runPhone(base, outDir, loadSong, coarse) {
             const canvas = document.querySelector('.well > canvas')
             const well = document.querySelector('.well')
             const cs = well ? getComputedStyle(well) : null
+            // The slab's content height: the lowest area's bottom edge plus
+            // the slab's own padding. scrollHeight alone is pinned to the
+            // viewport by the embedded slab's min-height once the page fits.
+            const device = document.querySelector('.device')
+            let bottom = 0
+            for (const area of document.querySelectorAll('.device > .area')) {
+              bottom = Math.max(bottom, area.getBoundingClientRect().bottom + window.scrollY)
+            }
+            const dcs = device ? getComputedStyle(device) : null
+            const contentHeight = dcs ? Math.round(bottom + parseFloat(dcs.paddingBottom) + parseFloat(dcs.borderBottomWidth)) : null
             return {
+              contentHeight,
               scrollWidth: document.documentElement.scrollWidth,
               innerWidth: window.innerWidth,
               scrollHeight: document.documentElement.scrollHeight,
@@ -687,19 +709,21 @@ async function runPhone(base, outDir, loadSong, coarse) {
           // keybed exceed 568 with every gap at zero — so there it is reported
           // (the * mark) and not failed.
           const fits = geo.scrollHeight <= geo.clientHeight
-          const mustFit = variant === 'embed' && (t.width === 390 || (pageName === 'play' && !coarse))
+          const mustFit =
+            FRAMES.has(t.height) ||
+            (variant === 'embed' && (t.width === 390 || (pageName === 'play' && !coarse)))
           if (mustFit && !fits) issues.push(`page needs vertical scrolling: ${geo.scrollHeight} > ${geo.clientHeight}`)
 
           const unnamed = await checkUnnamedControls(page)
           for (const u of unnamed) issues.push(`unnamed control: ${u}`)
 
-          const fileName = `${variant === 'embed' ? 'embed-' : ''}${coarse ? 'touch-' : ''}${pageName}-${t.width}.png`
+          const fileName = `${variant === 'embed' ? 'embed-' : ''}${coarse ? 'touch-' : ''}${pageName}-${t.width}${first ? '' : `x${t.height}`}.png`
           await page.screenshot({ path: `${outDir}/${fileName}`, fullPage: true })
           await page.close()
 
           // The start-cap jump, on the Play page, on a fresh page.
           let jump = 'n/a'
-          if (pageName === 'play') {
+          if (pageName === 'play' && first) {
             const p2 = await open()
             const capBefore = await p2.locator('button.start').count()
             if (capBefore !== 1) issues.push(`expected the Start audio cap before the gesture, found ${capBefore}`)
@@ -719,7 +743,7 @@ async function runPhone(base, outDir, loadSong, coarse) {
 
           // Playback survives a Voice-and-back switch (checked with the Voice row).
           let playing = 'n/a'
-          if (pageName === 'voice') {
+          if (pageName === 'voice' && first) {
             const p3 = await open()
             const pos = () => p3.locator('.position strong').first().textContent()
             await p3.click('button.play')
@@ -740,11 +764,12 @@ async function runPhone(base, outDir, loadSong, coarse) {
           }
 
           rows.push({
-            width: t.width,
+            width: `${t.width}x${t.height}`,
             variant,
             page: pageName,
             overflow: `${geo.scrollWidth}/${geo.innerWidth}`,
             height: `${geo.scrollHeight}/${geo.clientHeight}${fits ? '' : '*'}`,
+            content: geo.contentHeight,
             top,
             well: geo.canvas === null ? 'n/a' : `${geo.canvas}/${geo.wellInner}`,
             unnamed: unnamed.length,
@@ -754,9 +779,10 @@ async function runPhone(base, outDir, loadSong, coarse) {
             playing,
             file: fileName,
           })
-          if (issues.length > 0) failures.push({ label: `${label} ${t.width} ${variant} ${pageName}`, issues })
+          if (issues.length > 0) failures.push({ label: `${label} ${t.width}x${t.height} ${variant} ${pageName}`, issues })
         }
         await context.close()
+      }
       }
     }
   } finally {
@@ -765,11 +791,12 @@ async function runPhone(base, outDir, loadSong, coarse) {
 
   const header = [
     pad(label, 7),
-    pad('width', 6),
+    pad('viewport', 9),
     pad('variant', 10),
     pad('page', 6),
     pad('scrollW/innerW', 15),
     pad('docH/viewH', 12),
+    pad('content', 8),
     pad('keybed', 7),
     pad('canvas/well', 12),
     pad('unnamed', 8),
@@ -786,11 +813,12 @@ async function runPhone(base, outDir, loadSong, coarse) {
     console.log(
       [
         pad(label, 7),
-        pad(r.width, 6),
+        pad(r.width, 9),
         pad(r.variant, 10),
         pad(r.page, 6),
         pad(r.overflow, 15),
         pad(r.height, 12),
+        pad(r.content, 8),
         pad(r.top, 7),
         pad(r.well, 12),
         pad(r.unnamed, 8),

@@ -61,7 +61,7 @@
     }
     .dials {
       gap: 12px;
-      padding: 12px 0 4px;
+      padding: 4px 0 0;
     }
   }
 

@@ -197,9 +197,11 @@
   }
 
   @media (max-width: 600px) {
-    .project {
+    .project,
+    :global([data-embedded]) .project {
       justify-content: flex-start;
-      padding-top: 16px;
+      gap: 4px 10px;
+      padding-top: 8px;
     }
     .save {
       flex-basis: 100%;
@@ -210,14 +212,6 @@
     }
     .serial {
       display: none;
-    }
-  }
-
-  @media (max-width: 360px) {
-    .project,
-    :global([data-embedded]) .project {
-      gap: 6px 10px;
-      padding-top: 10px;
     }
   }
 </style>

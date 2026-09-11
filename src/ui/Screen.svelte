@@ -486,11 +486,11 @@
 
   @media (max-width: 600px) {
     .screen {
-      gap: 8px;
+      gap: 4px;
     }
     .well {
-      padding: 12px 10px;
-      gap: 10px;
+      padding: 8px 10px;
+      gap: 6px;
     }
   }
 

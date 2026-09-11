@@ -319,8 +319,11 @@
      sentence is the one state that adds a line, and it is a failure. */
   @media (max-width: 600px) {
     .transport {
-      gap: 12px 16px;
-      padding: 16px 0;
+      gap: 8px 16px;
+      padding: 10px 0;
+    }
+    .play {
+      min-height: 44px;
     }
     .song {
       flex-basis: 100%;
@@ -333,7 +336,6 @@
   @media (max-width: 360px) {
     .transport {
       gap: 6px 12px;
-      padding: 10px 0;
     }
     .position {
       flex-direction: row;

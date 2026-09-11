@@ -174,6 +174,16 @@
     border-radius: var(--r-1);
   }
 
+  /* Phones: the caption hugs its field. */
+  @media (max-width: 600px) {
+    .picker {
+      gap: 1px;
+    }
+    .picker select {
+      padding-block: 4px;
+    }
+  }
+
   /* 320px: the caption sits beside the field instead of above it, so the
      Play page keeps one row for the picker. */
   @media (max-width: 360px) {

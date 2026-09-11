@@ -198,12 +198,14 @@
     }
   }
 
+  /* The phone desk is a rim: 8px above and below the slab, 4px beside it,
+     so a paged instrument fits a 759px phone frame standalone as well. */
   @media (max-width: 600px) {
     .stage {
       padding:
-        calc(var(--s-4) + env(safe-area-inset-top, 0px))
+        calc(var(--s-2) + env(safe-area-inset-top, 0px))
         calc(var(--s-1) + env(safe-area-inset-right, 0px))
-        calc(var(--s-4) + env(safe-area-inset-bottom, 0px))
+        calc(var(--s-2) + env(safe-area-inset-bottom, 0px))
         calc(var(--s-1) + env(safe-area-inset-left, 0px));
     }
     /* The phone keeps the slab; the desk margin shrinks to a rim so a
@@ -217,8 +219,8 @@
     }
 
     .head {
-      gap: 12px;
-      padding-bottom: 16px;
+      gap: 8px 12px;
+      padding-bottom: 12px;
     }
     .head > .brand {
       --brand-size: 32px;
@@ -255,6 +257,7 @@
     }
     .live {
       order: 5;
+      gap: 10px;
     }
     /* The gap under the keybed exists only when the keybed is on the page
        (the desktop-ordered phone, not the Voice page); without the keys the
@@ -274,7 +277,7 @@
      320 layout) — a 28px wordmark without its badge, a narrower fader. */
   @media (max-width: 360px) {
     .head {
-      gap: 10px 8px;
+      gap: 8px;
     }
     .head > .brand {
       --brand-size: 28px;

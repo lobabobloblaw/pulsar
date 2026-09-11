@@ -319,13 +319,18 @@
     }
   }
 
+  /* Phones: a 64px dial, tighter stack, and the printed range gives way —
+     the value stays, the Voice page has to fit a 759px frame. */
   @media (max-width: 600px) {
     .knob {
-      --dial: 72px;
-      gap: 10px;
+      --dial: 64px;
+      gap: 6px;
     }
     .indicator {
-      height: 16px;
+      height: 14px;
+    }
+    .detail {
+      display: none;
     }
   }
 </style>
