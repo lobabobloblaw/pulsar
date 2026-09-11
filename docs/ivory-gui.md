@@ -1,5 +1,10 @@
 # The Ivory GUI
 
+The two GUI candidates the 2026-09 design audit produced, Ivory (built) and
+Obsidian (not built), live in `docs/ivory-study/` with their design notes,
+self-contained interactive previews, capture receipts and the scripts that made
+them. `design-notes.md` there is the rationale this document implements.
+
 Pulsar's face since 2026-09-10: a pale mineral slab on a paper ground, warm
 white caps, one deep green display well and one vermilion transport key. The
 design study (candidate A of two) fixed the values; this document records
