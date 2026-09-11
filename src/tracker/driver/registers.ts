@@ -86,10 +86,11 @@ export function vrc6EnableByte(on: boolean, timer: number): number {
 /** The sawtooth's accumulator rate, `$B000`, from a composed 0..15 volume.
  *
  *  OCTET's own mapping, quoted: `rate = noteActive ? Math.min(42, Math.round(outVol *
- *  42 / 15)) : 0`. 42 is the ceiling because the accumulator adds the rate on each of
- *  the seven even steps and `7 · 42 = 294` already exceeds the 8-bit accumulator —
- *  above 42 it wraps, which is the chip's documented "distortion" and not something a
- *  volume column should be able to reach by accident. */
+ *  42 / 15)) : 0`. 42 is the ceiling because the accumulator adds the rate on six of the
+ *  fourteen steps (2, 4, … 12), so the highest level it reaches is `6 · rate`: 6 · 42 =
+ *  252 still fits the 8-bit accumulator and 6 · 43 = 258 does not — above 42 it wraps,
+ *  which is the chip's documented "distortion" and not something a volume column should
+ *  be able to reach by accident. */
 export function vrc6SawRate(volume: number): number {
   if (volume <= 0) return 0
   const r = Math.round((volume * 42) / 15)
