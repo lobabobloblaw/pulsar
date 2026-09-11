@@ -151,3 +151,61 @@ describe('$9003', () => {
     expect(countWrites(sink, REG.VRC6_FREQ)).toBe(2)
   })
 })
+
+describe('a VRC6 lane runs the PULSE effect set', () => {
+  it('its pitch is a timer, not the noise lane’s inverted index', () => {
+    // note 48 would be noise index 15 (the lowest); on a VRC6 pulse it is a 12-bit
+    // timer of 3419, and on the saw 3908.
+    const { ticks } = drive(
+      buildSong({
+        lanes: 8,
+        patterns: { 'vrc6p1:0': [{ r: 0, note: 24 }], 'vrc6saw:0': [{ r: 0, note: 24 }] },
+      }),
+      4,
+    )
+    expect(at(ticks, 0, REG.V1_LO) | ((at(ticks, 0, REG.V1_HI) & 0x0f) << 8)).toBe(3419)
+    expect(at(ticks, 0, REG.SAW_LO) | ((at(ticks, 0, REG.SAW_HI) & 0x0f) << 8)).toBe(3908)
+  })
+
+  it('4xy vibrato moves the period the way it does on a pulse', () => {
+    const { ticks } = drive(
+      buildSong({
+        lanes: 8,
+        meta: { rowsPerPattern: 64 },
+        patterns: { 'vrc6p1:0': [{ r: 0, note: 69, vol: 15, fx: [{ cmd: '4', param: 0x8f }] }] },
+      }),
+      24,
+    )
+    const period: number[] = []
+    let lo = 0xfd
+    let hi = 0
+    for (let t = 0; t < 24; t++) {
+      const l = at(ticks, t, REG.V1_LO)
+      const h = at(ticks, t, REG.V1_HI)
+      if (l >= 0) lo = l
+      if (h >= 0) hi = h & 0x0f
+      period.push((hi << 8) | lo)
+    }
+    expect(new Set(period).size).toBeGreaterThan(3)
+    expect(Math.max(...period)).toBeGreaterThan(253)
+    expect(Math.min(...period)).toBeLessThan(253)
+  })
+
+  it('and the noise and dpcm registers are never touched by one', () => {
+    const { sink } = drive(
+      buildSong({
+        lanes: 8,
+        patterns: {
+          'vrc6p1:0': [{ r: 0, note: 69 }],
+          'vrc6p2:0': [{ r: 0, note: 60 }],
+          'vrc6saw:0': [{ r: 0, note: 40 }],
+        },
+      }),
+      120,
+    )
+    for (let i = 0; i < sink.length; i++) {
+      const a = sink.addrs[i]
+      expect(a >= 0x400c && a <= 0x4013, `write ${i} to ${a.toString(16)}`).toBe(false)
+    }
+  })
+})

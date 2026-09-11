@@ -62,8 +62,8 @@ Hard rules:
 
 ### The tracker (`src/tracker`)
 
-- `model/` — song JSON v1: `types`, hand-written `validate` (no schema lib), `compile`, `commands` (unified command layer shared by all editors).
-- `driver/` — `trackerDriver` + `tempo` (closed-form `cycleOfTick`, integer Bresenham row accumulator — FamiTracker-exact 6/6/5 row alternation), `macros`, `effects`, `registers` (write-on-change register images).
+- `model/` — song JSON v1: `types`, hand-written `validate` (no schema lib), `compile`, `commands` (unified command layer shared by all editors). **Eight lanes**: the five 2A03 ones then `vrc6p1`, `vrc6p2`, `vrc6saw`. `channels` is a PREFIX of `CANONICAL_CHANNELS`, which is why the format is still version 1 and a five-lane song is unchanged on disk; `emptySong()` is still a 2A03 document.
+- `driver/` — `trackerDriver` + `tempo` (closed-form `cycleOfTick`, integer Bresenham row accumulator — FamiTracker-exact 6/6/5 row alternation), `macros`, `effects`, `registers` (write-on-change register images). Addresses come from a per-lane base table — `$4000 $4004 $4008 $400C $4010 $9000 $A000 $B000` — and `$4015` is never written for a VRC6 lane. See `docs/register-timeline.md`, "VRC6 lanes".
 - `offlineRender.ts` + `wav.ts` — faster-than-realtime render through the *same* driver.
 
 ### Everything else
