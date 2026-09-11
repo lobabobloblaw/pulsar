@@ -22,6 +22,14 @@ own synthesized kick and snare, carried over byte for byte. The previous presets
 retired from the app; their source history remains in Git. Composition notes:
 `docs/soundtrack.md`.
 
+Further preset songs are composed for pulsar the same way: as committed generator
+scripts under `tools/songs/compose/`, whose JSON output is the shipped artifact
+(`docs/preset-suite.md` §12). Every note, bass line, chord and drum pattern in them is
+invented for this project — no melody, riff, progression or recording from any existing
+work is quoted, transcribed or paraphrased, and no hosted music-generation service is
+used. The instrument bank they share is this project's own, and its two DPCM samples are
+computed from arithmetic by `tools/songs/makeDpcm.mjs`, never sampled.
+
 Generated image assets are documented per-file in `ASSETS.md`, including the exact
 model checkpoint, license, seed, prompt, and post-processing chain for each.
 

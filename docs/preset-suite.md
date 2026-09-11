@@ -2052,3 +2052,133 @@ dissonances, and at least two separated non-diatonic devices. Measured preview R
 −21.98, −22.17, −22.67, and −21.85 dBFS respectively, with zero clipped samples. Registration
 is file-driven through `import.meta.glob`; `tests/unit/presetFormat.test.ts` pins the widened
 18-title set, while the ordinary Gates A–D cover every new file without a per-song test list.
+
+---
+
+## 12. the expansion annex — eight voices, and the composer's script
+
+*Added 2026-09-11, when the VRC6 landed in the core and three original pieces were
+commissioned for it. This section amends §0.4 and §7.3 step 3; everything else in this
+document stands unchanged.*
+
+### 12.1 §0.4 is superseded: eight voices, not five
+
+§0.4 said **"Five voices, maximum, forever. There is no sixth."** That was true of the
+machine this document was written against. It is no longer true of this one: `src/audio/
+core/vrc6/` implements the cartridge expansion's two pulses and its sawtooth, the tracker
+carries eight lanes, and `docs/register-timeline.md` "VRC6 lanes" is the authority on how
+they are written. The sentence is retired, not softened — the arrangement doctrine in §2
+was derived from the number five and has to be re-derived from eight, which is what the
+technique sheet below does.
+
+The rest of §0 is untouched, and §0.1 in particular applies to the expansion lanes exactly
+as it applies to the 2A03. **ORIGINAL MUSIC ONLY.** The benchmark for these pieces is
+stated as a level of craft — the fidelity and charge of the best late-1980s action-game
+house styles, and of modern expansion-chip tracker work — never as a source. Describe
+idioms by era and technique. This project's documents, commit messages, instrument names
+and song titles name no game, no composer and no published piece.
+
+`channels` is a PREFIX of the canonical eight, so a piece that reaches `vrc6p1` also
+declares `dpcm` — an empty pattern and a `0` in every order frame — and the lint accepts
+that lane because it claims nothing and carries no events.
+
+### 12.2 what the eight voices are for
+
+- **2A03 pulse 1 / pulse 2** — as §2.1: lead and counter-voice or echo. Duty 0–3
+  (12.5 / 25 / 50 / 25 inverted); volume 0–15; the hardware sweep is not used. Pulse
+  floor MIDI 33.
+- **triangle** — bass and doubling. No volume, only a gate (§1); floor MIDI 21; a soft
+  attack, so it can never define the transient.
+- **noise** — the kit (§2.6, §9.4). Notes 32–47 are period index 15..0; drum pitch sweeps
+  come from the PITCH macro, never the arpeggio macro.
+- **dpcm** — the bank's synthesized kick (36) and snare (39) through `dpcm-kit` (§3.5).
+  It ducks the triangle and the noise through the shared TND index, which is a mix tool
+  (§2.8) and a cost.
+- **VRC6 pulse 1 / pulse 2** (`vrc6p1`, `vrc6p2`) — a 16-step duty, 0–7, high for
+  `(d+1)/16` of the period: **7** is the fat 50 % square, **3** the classic bright 25 %,
+  **1** the thin 12.5 %, **0** the buzz. Values 8–15 set the mode bit — constant output,
+  a click and then silence — and are **never written**. Duty macros animate timbre the way
+  the 2A03's do; a macro stepping 7 → 5 → 3 → 2 over the first ticks is the chip's own
+  attack. Volume 0–15 into a linear DAC; no length counter, no sweep. Floor MIDI 21: the
+  12-bit divider reaches an octave below a 2A03 pulse, and those low notes are dark and
+  useful as a second bass. These are the harmony lanes — parallel thirds and sixths,
+  sustained chord tones, a second lead in octaves or canon, wide `0xy` chords.
+- **VRC6 sawtooth** (`vrc6saw`) — the expansion's signature. The volume column becomes an
+  accumulator rate, `min(42, round(v · 42 / 15))`, and the output reaches 31 against a
+  pulse's 15: **volume 15 on the saw is roughly twice as loud as a pulse at 15.** Floor
+  MIDI 24 (it divides by 14, not 16). It is the bass that cuts — a sixteenth gallop with
+  the triangle an octave away — or a brass-like lead at 10–13 with a slow pitch-bend
+  attack. No duty. Pitch effects behave as on the pulses. **Mix it down before anything
+  else.**
+- **Headroom is part of the craft.** Render gain 2.0 puts a full 2A03 mix at full scale
+  and the VRC6 adds linearly on top (`VRC6_GAIN` = 0.0099 per unit; two pulses at 12 plus
+  a saw at rate 34 add ≈ 0.49). Gate C allows ≤ 8 clamped samples in a two-pass render
+  unless the piece declares `clippedSamplesMax` with a justification and the default
+  really would fail. If the preview table shows clipping, **lower the arrangement** —
+  saw ≤ 12 on sustained bass, VRC6 pulses ≤ 11 under a loud 2A03 mix, stagger the
+  accents — rather than re-gaining it. `tools/songs/compose/report.mjs` prints the
+  unclamped-peak estimate per five seconds so the offending bar is findable.
+- **Allocation doctrine at eight voices.** Every lane earns its place in every section or
+  rests audibly; a resting bar is a dynamic. Bass is the saw **or** the triangle leading
+  with the other doubling or answering — not both hammering the same octave for three
+  minutes. Harmony is the VRC6 pulses. The lead is one 2A03 pulse or the saw, never two
+  leads at once. Echo canon (§2.2) goes on whichever pulse is free, and pulse 2 is a
+  VOICE (§9.2) for at least one whole section. Drums are the noise kit plus the DPCM pair,
+  with a fill every 4–8 bars and a signature (§9.4).
+
+### 12.3 §7.3 step 3 is amended: the composition is a generator script
+
+§7.3 step 3 and `docs/phase2-design.md` §5.3 rule 1 said **"Write the JSON directly. No
+intermediate DSL, no generator script."** The reason given was that a generator would
+become a second source of truth. That reason is answered by the byte-identical round
+trip, and the cost of the rule has since been measured: an eight-voice piece of two and a
+half minutes is thousands of cells, and a human-readable diff of it does not exist.
+
+**The amended rule.** A piece is authored as a committed generator script under
+`tools/songs/compose/NN-<id>.mjs`, importing `tools/songs/compose/lib.mjs`. It runs with
+`node`, writes `src/assets/songs/NN-<id>.json`, and **that JSON is the shipped artifact
+and is never hand-edited.** This is the same discipline the OCTET ports already use
+(`tools/songs/octet/`, `docs/soundtrack.md`), extended from conversion to composition.
+
+Why this is not a second source of truth:
+
+1. **The JSON is still the artifact.** The app, the driver, the gates and the user's ears
+   all read the committed file. The generator is how it was written, the way a `.psd` is
+   how a `.png` was drawn.
+2. **The round trip is still the gate.** Gate A asserts
+   `serializeSong(parseSong(text)) === text` on the committed bytes. The library emits
+   exactly `serializeSong`'s shape — key order, pattern sort, row sort, trailing-null
+   trimming, two-space indent — so a generator that drifts from the format fails the same
+   gate a hand-edit would.
+3. **The pin keeps them honest.** `extra.qa.renderChecksum` is the render's FNV-1a. Any
+   change to the music changes it, so the generator, the JSON and the checksum move in one
+   commit or the gate fails. A JSON edited behind the generator's back is caught the next
+   time anyone runs the generator.
+
+**What the generator owes the reader.** It IS the composition, so it is written to be
+read: named sections in the order they are heard, named motifs, and a comment on each lane
+in each section saying what that lane does and why. A reviewer should be able to follow
+the form without opening the JSON. A generator that reads as a wall of coordinates has
+failed this rule even if its output passes every gate.
+
+**What the library derives, so the composer does not declare it:** the channel prefix,
+the effect columns, pattern and sequence de-duplication, the instrument table,
+`qa.channels`, `qa.effects`, `qa.form`, `qa.loopFrame` and `qa.bank`. What the composer
+declares is what only a composer knows: the key, the tempo and duration brackets, any
+raised bound with its justification, and the checksum the gate prints. Shared-bank
+instruments are copied from `tests/fixtures/songs/shared-bank.json` by name rather than
+retyped, which is what keeps §7.1's bank-drift check meaningful.
+
+`tools/songs/compose/README.md` is the authoring guide — the loop end to end, the API,
+the fault table for `check()`, how to read `report.mjs`, and the delivery checklist.
+`tests/unit/compose.test.ts` gates the library itself, with one test per fault so the
+pre-flight cannot quietly stop working.
+
+### 12.4 what does not move
+
+Everything in §0 except the voice count; the whole of §1 (the floors, the noise wrap, the
+accumulating pitch macros, the inverted `Axy`, decimal params); §2's craft rules, read at
+eight voices; §3's frozen bank, appended-to and never rewritten; §5's `extra.qa` block;
+§6 and §9.5's rubric; and §7.1's gates, unchanged and unwaived. `Cxx` still never appears
+in an album piece. The lint's effect set for these pieces is
+`0 1 2 3 4 7 A B D F G P Q R S V`.
