@@ -49,7 +49,7 @@ import {
 } from '../../src/audio/host/diagnostics'
 import { writeNoteOff, writePulseNoteOn } from '../../src/audio/host/liveScheduler'
 import { ArrayWriteSink } from '../../src/audio/timeline/writeSink'
-import { encodeWrite } from '../../src/audio/timeline/types'
+import { decodeAddr, decodeValue, encodeWrite } from '../../src/audio/timeline/types'
 import { makeApu, renderWith } from '../helpers/renderTrace'
 import { sameSamples } from '../helpers/analysis'
 
@@ -95,6 +95,23 @@ describe('SAB layout', () => {
     expect(h[I_READ_INDEX]).toBe(0)
   })
 
+  it('refuses a ring stamped with the previous version rather than misdecoding it', () => {
+    // RING_VERSION went 1 → 2 when the wire code widened to the whole 16-bit address.
+    // A stale worklet chunk carrying the v1 decoder would read every VRC6 address as
+    // `0x4000 | (addr & 0x1f)` — $9002 would land on $4002 and detune pulse 1. The
+    // version check is the only thing standing between that and silence, so prove it
+    // is actually consulted.
+    expect(RING_VERSION).toBe(2)
+    const buffer = newRing()
+    expect(isRingBuffer(buffer)).toBe(true)
+    headerView(buffer)[1] = 1
+    expect(isRingBuffer(buffer)).toBe(false)
+    expect(() => new RingProducer(buffer)).toThrow(/pulsar ring/)
+    expect(() => new RingConsumer(buffer)).toThrow(/pulsar ring/)
+    headerView(buffer)[1] = RING_VERSION
+    expect(isRingBuffer(buffer)).toBe(true)
+  })
+
   it('rejects a buffer that is not ours, rather than corrupting it', () => {
     const foreign = new ArrayBuffer(RING_BYTES)
     expect(isRingBuffer(foreign)).toBe(false)
@@ -104,6 +121,42 @@ describe('SAB layout', () => {
     const short = new ArrayBuffer(HEADER_BYTES)
     initRing(short, SAMPLE_RATE)
     expect(isRingBuffer(short)).toBe(false)
+  })
+})
+
+/** Every address the engine accepts: the 2A03 block and the VRC6's three. */
+const ALL_ADDRESSES: number[] = (() => {
+  const out: number[] = []
+  for (let a = 0x4000; a <= 0x4017; a++) out.push(a)
+  for (let a = 0x9000; a <= 0x9003; a++) out.push(a)
+  for (let a = 0xa000; a <= 0xa002; a++) out.push(a)
+  for (let a = 0xb000; a <= 0xb002; a++) out.push(a)
+  return out
+})()
+
+describe('the 24-bit wire encoding', () => {
+  it('round-trips every 2A03 and VRC6 address at both ends of the value range', () => {
+    for (let i = 0; i < ALL_ADDRESSES.length; i++) {
+      const addr = ALL_ADDRESSES[i]
+      for (const value of [0, 0xff]) {
+        const code = encodeWrite(addr, value)
+        expect(decodeAddr(code)).toBe(addr)
+        expect(decodeValue(code)).toBe(value)
+        // Still an honest Int32 slot on both transports.
+        expect(code | 0).toBe(code)
+        expect(code).toBeGreaterThanOrEqual(0)
+      }
+    }
+    expect(ALL_ADDRESSES.length).toBe(24 + 10)
+  })
+
+  it('anti-vacuity: the OLD five-bit encoding collapsed the VRC6 onto the $4000 page', () => {
+    // $9002 and $A002 both decoded to $4002 under `(addr & 0x1f) << 8`, so a VRC6
+    // note-on would have retuned pulse 1. That collision is the whole reason for v2.
+    const legacy = (addr: number): number => 0x4000 | (addr & 0x1f)
+    expect(legacy(0x9002)).toBe(0x4002)
+    expect(legacy(0xa002)).toBe(0x4002)
+    expect(decodeAddr(encodeWrite(0x9002, 0))).not.toBe(decodeAddr(encodeWrite(0xa002, 0)))
   })
 })
 
@@ -344,8 +397,14 @@ const QUANTUM = 128
  *  does at the default 6 ms lead. */
 const LOOKAHEAD_CYCLES = 10_739
 
-/** A quarter second of dense live play: ~900 note events, 4 500 register writes —
- *  more than the ring's 4 096 slots, so the equivalence claim covers a wrap. */
+/** A quarter second of dense live play: ~900 note events, well over 4 500 register
+ *  writes — more than the ring's 4 096 slots, so the equivalence claim covers a wrap.
+ *
+ *  Every VRC6 register is in here too. The addresses are what the v2 wire encoding
+ *  exists for, and an encoding that truncated them would not merely sound wrong: it
+ *  would fold $9002/$A002/$B002 onto $4002 and detune the 2A03 pulse. Carrying them
+ *  through BOTH transports is how "the two paths are bit-identical" stays a claim
+ *  about the whole address space rather than about the $4000 page. */
 function densePlayTrace(): ArrayWriteSink {
   const trace = new ArrayWriteSink()
   let cycle = 1000
@@ -359,9 +418,24 @@ function densePlayTrace(): ArrayWriteSink {
       trace.write(cycle, 0x4000, 0x30)
       trace.write(cycle, 0x4002, 0)
       trace.write(cycle, 0x4003, 0)
+      // VRC6 note-off: clear the enable bit on all three, which is also a phase reset.
+      trace.write(cycle, 0x9002, 0x00)
+      trace.write(cycle, 0xa002, 0x00)
+      trace.write(cycle, 0xb002, 0x00)
     } else {
       mask = 0x01
       writePulseNoteOn(trace, cycle, 0, 200 + (i % 97), i % 4, 15 - (i % 16), 0x08, mask)
+      const p = 180 + (i % 211)
+      trace.write(cycle, 0x9000, ((i % 8) << 4) | (15 - (i % 16)))
+      trace.write(cycle, 0x9001, p & 0xff)
+      trace.write(cycle, 0x9002, 0x80 | ((p >> 8) & 0x0f))
+      trace.write(cycle, 0xa000, 0x70 | (i % 16))
+      trace.write(cycle, 0xa001, (p + 40) & 0xff)
+      trace.write(cycle, 0xa002, 0x80 | (((p + 40) >> 8) & 0x0f))
+      trace.write(cycle, 0xb000, 20 + (i % 43))
+      trace.write(cycle, 0xb001, (p * 2) & 0xff)
+      trace.write(cycle, 0xb002, 0x80 | (((p * 2) >> 8) & 0x0f))
+      if (i % 97 === 0) trace.write(cycle, 0x9003, i % 2 === 0 ? 0x02 : 0x00)
     }
     cycle += 500
   }
@@ -453,6 +527,25 @@ describe('SAB ≡ postMessage', () => {
     let energy = 0
     for (let i = 0; i < viaSab.length; i++) energy += Math.abs(viaSab[i])
     expect(energy).toBeGreaterThan(1)
+  })
+
+  it('and the VRC6 writes in it are load-bearing, not decoration', () => {
+    // If the expansion registers were being dropped, truncated or ignored, this
+    // comparison would come out identical and the equivalence above would be a claim
+    // about the 2A03 only.
+    const full = densePlayTrace()
+    let vrc6Writes = 0
+    const without = new ArrayWriteSink()
+    for (let i = 0; i < full.length; i++) {
+      const addr = full.addrs[i]
+      if (addr >= 0x9000) {
+        vrc6Writes++
+        continue
+      }
+      without.write(full.cycles[i], addr, full.values[i])
+    }
+    expect(vrc6Writes).toBeGreaterThan(2000)
+    expect(sameSamples(renderViaSharedRing(full), renderViaSharedRing(without))).toBe(false)
   })
 
   it('anti-vacuity: a drain that lags by one quantum renders audibly different audio', () => {

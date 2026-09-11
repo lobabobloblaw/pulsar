@@ -49,7 +49,10 @@ const SONG_DIR = join(ROOT, 'src', 'assets', 'songs')
 const FIXTURES = join(ROOT, 'tests', 'fixtures', 'songs')
 const BANK = JSON.parse(readFileSync(join(FIXTURES, 'shared-bank.json'), 'utf8')) as BankDoc
 
-const MELODIC: readonly ChannelId[] = ['pulse1', 'pulse2', 'triangle']
+/** Lanes whose note column is a PITCH, so the key lint may read it: the 2A03's three
+ *  pitched lanes and all three VRC6 lanes. Noise is a period index and dpcm a key-map
+ *  slot, and neither belongs in a scale. */
+const MELODIC: readonly ChannelId[] = ['pulse1', 'pulse2', 'triangle', 'vrc6p1', 'vrc6p2', 'vrc6saw']
 const PERCUSSION_GAP_DEFAULT = 8
 const PERCUSSION_GAP_CAP = 32
 const PERCUSSION_MIN_EVENTS_DEFAULT = 16
@@ -60,6 +63,10 @@ const PERCUSSION_MIN_EVENTS_FLOOR = 8
  *  drum-free stretches are the composition (a crash-only intro, a coda of held chords). */
 const PERCUSSION_COVERAGE_DEFAULT = 0.8
 const PERCUSSION_COVERAGE_FLOOR = 0.75
+/** Gate C's clamp budget: eight samples for any preset, and never more than 64 even when
+ *  a VRC6 piece declares its own (`extra.qa.clippedSamplesMax`). */
+const CLIPPED_SAMPLES_DEFAULT = 8
+const CLIPPED_SAMPLES_CAP = 64
 const RMS_RANGE_DEFAULT: readonly [number, number] = [-20, -9]
 const RMS_FLOOR = -30
 // Gate C/D render minutes of audio per song (two loops plus solo passes); a shared
@@ -98,6 +105,10 @@ interface Qa {
   bpmRange?: [number, number]
   durationSec?: [number, number]
   rmsRange?: [number, number]
+  /** Clamped samples the two-pass render may contain at the reference gain, when the
+   *  default 8 is not enough. Declared, capped, and only honoured when the default
+   *  would actually fail — see gate C. */
+  clippedSamplesMax?: number
   loopFrame?: number
   form?: string[]
   bank?: { instruments?: string[]; rev?: number }
@@ -566,6 +577,28 @@ function quietestWindow(samples: Float32Array, seconds: number, rate = 48000): n
   return worst
 }
 
+/** True when every instrument the order walk plays on this lane has a FIXED-mode
+ *  arpeggio: the macro supplies the pitch, so the cell's own note never reaches the
+ *  chip. A lane of struck chords is written that way. */
+function fixedArpeggioOnly(song: Song, channel: ChannelId): boolean {
+  const indices = new Set(song.order.map((frame) => frame[song.channels.indexOf(channel)]))
+  const instruments = new Set<number>()
+  let notes = 0
+  for (const p of song.patterns) {
+    if (p.channel !== channel || !indices.has(p.index)) continue
+    for (const c of p.rows) {
+      if (c.note !== undefined && c.note >= 0) notes++
+      if (c.inst !== undefined) instruments.add(c.inst)
+    }
+  }
+  if (notes === 0 || instruments.size === 0) return false
+  for (const i of instruments) {
+    const seq = song.instruments[i].macros.arpeggio
+    if (seq < 0 || song.sequences.arpeggio[seq].mode !== 'fixed') return false
+  }
+  return true
+}
+
 function errorsOf(diagnostics: readonly Diagnostic[]): string[] {
   return diagnostics.filter((d) => d.severity === 'error').map((d) => `${d.path}: ${d.message}`)
 }
@@ -743,7 +776,19 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
     expect(onePass, `one pass is ${onePass.toFixed(1)}s`).toBeLessThanOrEqual((window as number[])[1])
 
     expect(r.noteOns, 'note-ons must match the count the document walk reaches').toBe(expected.noteOns)
-    expect(r.clippedSamples, 'a preset that clips is re-voiced, not re-gained').toBeLessThanOrEqual(8)
+    // A 2A03 preset that clips is re-voiced, not re-gained. A VRC6 piece is different in
+    // kind: the expansion's linear DAC adds up to 0.625 on top of the 2A03's full-scale
+    // mix, so an eight-voice song played AS COMPOSED can pass full scale at the render
+    // gain, which is the app's knob at maximum. Such a song declares the clamp count it
+    // needs — capped, justified in `notes`, and accepted only when the default really
+    // would fail, so the allowance cannot creep onto a song that does not need it.
+    const clipAllowance = qa.clippedSamplesMax ?? CLIPPED_SAMPLES_DEFAULT
+    if (qa.clippedSamplesMax !== undefined) {
+      expect(qa.clippedSamplesMax, 'a declared clip allowance is capped').toBeLessThanOrEqual(CLIPPED_SAMPLES_CAP)
+      expect(qa.notes, 'a declared clip allowance needs a justification').toBeTruthy()
+      expect(r.clippedSamples, 'a clip allowance is declared only where the default would fail').toBeGreaterThan(CLIPPED_SAMPLES_DEFAULT)
+    }
+    expect(r.clippedSamples, 'a preset that clips beyond its allowance is re-voiced, not re-gained').toBeLessThanOrEqual(clipAllowance)
 
     const [lo, hi] = qa.rmsRange ?? RMS_RANGE_DEFAULT
     expect(lo, 'a declared rms floor may not go under -30 dBFS').toBeGreaterThanOrEqual(RMS_FLOOR)
@@ -770,21 +815,33 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
     ).toBe(r.checksum)
   }, GATE_RENDER_TIMEOUT)
 
-  it('gate D — transposing pulse 1 breaks the checksum', () => {
-    // One whole pass: a piece may keep pulse 1 silent for its first minute.
+  it('gate D — transposing a pitched lane breaks the checksum, lane by lane', () => {
+    // One whole pass: a piece may keep a lane silent for its first minute.
     const budget = Math.ceil(walk(song, 1).seconds) + 2
     const base = renderSong(song, { sampleRate: 48000, loops: 1, maxSeconds: budget }).checksum
-    // Every pulse-1 note, not one pattern: the first pattern may be a lone loop-entry
-    // cut, or struck chords on fixed-mode arpeggios whose row note is ignored by design.
-    const mutated: Song = {
-      ...song,
-      patterns: song.patterns.map((p) =>
-        p.channel === 'pulse1'
-          ? { ...p, rows: p.rows.map((c) => (c.note !== undefined && c.note >= 0 ? { ...c, note: c.note + 1 } : c)) }
-          : p,
-      ),
+    // Every note of the lane, not one pattern: the first pattern may be a lone loop-entry
+    // cut. The exception is a lane whose every instrument carries a FIXED-mode arpeggio —
+    // the macro supplies the pitch and the row note is ignored by design (a struck bell
+    // chord is written that way), so there the render must NOT move, which pins the
+    // fixed-mode semantics instead of quietly excusing the lane.
+    let moved = 0
+    for (const channel of (qaOf(song).channels ?? []).filter((c) => MELODIC.includes(c))) {
+      const mutated: Song = {
+        ...song,
+        patterns: song.patterns.map((p) =>
+          p.channel === channel
+            ? { ...p, rows: p.rows.map((c) => (c.note !== undefined && c.note >= 0 ? { ...c, note: c.note + 1 } : c)) }
+            : p,
+        ),
+      }
+      const after = renderSong(mutated, { sampleRate: 48000, loops: 1, maxSeconds: budget }).checksum
+      if (fixedArpeggioOnly(song, channel)) expect(after, `${channel} (fixed-mode arpeggios)`).toBe(base)
+      else {
+        expect(after, channel).not.toBe(base)
+        moved++
+      }
     }
-    expect(renderSong(mutated, { sampleRate: 48000, loops: 1, maxSeconds: budget }).checksum).not.toBe(base)
+    expect(moved, 'no lane in this song answers a transposition').toBeGreaterThan(0)
   }, GATE_RENDER_TIMEOUT)
 })
 
@@ -821,6 +878,47 @@ describe('gate D — a gate that cannot fail is not a gate', () => {
       } : p),
     }
     expect(lint(wrong, source.id).problems.join('\n')).toContain('outside a-minor')
+  })
+
+  it('the key lint reads the VRC6 lanes, one at a time and together', () => {
+    const source = SONGS.find((s) => s.id === 'cathedral-of-gears')!
+    const song = tryParse(source.raw).song as Song
+    const base = lint(song, source.id)
+    expect(base.problems).toEqual([])
+    const offKey = (lanes: readonly string[]): Song => ({
+      ...song,
+      patterns: song.patterns.map((p) => lanes.includes(p.channel) ? {
+        ...p, rows: p.rows.map((c) => c.note !== undefined && c.note >= 0 ? { ...c, note: 66 } : c),
+      } : p),
+    })
+    // F#4 is outside D minor. Each VRC6 lane on its own must raise the accidental count —
+    // that is what proves the lane is inside MELODIC at all — over the same note total.
+    for (const lane of ['vrc6p1', 'vrc6p2', 'vrc6saw'] as const) {
+      const r = lint(offKey([lane]), source.id)
+      expect(r.melodicNotes, lane).toBe(base.melodicNotes)
+      expect(r.accidentals, lane).toBeGreaterThan(base.accidentals)
+    }
+    expect(lint(offKey(['vrc6p1', 'vrc6p2', 'vrc6saw']), source.id).problems.join('\n'))
+      .toContain('outside d-minor')
+  })
+
+  it('every lane that sounds must be claimed; a silent dpcm lane need not be', () => {
+    const source = SONGS.find((s) => s.id === 'cathedral-of-gears')!
+    const song = tryParse(source.raw).song as Song
+    const qa = qaOf(song)
+    // `channels` is a PREFIX of the canonical eight, so the VRC6 song carries a dpcm lane
+    // it never plays — declared on the document, absent from the claim, and silent.
+    expect(song.channels).toContain('dpcm')
+    expect(qa.channels).not.toContain('dpcm')
+    expect(lint(song, source.id).problems).toEqual([])
+    const withQa = (next: Qa): Song => ({ ...song, extra: { ...song.extra, qa: next } })
+    for (const lane of ['vrc6p1', 'vrc6p2', 'vrc6saw'] as const) {
+      const dropped = withQa({ ...qa, channels: (qa.channels ?? []).filter((c) => c !== lane) })
+      expect(lint(dropped, source.id).problems.join('\n')).toContain(`${lane} is not claimed`)
+    }
+    // ...and claiming the empty lane is just as wrong as leaving a sounding one out.
+    expect(lint(withQa({ ...qa, channels: [...(qa.channels ?? []), 'dpcm'] }), source.id).problems.join('\n'))
+      .toContain('dpcm is claimed but has only 0 note events')
   })
 
   it.each(BAD_PARSE)('%s fails gate A with "%s"', (file, needle) => {

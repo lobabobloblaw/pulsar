@@ -1,0 +1,10 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# one second of the VRC6 sawtooth at period 253, rate $2A (42) — the largest rate whose
+# ramp completes without wrapping the 8-bit accumulator. fourteen steps, not sixteen,
+# so the pitch is fCPU/(14*254) = 503.31 Hz: the same register value as the pulse
+# fixture above sounds a different note, which is the point of the fixture.
+0        B000 2A
+0        B001 FD
+0        B002 80
+# END 1789773

@@ -185,7 +185,10 @@ describe('errors — refuse to load', () => {
     expect(paths(broken((d) => (d.version = 2)))).toContain('version')
   })
 
-  it('channels that are not a prefix of the canonical five', () => {
+  it('channels that are not a prefix of the canonical list', () => {
+    // The list is eight long now (the three VRC6 lanes follow dpcm); the rule is
+    // unchanged and so is this document's failure. The eight-lane cases live in
+    // trackerVrc6Format.test.ts.
     expect(paths(broken((d) => (d.channels = ['pulse1', 'triangle'])))).toContain('channels[1]')
   })
 
@@ -213,7 +216,7 @@ describe('errors — refuse to load', () => {
     expect(errorsOf(tiny())).toEqual([])
   })
 
-  it('a pattern on a channel the song does not have', () => {
+  it('a pattern on a channel the song does not have — and "vrc6pulse1" is not an id', () => {
     const errs = errorsOf(
       broken((d) => {
         ;(d.patterns as Record<string, unknown>[])[0].channel = 'vrc6pulse1'

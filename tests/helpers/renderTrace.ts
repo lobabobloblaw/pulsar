@@ -109,3 +109,33 @@ export function noiseNoteOnTrace(
   trace.write(cycle, 0x400f, 0x00)
   return trace
 }
+
+/** A held VRC6 pulse note. `channel` 0 → $9000-$9002, 1 → $A000-$A002. The enable
+ *  register is LAST because it is the one with side effects (it latches the period's
+ *  high nibble and, when cleared, resets the phase) — the same discipline the 2A03
+ *  helpers above follow with $4003. */
+export function vrc6PulseNoteOnTrace(
+  cycle: number,
+  channel: number,
+  period: number,
+  duty: number,
+  volume: number,
+  mode = false,
+): ArrayWriteSink {
+  const trace = new ArrayWriteSink()
+  const base = channel === 0 ? 0x9000 : 0xa000
+  trace.write(cycle, base, (mode ? 0x80 : 0) | ((duty & 7) << 4) | (volume & 0x0f))
+  trace.write(cycle, base + 1, period & 0xff)
+  trace.write(cycle, base + 2, 0x80 | ((period >> 8) & 0x0f))
+  return trace
+}
+
+/** A held VRC6 sawtooth note. `rate` is the 6-bit accumulator rate; 42 is the largest
+ *  that completes the ramp without the documented 8-bit wrap. */
+export function vrc6SawNoteOnTrace(cycle: number, period: number, rate: number): ArrayWriteSink {
+  const trace = new ArrayWriteSink()
+  trace.write(cycle, 0xb000, rate & 0x3f)
+  trace.write(cycle, 0xb001, period & 0xff)
+  trace.write(cycle, 0xb002, 0x80 | ((period >> 8) & 0x0f))
+  return trace
+}

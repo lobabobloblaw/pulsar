@@ -23,8 +23,12 @@
  *  doing nothing.
  */
 import { describe, expect, it } from 'vitest'
+import { parseSong } from '../../src/tracker/model/validate'
 import {
   applyCommand,
+  CANONICAL_CHANNELS,
+  CHANNEL_LABELS,
+  CHIP_2A03_CHANNELS,
   cellAt,
   cellFieldCommand,
   COALESCE_MS,
@@ -33,6 +37,7 @@ import {
   EMPTY_HISTORY,
   emptyInstrument,
   ensurePattern,
+  newFrame,
   readField,
   redoStep,
   rowsOf,
@@ -412,5 +417,58 @@ describe('property: N commands, N undos, N redos', () => {
       }
       expect(song, `seed ${seed}: redo`).toEqual(mutated)
     }
+  })
+})
+
+describe('the document layer over eight lanes', () => {
+  /** A song that declares the VRC6 lanes. The store never MAKES one — that is an
+   *  authoring decision, and `createEmptySong` stays a 2A03 document — but every
+   *  read, edit, undo and pattern-insert path has to work on one. */
+  function eightLane(): Song {
+    return parseSong(
+      JSON.parse(
+        JSON.stringify({
+          ...createEmptySong('eight'),
+          channels: [...CANONICAL_CHANNELS],
+          effectColumns: CANONICAL_CHANNELS.map(() => 1),
+          order: [CANONICAL_CHANNELS.map(() => 0)],
+          patterns: CANONICAL_CHANNELS.map((channel) => ({ channel, index: 0, rows: [] })),
+        }),
+      ),
+    ).song
+  }
+
+  it('a new session still starts on a five-lane 2A03 document', () => {
+    const s = createEmptySong()
+    expect([...s.channels]).toEqual([...CHIP_2A03_CHANNELS])
+    expect(s.order[0]).toHaveLength(5)
+  })
+
+  it('every canonical lane has a distinct, non-empty label', () => {
+    const labels = CANONICAL_CHANNELS.map((c) => CHANNEL_LABELS[c])
+    expect(labels).toHaveLength(8)
+    expect(labels.every((l) => typeof l === 'string' && l.length > 0)).toBe(true)
+    expect(new Set(labels).size).toBe(8)
+    expect(CHANNEL_LABELS.vrc6p1).toBe('vrc6 pulse 1')
+    expect(CHANNEL_LABELS.vrc6p2).toBe('vrc6 pulse 2')
+    expect(CHANNEL_LABELS.vrc6saw).toBe('vrc6 saw')
+  })
+
+  it('edits a VRC6 lane, and undo puts it back', () => {
+    const song = eightLane()
+    const { song: edited } = applyCommand(song, setNote(4, 69, 'vrc6saw'))
+    expect(field(edited, 'vrc6saw', 0, 4, 'note')).toBe(69)
+    const r = edit(song, EMPTY_HISTORY, setNote(4, 69, 'vrc6saw'), 0)
+    expect(undoStep(r.song, r.history).song).toEqual(song)
+  })
+
+  it('newFrame and ensurePattern span all eight lanes, in canonical order', () => {
+    const song = eightLane()
+    expect(newFrame(song)).toHaveLength(8)
+    const withPattern = ensurePattern(song, 'vrc6p2', 1)
+    const order = withPattern.patterns.map((p) => `${p.channel}:${p.index}`)
+    // sorted by (lane, index): the new vrc6p2:1 sits after vrc6p2:0 and before vrc6saw:0
+    expect(order.indexOf('vrc6p2:1')).toBe(order.indexOf('vrc6p2:0') + 1)
+    expect(order.indexOf('vrc6saw:0')).toBe(order.indexOf('vrc6p2:1') + 1)
   })
 })

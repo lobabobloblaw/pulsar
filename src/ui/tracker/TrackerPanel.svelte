@@ -20,6 +20,7 @@
   import { CHANNEL_LABELS, MAX_SPEED, MAX_TEMPO, MIN_SPEED, MIN_TEMPO } from '../../state/songModel'
   import { tracker } from '../../state/tracker.svelte'
   import InstrumentEditor from './InstrumentEditor.svelte'
+  import { laneCaption } from './laneCaptions'
   import OrderList from './OrderList.svelte'
   import PatternGrid from './PatternGrid.svelte'
 
@@ -28,12 +29,11 @@
   }
   let { announce }: Props = $props()
 
+  /** Lowercase store copy, for announcements and accessible names. */
   const labels = $derived(song.doc.channels.map((c) => CHANNEL_LABELS[c]))
-
-  /** `pulse 1` -> `Pulse 1`, `dpcm` -> `DPCM`: the printed lane name. */
-  function laneName(label: string): string {
-    return label === 'dpcm' ? 'DPCM' : label.charAt(0).toUpperCase() + label.slice(1)
-  }
+  /** The printed name, full words — `laneCaptions.ts` owns the spelling, and the
+   *  M/S captions below must keep it inside their accessible names (invariant 33). */
+  const captions = $derived(song.doc.channels.map(laneCaption))
 
   function clampInt(raw: string, lo: number, hi: number, fallback: number): number {
     const n = Number.parseInt(raw, 10)
@@ -149,14 +149,19 @@
   <!-- Mute and solo are also on the grid's keymap; the caps make them visible
        and reachable by pointer, one pair per lane. -->
   <div class="lanes" role="group" aria-label="channel mix">
-    {#each labels as label, c (c)}
+    {#each captions as caption, c (c)}
       <span class="lane">
-        <span class="name">{laneName(label)}</span>
+        <span class="name">{caption}</span>
+        <!-- The accessible name carries the lane's PRINTED spelling, not the
+             store's lowercase one: aria-label replaces the visible content, and
+             voice control can only match a name that contains the visible word
+             (invariant 33). `VRC6 Pulse 1` is visible, so `VRC6 Pulse 1` is the
+             name. -->
         <button
           type="button"
           class="key mini"
           aria-pressed={tracker.muted[c] === true}
-          aria-label="M mute {label}"
+          aria-label="M mute {caption}"
           onclick={() => mute(c)}
         >
           M
@@ -165,7 +170,7 @@
           type="button"
           class="key mini"
           aria-pressed={tracker.solo === c}
-          aria-label="S solo {label}"
+          aria-label="S solo {caption}"
           onclick={() => solo(c)}
         >
           S

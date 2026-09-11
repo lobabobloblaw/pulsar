@@ -202,3 +202,66 @@ describe('closing the panel cannot leave the keyboard suppressed', () => {
     expect(toggle).toContain('this.focused = false')
   })
 })
+
+describe('the lane chrome follows the song, not a hard-coded five', () => {
+  const store = codeOf('state', 'tracker.svelte.ts')
+  const panel = codeOf('ui', 'tracker', 'TrackerPanel.svelte')
+  const grid = codeOf('ui', 'tracker', 'PatternGrid.svelte')
+  const order = codeOf('ui', 'tracker', 'OrderList.svelte')
+
+  it('sizes tracker.muted from the canonical lane list', () => {
+    // `[false, false, false, false, false]` predates the VRC6 lanes: muting
+    // lane 7 grew the array into a SPARSE one whose 5 and 6 read `undefined`
+    // under a `boolean[]` type — a lie every later reader inherits.
+    const decl = section(store, 'muted = $state', 'solo = $state')
+    expect(decl).toContain('CANONICAL_CHANNELS')
+    expect(decl).not.toMatch(/\[\s*false\s*(,\s*false\s*){4}\]/)
+    expect(store).toMatch(/import \{[^}]*CANONICAL_CHANNELS[^}]*\} from '\.\/songModel'/)
+  })
+
+  it('derives every lane caption from song.doc.channels', () => {
+    // A count written into a component is a second owner of the lane list
+    // (invariant 32); all three surfaces read the document's own channels.
+    for (const [name, code] of [
+      ['TrackerPanel', panel],
+      ['PatternGrid', grid],
+      ['OrderList', order],
+    ] as const) {
+      expect(code, `${name} must map the song's channels`).toMatch(
+        /song\.doc\.channels\.map\(/,
+      )
+      expect(code, `${name} must not hard-code a lane count`).not.toMatch(/slice\(0,\s*5\)/)
+    }
+  })
+
+  it('prints the header band with the short spelling and the DOM with full words', () => {
+    // Two surfaces, two budgets: the canvas draws inside a 96 px column, the
+    // DOM does not. `laneCaptions.ts` owns both so they cannot drift apart.
+    expect(grid).toMatch(/import \{ laneHeader \} from '\.\/laneCaptions'/)
+    expect(grid).toMatch(/headerLabels = \$derived\(song\.doc\.channels\.map\(laneHeader\)\)/)
+    expect(panel).toMatch(/import \{ laneCaption \} from '\.\/laneCaptions'/)
+    expect(order).toMatch(/import \{ laneCaption \} from '\.\/laneCaptions'/)
+    // The old inline copy of the rule, which spelled `vrc6 pulse 1` as `Vrc6 pulse 1`.
+    expect(panel).not.toContain("=== 'dpcm' ? 'DPCM'")
+    expect(grid).not.toContain("=== 'dpcm' ? 'DPCM'")
+  })
+
+  it('puts the PRINTED lane name inside the M/S caps’ accessible names', () => {
+    // aria-label replaces the visible content, and voice control can only match
+    // a name that contains the visible word (invariant 33). The caps show
+    // `VRC6 Pulse 1`, so the name says `VRC6 Pulse 1` — not the store's
+    // lowercase `vrc6 pulse 1`, and not the header band's `VRC6 P1`.
+    const caps = section(panel, 'class="lanes"', '</div>')
+    expect(caps).toContain('{#each captions as caption')
+    expect(caps).toContain('<span class="name">{caption}</span>')
+    expect(caps).toContain('aria-label="M mute {caption}"')
+    expect(caps).toContain('aria-label="S solo {caption}"')
+  })
+
+  it('gives the order strip one named field per lane the song declares', () => {
+    const edit = section(order, 'role="group" aria-label="frame', '</div>')
+    expect(edit).toContain('{#each current as pattern, c (c)}')
+    expect(edit).toContain('aria-label="frame {tracker.frame} {labels[c]} pattern"')
+    expect(order).toMatch(/const labels = \$derived\(song\.doc\.channels\.map\(laneCaption\)\)/)
+  })
+})

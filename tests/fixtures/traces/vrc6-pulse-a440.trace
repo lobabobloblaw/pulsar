@@ -1,0 +1,10 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# one second of a held A440 on VRC6 pulse 1: duty 7 (the threshold that makes a 50%
+# square), volume 15, 12-bit period 253. same divisor as the 2A03 pulse — fCPU/(16*254)
+# — reached without the APU's /2 divider, and mixed linearly instead of through the
+# pulse ladder. enable ($9002) LAST: it latches the period's high nibble.
+0        9000 7F
+0        9001 FD
+0        9002 80
+# END 1789773

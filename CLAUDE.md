@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-pulsar — a teenage-engineering-flavored web synthesizer whose voice is a register-accurate NES 2A03 APU running in an AudioWorklet, with a FamiTracker-style tracker. TypeScript + Svelte 5 (runes) + Vite. **Zero runtime dependencies** (devDependencies only — constraint K4; keep it that way).
+pulsar — a teenage-engineering-flavored web synthesizer whose voice is a register-accurate NES 2A03 APU (2 pulse, triangle, noise, DPCM) plus the VRC6 cartridge expansion (2 pulse + sawtooth) — eight voices, eight tracker lanes — running in an AudioWorklet, with a FamiTracker-style tracker. TypeScript + Svelte 5 (runes) + Vite. **Zero runtime dependencies** (devDependencies only — constraint K4; keep it that way).
 
 `plan-file.md` is the approved implementation plan (phases, milestones, acceptance criteria). Phases 1–2 are complete; evidence lives in `docs/phase1-acceptance.md` / `docs/phase2-acceptance.md`.
 
@@ -39,7 +39,7 @@ In-browser acceptance is URL-flag driven: serve (dev or preview), drive with hea
 
 ### The one interface (sacred)
 
-Everything reduces to a stream of timestamped APU register writes `(nesCycle, addr, value)`. Three producers — `LiveScheduler` (keys/MIDI/knobs), `TrackerDriver` (song playback), `renderSong` (offline render → previews/WAV) — feed one consumer, `Apu2A03.write()`, hosted in the worklet. Live play, tracker playback, and export are therefore bit-identical by construction.
+Everything reduces to a stream of timestamped register writes `(nesCycle, addr, value)` — the 2A03's `$4000..$4017` and the VRC6's `$9000..$9003 | $A000..$A002 | $B000..$B002`, carried on one 24-bit wire code. Three producers — `LiveScheduler` (keys/MIDI/knobs), `TrackerDriver` (song playback), `renderSong` (offline render → previews/WAV) — feed one consumer, `Apu2A03.write()`, hosted in the worklet. Live play, tracker playback, and export are therefore bit-identical by construction.
 
 **`docs/register-timeline.md` is the authoritative doc** — read it before touching anything in the audio path. It defines: canonical per-channel register orders (the side-effect register — `$4003`/`$400B`/`$400F` — always LAST), `$4015` written as a whole byte never a single bit, write-on-change discipline in the driver (a held note writes `$4003` exactly once), the closed-form tick→cycle map, and Rule L (exactly one timeline owner at a time — `PlaybackCoordinator` hands off between `LiveScheduler` and `TrackerDriver`).
 
@@ -52,7 +52,7 @@ Hard rules:
 
 ### Layout of `src/audio`
 
-- `core/` — the 2A03: `channels/` (pulse ×2, triangle, noise, dmc), `units/` (envelope, sweep, length/linear counters, LFSR, duty), `frameCounter`, non-linear `mixer` LUTs, post-DAC `filters`. Pure, DOM-free, deterministic.
+- `core/` — the 2A03: `channels/` (pulse ×2, triangle, noise, dmc), `units/` (envelope, sweep, length/linear counters, LFSR, duty), `frameCounter`, non-linear `mixer` LUTs, post-DAC `filters`; plus `vrc6/` (the expansion chip's two pulses and sawtooth, CPU-clocked and summed linearly on top through `VRC6_GAIN`). Pure, DOM-free, deterministic.
 - `dsp/` — fresh implementation of band-limited step synthesis (blip-style) + tone measurement.
 - `timeline/` — the frozen `WriteSink` types + clock mapping.
 - `protocol/` — SAB ring layout and postMessage protocol. Two transports chosen once at `startEngine()` (`sab` when crossOriginIsolated, else `postMessage`); both feed the same `drainUpTo` contract and render bit-identical audio.
@@ -62,8 +62,8 @@ Hard rules:
 
 ### The tracker (`src/tracker`)
 
-- `model/` — song JSON v1: `types`, hand-written `validate` (no schema lib), `compile`, `commands` (unified command layer shared by all editors).
-- `driver/` — `trackerDriver` + `tempo` (closed-form `cycleOfTick`, integer Bresenham row accumulator — FamiTracker-exact 6/6/5 row alternation), `macros`, `effects`, `registers` (write-on-change register images).
+- `model/` — song JSON v1: `types`, hand-written `validate` (no schema lib), `compile`, `commands` (unified command layer shared by all editors). **Eight lanes**: the five 2A03 ones then `vrc6p1`, `vrc6p2`, `vrc6saw`. `channels` is a PREFIX of `CANONICAL_CHANNELS`, which is why the format is still version 1 and a five-lane song is unchanged on disk; `emptySong()` is still a 2A03 document.
+- `driver/` — `trackerDriver` + `tempo` (closed-form `cycleOfTick`, integer Bresenham row accumulator — FamiTracker-exact 6/6/5 row alternation), `macros`, `effects`, `registers` (write-on-change register images). Addresses come from a per-lane base table — `$4000 $4004 $4008 $400C $4010 $9000 $A000 $B000` — and `$4015` is never written for a VRC6 lane. See `docs/register-timeline.md`, "VRC6 lanes".
 - `offlineRender.ts` + `wav.ts` — faster-than-realtime render through the *same* driver.
 
 ### Everything else
