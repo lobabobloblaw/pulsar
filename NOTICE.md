@@ -14,8 +14,8 @@ implementations written against publicly documented behavior:
 
 The three preset songs in `src/assets/songs/` are original compositions: the demo
 pieces of OCTET, a sibling NES/Famicom sequencer project by the same author, each
-written as a generator script that authors every note, and rebuilt for pulsar's five
-2A03 lanes in September 2026 by the converter and arrangement modules in
+written as a generator script that authors every note, and ported to pulsar's eight
+lanes (the 2A03 and the VRC6 expansion) in September 2026 by the converter modules in
 `tools/songs/octet/`. No existing game melodies, ROM audio, recordings, or hosted
 music-generation services were used. Skyline Run's two DPCM samples are that project's
 own synthesized kick and snare, carried over byte for byte. The previous presets are

@@ -49,6 +49,7 @@ brief is wrong — report it, do not extend the format.
 
 **0.4 Five voices, maximum, forever.** pulse1, pulse2, triangle, noise, dpcm. There is no
 sixth. Every arrangement decision in §2 is downstream of that number.
+*Superseded 2026-09-11: the VRC6's two pulses and sawtooth are lanes six to eight — see §12.*
 
 ---
 
