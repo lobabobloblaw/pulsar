@@ -3,25 +3,33 @@
 
   Plain DOM, on purpose. It is small, it is where a screen-reader user actually
   builds a song's structure, and drawing it on canvas would cost accessibility
-  for nothing (§4.1). A horizontal strip of frame caps — the hex index over
-  the five pattern indices — so a short song's whole structure is visible at
-  once; the current frame's five pattern numbers are editable in the compact
-  row under the strip, one hex field per lane.
+  for nothing (§4.1). A horizontal strip of frame caps — the hex index over the
+  frame's pattern indices, one per lane the song declares — so a short song's
+  whole structure is visible at once; the current frame's pattern numbers are
+  editable in the compact row under the strip, one hex field per lane — five for
+  a 2A03 song, eight when the song carries the VRC6. The edit group is one
+  wrapping flex item inside the frame ops, so at eight lanes it takes a line of
+  its own instead of squeezing the buttons: measured 2026-09-11 at 835 px for
+  eight fields, on one row with no clipping at both the 1120 px slab (panel
+  1070 px) and the homepage's 1120 px embedded frame (panel 1096 px).
 
   Every mutation goes through the command layer, so the order list shares one
   undo stack with the grid (§4.6).
 -->
 <script lang="ts">
   import { song } from '../../state/song.svelte'
-  import { CHANNEL_LABELS, newFrame, type Frame } from '../../state/songModel'
+  import { newFrame, type Frame } from '../../state/songModel'
   import { tracker } from '../../state/tracker.svelte'
+  import { laneCaption } from './laneCaptions'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
   }
   let { announce }: Props = $props()
 
-  const labels = $derived(song.doc.channels.map((c) => CHANNEL_LABELS[c]))
+  /** Printed lane names, full words — one editable hex field per lane, so the
+   *  row grows with the song: five for a 2A03 song, eight with the VRC6. */
+  const labels = $derived(song.doc.channels.map(laneCaption))
   const current = $derived<Frame>(song.doc.order[tracker.frame] ?? [])
   const hex2 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0')
   const hex = (n: number): string => n.toString(16).toUpperCase()

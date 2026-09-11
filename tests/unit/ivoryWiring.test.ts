@@ -207,3 +207,26 @@ describe('the night room redefines every enclosure-facing day token', () => {
     expect(day.filter((n) => /^--(screen-|grid-)/.test(n)).length).toBeGreaterThan(10)
   })
 })
+
+describe('the ?stub shell fakes every lane the tracker can show', () => {
+  const bridge = codeOf('audio', 'bridge.ts')
+
+  it("sizes the stub driver position's meter from the canonical lane list", () => {
+    // `new Int32Array(5)` predates the VRC6 lanes: the three expansion lanes
+    // read `undefined` from the synthetic position, so the `?stub` shell — the
+    // shell tools/ivory-capture.mjs shoots — showed dead meters under live caps.
+    const stub = section(bridge, 'class StubBridge', 'readonly #stats')
+    expect(stub).toContain('levels: new Int32Array(CANONICAL_CHANNELS.length)')
+    expect(stub).not.toContain('new Int32Array(5)')
+    expect(bridge).toMatch(
+      /import \{[^}]*CANONICAL_CHANNELS[^}]*\} from '\.\.\/tracker\/model\/types'/,
+    )
+  })
+
+  it('fills the whole array, so the extra slots are live and not zero padding', () => {
+    // The advance loop is length-driven; a loop that stopped at five would make
+    // the wider array a lie.
+    const advance = section(bridge, '#advancePlayhead(dt: number): void {', 'tick(nowMs: number)')
+    expect(advance).toMatch(/i < this\.#position\.levels\.length/)
+  })
+})

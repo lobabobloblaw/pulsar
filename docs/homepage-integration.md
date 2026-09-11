@@ -90,7 +90,11 @@ keybed shows one octave and the keytop's octave caps move it; nothing in the
 bed scrolls. The tracker workspace stacks editbar, order strip, lane mute/solo
 caps, the grid well, a navigation row under the well (rows, scroll/select
 mode, channel pan) and the instrument section; the keybed stays under it in
-the enclosure. Touch drags scroll the grid unless Select cells is on; buttons
+the enclosure. The order strip, the mute/solo caps and the grid carry one lane
+per channel the loaded song declares: five for a 2A03 song, eight when it
+carries the VRC6 (2 pulse + sawtooth). At the 1120px window this frame opens
+at, all eight fit without clipping or horizontal document overflow — measured
+2026-09-11, `docs/ivory-gui.md` "Tracker lanes". Touch drags scroll the grid unless Select cells is on; buttons
 and wheel input also navigate it. Edit mode routes piano notes into the
 selected channel through the same note-writing path as hardware key entry.
 Effect-code entry continues to use a hardware keyboard.

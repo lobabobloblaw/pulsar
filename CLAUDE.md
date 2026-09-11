@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-pulsar — a teenage-engineering-flavored web synthesizer whose voice is a register-accurate NES 2A03 APU running in an AudioWorklet, with a FamiTracker-style tracker. TypeScript + Svelte 5 (runes) + Vite. **Zero runtime dependencies** (devDependencies only — constraint K4; keep it that way).
+pulsar — a teenage-engineering-flavored web synthesizer whose voice is a register-accurate NES 2A03 APU (2 pulse, triangle, noise, DPCM) plus the VRC6 cartridge expansion (2 pulse + sawtooth) — eight voices, eight tracker lanes — running in an AudioWorklet, with a FamiTracker-style tracker. TypeScript + Svelte 5 (runes) + Vite. **Zero runtime dependencies** (devDependencies only — constraint K4; keep it that way).
 
 `plan-file.md` is the approved implementation plan (phases, milestones, acceptance criteria). Phases 1–2 are complete; evidence lives in `docs/phase1-acceptance.md` / `docs/phase2-acceptance.md`.
 

@@ -19,7 +19,14 @@ import { startEngine } from './audio/host/audioEngine'
 import { LiveScheduler } from './audio/host/liveScheduler'
 import { formatDiagnostics } from './audio/host/diagnostics'
 import { centsBetween, peakAmplitude, zeroCrossingHz } from './audio/dsp/toneMeasure'
-import { midiToHz, pulseHzForTimer, pulseTimerForHz, triangleTimerForHz } from './audio/host/pitch'
+import {
+  midiToHz,
+  pulseHzForTimer,
+  pulseTimerForHz,
+  triangleTimerForHz,
+  vrc6PulseTimerForHz,
+  vrc6SawTimerForHz,
+} from './audio/host/pitch'
 import { buildDpcmImage } from './tracker/offlineRender'
 
 export interface SelfTestResult {
@@ -139,7 +146,7 @@ export async function runSelfTest(expectedHz = 440): Promise<SelfTestResult> {
 
 // ─── M8 soak harness ────────────────────────────────────────────────────────────
 //
-// Drives all four tone channels RAW through the WriteSink — the same producer shape
+// Drives EVERY tone channel RAW through the WriteSink — the same producer shape
 // the Phase-2 tracker will be — on a 200 ms step pattern: pulse-1 melody, pulse-2
 // fifth, triangle bass, auto-cut noise hats, a $4011 DMC-level ramp (exercises
 // ducking), and a console-model flip every 32 steps. Diagnostics are sampled every
@@ -147,11 +154,31 @@ export async function runSelfTest(expectedHz = 440): Promise<SelfTestResult> {
 // zero underruns, zero dropped writes over the whole run; `peakProcessUs` is gated
 // only when the worklet's clock probe actually reports (headless AudioWorklet scopes
 // lack `performance`, and a vacuously-passing gate is worse than none).
+//
+// "All-channel" means eight since the VRC6 landed: the expansion chip's two pulses
+// and its sawtooth are driven here too, in the driver's canonical orders
+// (docs/register-timeline.md, "VRC6 lanes") — `$x000 → $x001 → $x002` with the
+// side-effect register LAST, `$9003 = 0` written once before the first step, and a
+// note-off spelled as volume 0 AND the enable bit cleared, which is the phase reset.
+// The VRC6 pulse 2 lane re-triggers and releases on alternate steps, so the note-off
+// path runs every 400 ms for the whole soak rather than once at the end. This is the
+// RAW path; `&song=<id>` drives whatever lanes the preset declares through the real
+// TrackerDriver instead.
 
 const SOAK_STEP_MS = 200
 const SOAK_MELODY = [57, 60, 64, 67, 72, 67, 64, 60] // a-minor arpeggio, MIDI
 const SOAK_DIAG_EVERY_MS = 5_000
 const PEAK_BUDGET_US = 267
+
+/* VRC6 soak voicing. Duty is the 3-bit field in bits 4–6 of `$x000`; 7 is the 50 %
+ * square, and bit 7 (the mode bit) is never set. The saw's "volume" is its
+ * accumulator rate, capped at 42 — above that the accumulator wraps and the chip
+ * distorts, which a soak must not do by accident (docs/register-timeline.md). */
+const SOAK_VRC6_DUTY_1 = 7
+const SOAK_VRC6_DUTY_2 = 3
+const SOAK_VRC6_VOL_1 = 10
+const SOAK_VRC6_VOL_2 = 7
+const SOAK_VRC6_SAW_RATE = 24
 
 /** M-Phase2 soak: `?selftest&soak=N&song=<preset id>` plays a real preset through
  *  the real TrackerDriver over a bare engine for N minutes — the sustained-playback
@@ -244,6 +271,18 @@ async function runSoakTest(minutes: number): Promise<SelfTestResult> {
     let lastLate = 0
     let famicom = false
 
+    /** Every VRC6 write goes through here, so the report can prove the expansion
+     *  lanes were driven rather than merely coded for: the tally is checked
+     *  against the shape below and gates the run. Delete the block and the soak
+     *  fails instead of quietly going back to being a five-channel soak. */
+    let vrc6Writes = 0
+    const vrc6 = (cycle: number, addr: number, value: number): void => {
+      vrc6Writes++
+      engine.write(cycle, addr, value)
+    }
+    /** 3 lanes × 3 registers per step, plus `$9003` once and the six-byte stop. */
+    const vrc6PerStep = 9
+
     while (performance.now() < endAt) {
       const c = engine.scheduleCycle()
       const melody = SOAK_MELODY[step % SOAK_MELODY.length] ?? 60
@@ -274,6 +313,34 @@ async function runSoakTest(minutes: number): Promise<SelfTestResult> {
       engine.write(c, 0x400f, 0x18) // length index 3 → 2 half-frames ≈ 17 ms hat
       // dmc level ramp every 4th step — moves the tnd index, exercises ducking
       if (step % 4 === 0) engine.write(c, 0x4011, (step % 16) * 8)
+
+      // ── the VRC6 lanes ───────────────────────────────────────────────────
+      // Canonical order per lane: $x000 (duty + volume, or the saw's rate) →
+      // $x001 (period low) → $x002 LAST, because that register's enable bit is
+      // the side effect — clearing it resets the lane's step, accumulator and
+      // timer. `$9003 = 0` goes out once, before the first lane write there is.
+      if (step === 0) vrc6(c, 0x9003, 0x00)
+      const v1 = vrc6PulseTimerForHz(midiToHz(melody + 12), engine.clockRate)
+      const v2 = vrc6PulseTimerForHz(midiToHz(melody + 7), engine.clockRate)
+      const saw = vrc6SawTimerForHz(midiToHz(melody - 12), engine.clockRate)
+      // vrc6 pulse 1 — the melody an octave up, 50 % square, mode bit clear
+      vrc6(c, 0x9000, (SOAK_VRC6_DUTY_1 << 4) | SOAK_VRC6_VOL_1)
+      vrc6(c, 0x9001, v1 & 0xff)
+      vrc6(c, 0x9002, 0x80 | ((v1 >> 8) & 0x0f))
+      // vrc6 pulse 2 — a fifth above, released on odd steps. A note-off is
+      // volume 0 AND the enable bit cleared: the second half is the phase
+      // reset, and it stops a silent lane's divider running.
+      const held = step % 2 === 0
+      vrc6(c, 0xa000, (SOAK_VRC6_DUTY_2 << 4) | (held ? SOAK_VRC6_VOL_2 : 0))
+      vrc6(c, 0xa001, v2 & 0xff)
+      vrc6(c, 0xa002, (held ? 0x80 : 0x00) | ((v2 >> 8) & 0x0f))
+      // vrc6 saw — bass an octave under the melody. Its "volume" is the
+      // accumulator rate; 24 sits well inside the 42 the accumulator can take
+      // over seven even steps without wrapping into distortion.
+      vrc6(c, 0xb000, SOAK_VRC6_SAW_RATE)
+      vrc6(c, 0xb001, saw & 0xff)
+      vrc6(c, 0xb002, 0x80 | ((saw >> 8) & 0x0f))
+
       if (step % 32 === 31) {
         famicom = !famicom
         engine.setConfig({ consoleModel: famicom ? 'famicom' : 'nes' })
@@ -298,7 +365,17 @@ async function runSoakTest(minutes: number): Promise<SelfTestResult> {
       }
     }
 
-    engine.write(engine.scheduleCycle(), 0x4015, 0x00)
+    const stopAt = engine.scheduleCycle()
+    engine.write(stopAt, 0x4015, 0x00)
+    // The driver's own stop() order for a song that armed the chip, after
+    // $4015: per lane, volume (or rate) 0 then the enable bit cleared. $4015 is
+    // never written FOR a VRC6 lane — the expansion chip has no status register.
+    vrc6(stopAt, 0x9000, 0x00)
+    vrc6(stopAt, 0x9002, 0x00)
+    vrc6(stopAt, 0xa000, 0x00)
+    vrc6(stopAt, 0xa002, 0x00)
+    vrc6(stopAt, 0xb000, 0x00)
+    vrc6(stopAt, 0xb002, 0x00)
     engine.flush()
     await sleep(200)
 
@@ -312,6 +389,15 @@ async function runSoakTest(minutes: number): Promise<SelfTestResult> {
     const countersOk = d.droppedWrites === 0 && d.underruns === 0
     lines.push(`counters=${countersOk ? 'ok' : 'FAIL'}`)
     pass = pass && countersOk
+
+    // "All-channel" is a claim about eight lanes now, so it is gated like the
+    // rest: the tally must match the shape the loop above emits, or the soak
+    // failed to drive the expansion chip and says so.
+    const vrc6Expected = 1 + step * vrc6PerStep + 6
+    lines.push(`vrc6Writes=${vrc6Writes} expected=${vrc6Expected}`)
+    const vrc6Ok = step > 0 && vrc6Writes === vrc6Expected
+    lines.push(`vrc6=${vrc6Ok ? 'ok' : 'FAIL'}`)
+    pass = pass && vrc6Ok
 
     // The int32-wrap claim must be asserted, not implied: a ≥21-minute run exists
     // to CROSS 2^31 NES cycles (≈20 min at 1.789773 MHz) and still be running.
