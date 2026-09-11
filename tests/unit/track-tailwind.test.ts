@@ -122,19 +122,33 @@ describe('Tailwind — the bright stage theme', () => {
     expect(cellAt('vrc6saw', 1, 0)!.vol!).toBeGreaterThan(cellAt('vrc6saw', 1, 2)!.vol!)
   })
 
-  it("A′: the hook re-orchestrated onto the saw an octave lower, pulse 2 silent, V2 on a six-row cell", () => {
+  it("A′: the hook re-orchestrated onto the saw at pitch, above the counter-hook, V2 on an unbroken six-row cell", () => {
+    const AP = [5, 6, 7, 8]
     const hookA = attacks('pulse1', [1, 2, 3, 4])
-    const hookSaw = attacks('vrc6saw', [5, 6, 7, 8])
-    expect(hookSaw.map((c) => [c.row - 4 * ROWS, c.note! + 12])).toEqual(hookA.map((c) => [c.row, c.note]))
-    expect(hookSaw.every((c) => c.vol === 11)).toBe(true)
-    expect(attacks('pulse2', [5, 6, 7, 8])).toHaveLength(0)
+    const hookSaw = attacks('vrc6saw', AP)
+    // the notes pulse 1 sang in A, in the SAME register: heard as a re-orchestration of the
+    // lead, not as a new bass line
+    expect(hookSaw.map((c) => [c.row - 4 * ROWS, c.note])).toEqual(hookA.map((c) => [c.row, c.note]))
+    expect(hookSaw.every((c) => c.vol === 10)).toBe(true)
+    // and it is the top voice: the counter-hook moved an octave down and a notch quieter
+    const counter = attacks('pulse1', AP)
+    const span = (cs: Cell[]) => [Math.min(...cs.map((c) => c.note!)), Math.max(...cs.map((c) => c.note!))]
+    expect(span(hookSaw)).toEqual([68, 81])
+    expect(span(counter)).toEqual([59, 69])
+    expect(counter.every((c) => c.vol! >= 10 && c.vol! <= 11)).toBe(true)
+    const sawAt = notesByRow('vrc6saw')
+    const shared = counter.filter((c) => sawAt.has(c.row))
+    expect(shared).toHaveLength(38)
+    for (const c of shared) expect(sawAt.get(c.row)!, `pulse1 over the saw at ${c.frame}:${c.r}`).toBeGreaterThan(c.note!)
+    expect(attacks('pulse2', AP)).toHaveLength(0)
     // the triangle takes the gallop while the saw sings
     expect(attacks('triangle', [5])).toHaveLength(48)
-    // V2: attacks every six rows, phase carried across the frame boundary (0 then 2)
-    const v2 = attacks('vrc6p2', [5, 6])
-    expect(v2.map((c) => c.row - 5 * ROWS)).toEqual(Array.from({ length: 22 }, (_, i) => i * 6))
-    expect(v2[0].r).toBe(0)
-    expect(attacks('vrc6p2', [6])[0].r).toBe(2)
+    // V2: one stab every six rows from 5:0 to 8:60 with no restart. Six does not divide 64,
+    // so the cell enters each frame two rows later than the last and the cycle closes on the
+    // downbeat of the fourth — a three-frame phase carry, not two separate two-frame runs.
+    const v2 = attacks('vrc6p2', AP)
+    expect(v2.map((c) => c.row - 5 * ROWS)).toEqual(Array.from({ length: 43 }, (_, i) => i * 6))
+    expect(AP.map((f) => attacks('vrc6p2', [f])[0].r)).toEqual([0, 2, 4, 0])
     for (const c of v2) expect(hasFx(c, '0') && !hasFx(c, '0', 0), `0xy at ${c.frame}:${c.r}`).toBe(true)
   })
 
@@ -164,7 +178,7 @@ describe('Tailwind — the bright stage theme', () => {
     expect(free / p2.length).toBeGreaterThanOrEqual(0.4) // §9.2
     const p1At = notesByRow('pulse1')
     for (const c of p2) if (p1At.has(c.row)) expect(c.note!).toBeLessThan(p1At.get(c.row)!)
-    expect(dutyOf(p2[0].inst!)).toEqual([2]) // a different singer: 50 % duty
+    expect(dutyOf(p2[0].inst!)).toEqual([2, 1]) // a different singer: a round front, a 25 % body
     // 9–8 over D (bar 2): e5 struck on bar 1 beat 4, held across the change, d5 on beat 2
     expect(cellAt('pulse2', 11, 28)?.note).toBe(76)
     expect(cellAt('pulse2', 11, 32)).toBeUndefined()
@@ -185,10 +199,34 @@ describe('Tailwind — the bright stage theme', () => {
     // the f-natural appoggiatura over the borrowed iv, resolving down by step on beat 2
     expect(cellAt('pulse1', 14, 32)?.note).toBe(77)
     expect(cellAt('pulse1', 14, 36)?.note).toBe(76)
-    // DPCM kick on every beat (the last frame's final bar is the kit's half-bar of air), the
-    // VRC6 sixths under it
-    for (const f of C.slice(0, 3)) expect(attacks('dpcm', [f]).filter((c) => c.note === 36).map((c) => c.r)).toEqual(Array.from({ length: 16 }, (_, i) => i * 4))
-    expect(attacks('dpcm', [C[3]]).filter((c) => c.note === 36 && c.r < 48).map((c) => c.r)).toEqual(Array.from({ length: 12 }, (_, i) => i * 4))
+    // one passing eighth fills each of the tune's two filled thirds, and only there:
+    // c#5-d5-e5 at 11:0-11:4, g#5-f#5-e5 at 12:0-12:4; bars 8 and 12 keep the bare leap
+    expect([0, 2, 4].map((r) => cellAt('pulse1', 11, r)?.note)).toEqual([73, 74, 76])
+    expect([0, 2, 4].map((r) => cellAt('pulse1', 12, r)?.note)).toEqual([80, 78, 76])
+    expect(cellAt('pulse1', 13, 2)).toBeUndefined()
+    expect(cellAt('pulse1', 14, 2)).toBeUndefined()
+    // the descending-fifths chain C#m7 - F#m7 - Bm7 - E7 (12:0-12:63) is not parallel: V1
+    // holds e4 into F#m7 (nothing at 12:16), V2 holds a3 into Bm7 (nothing at 12:32), and
+    // the two move in contrary motion into E7 — one voice at a time, no similar motion
+    expect(attacks('vrc6p1', [12]).map((c) => c.r)).toEqual([0, 32, 48])
+    expect(attacks('vrc6p2', [12]).map((c) => c.r)).toEqual([0, 16, 48])
+    expect([0, 32, 48].map((r) => cellAt('vrc6p1', 12, r)?.note)).toEqual([64, 62, 64])
+    expect([0, 16, 48].map((r) => cellAt('vrc6p2', 12, r)?.note)).toEqual([56, 57, 56])
+    // the backbeat is LAYERED, as A's is: the monophonic DPCM lane plays kick on 1 and 3 and
+    // its own snare on 2 and 4, under the noise lane's high snare (41)
+    const every16 = (...offsets: number[]) => offsets.flatMap((o) => [0, 16, 32, 48].map((b) => b + o)).sort((x, y) => x - y)
+    for (const f of C.slice(0, 3)) {
+      const d = attacks('dpcm', [f])
+      expect(d.filter((c) => c.note === 36).map((c) => c.r)).toEqual(every16(0, 8))
+      expect(d.filter((c) => c.note === 39).map((c) => c.r)).toEqual(every16(4, 12))
+    }
+    for (const f of [C[0], C[2]]) {
+      for (const r of every16(4, 12)) expect(cellAt('noise', f, r)?.note, `noise ${f}:${r}`).toBe(41)
+    }
+    // the last frame's final bar is the kit's half-bar of air
+    expect(attacks('dpcm', [C[3]]).filter((c) => c.note === 36).map((c) => c.r)).toEqual(every16(0, 8).filter((r) => r < 56))
+    expect(attacks('dpcm', [C[3]]).filter((c) => c.note === 39).map((c) => c.r)).toEqual(every16(4, 12).filter((r) => r < 60))
+    // the VRC6 pad under it
     const v1 = notesByRow('vrc6p1'), v2 = notesByRow('vrc6p2')
     const sixths = [...v1].filter(([row]) => row >= 11 * ROWS && row < 15 * ROWS && v2.has(row)).map(([row, hi]) => hi - v2.get(row)!)
     expect(sixths.length).toBeGreaterThanOrEqual(12)
@@ -237,10 +275,19 @@ describe('Tailwind — the bright stage theme', () => {
     const p1 = notesByRow('pulse1')
     const double = attacks('vrc6p1', frames("chorus'"))
     expect(double.length).toBe(b.length)
+    // an octave above the lead, except that it FOLDS TO UNISON rather than climb past MIDI
+    // 91: at 95 the VRC6's 16-step divider rounds 11.5 cents flat against the 2A03's +3.8,
+    // and a 15-cent octave beats at ~17 Hz. At unison both chips take the same timer.
+    expect(Math.max(...double.map((c) => c.note!))).toBe(91)
+    let folded = 0
     for (const c of double) {
-      expect(c.note! - p1.get(c.row)!).toBe(12)
+      const lead = p1.get(c.row)!
+      expect(c.note! - lead, `vrc6p1 ${c.frame}:${c.r}`).toBe(lead + 12 > 91 ? 0 : 12)
+      if (c.note === lead) folded++
       expect(c.vol).toBe(9)
     }
+    expect(folded).toBe(12)
+    expect(cellAt('vrc6p1', 19, 8)?.note).toBe(83) // the loudest note of the piece, in unison
     // the piece's single highest lead note, b5, is here — in the last third
     const all = attacks('pulse1')
     const peak = Math.max(...all.map((c) => c.note!))

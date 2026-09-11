@@ -19,8 +19,9 @@
  *  | 0     | intro   | 4    | unison riff R on saw + triangle + both pulses in octaves; roll    |
  *  | 1–4   | A       | 16   | hook H on pulse 1, echo canon on pulse 2 (3 rows, −5, duty 0);   |
  *  |       |         |      | saw gallop answered by the triangle on the off-16ths; VRC6 thirds |
- *  | 5–8   | A′      | 16   | H on the saw as a brass lead (bend-in), pulse 1 counter-hook,     |
- *  |       |         |      | triangle takes the bass, V2 stabs on a 6-row cell (2:3), open hats|
+ *  | 5–8   | A′      | 16   | H on the saw AT PITCH as a brass lead (bend-in), the pulse-1      |
+ *  |       |         |      | counter-hook an octave down under it; triangle takes the bass;    |
+ *  |       |         |      | V2 stabs on an unbroken 6-row cell (2:3); open hats               |
  *  | 9–10  | pre     | 8    | 3+3-bar phrase over G · D/F# · E (the asymmetry), then a 2-bar    |
  *  |       |         |      | snare-roll build with the VRC6 harmony climbing                   |
  *  | 11–14 | chorus  | 16   | the big tune C; pulse 2 is an independent voice throughout (§9.2);|
@@ -34,14 +35,15 @@
  *  MOTIFS  R  the riff (2 bars): a rising tonic arpeggio that falls back by step, 3+3+2.
  *          H  the hook (8 bars): a 3+3+2 pickup to the peak, answered a step higher, then
  *             inverted (bar 4) and closed by a turn; stated 5 times — pulse 1 (A), the saw
- *             (A′, re-orchestrated an octave lower), displaced +2 rows (A″), on the grid
+ *             (A′, re-orchestrated in the same register, the counter-hook moving below it),
+ *             displaced +2 rows (A″), on the grid
  *             with the B7 turn (A″), and the riff's own restatement in B (tag).
  *          C  the chorus tune (16 bars): long notes with delayed vibrato, one peak, a
  *             borrowed-iv appoggiatura at the cadence; restated a whole step up.
  *
  *  DEVICES (frame:row in the report)
- *    §9.1  a 6-row V2 stab cell across A′ (2:3 against the kit, phase carried over both
- *          frames: entry rows 0 then 2); the hemiola in A″ bars 9–11; H displaced +2 rows in
+ *    §9.1  an unbroken 6-row V2 stab cell across all four frames of A′ (2:3 against the kit;
+ *          entry rows 5:0, 6:2, 7:4, 8:0); the hemiola in A″ bars 9–11; H displaced +2 rows in
  *          A″ bars 0–3; the metric surprise is the two-bar tag (`D00`).
  *    §9.2  pulse 2 is a voice for the whole chorus: own rhythm, 9–8 and 4–3 suspensions,
  *          a cadential 4–3 over the final A, contrary motion at both chorus cadences.
@@ -53,7 +55,8 @@
  *  ALLOCATION (lead = one voice at a time; every lane rests somewhere)
  *    intro   P1 P2 TRI SAW unison · NOISE kick on the riff, roll · DPCM kick · V1 V2 rest
  *    A       P1 hook · P2 echo · SAW gallop · TRI off-16ths · V1 V2 thirds · kit + DPCM
- *    A′      SAW hook · P1 counter-hook · P2 rests · TRI gallop bass · V1 pad · V2 6-row stabs
+ *    A′      SAW hook on top · P1 counter-hook below it · P2 rests · TRI gallop bass ·
+ *            V1 pad · V2 6-row stabs
  *    pre     P1 tune · P2 rests then the rising build · V2 0xy stabs · V1 rising pad · SAW · TRI
  *    chorus  all eight: P1 15 · P2 11 · SAW 11 · V1 V2 8–9 · TRI · kit · DPCM every beat
  *    break   SAW alone + DPCM · NOISE only in bar 2 · P1 P2 V1 V2 TRI rest
@@ -97,11 +100,13 @@ const ECHO = s.instrument('echo', {
   volume: { values: [12, 10, 9, 8, 8, 7], loop: 5 },
   duty: { values: [0], loop: 0 },
 })
-/** The counter-voice for pulse 2 in the chorus: 50 % duty (round, sits under the lead),
- *  a soft front so it reads as a second singer rather than a second lead. */
+/** The counter-voice for pulse 2 in the chorus: a round 50 % front that settles to 25 %
+ *  from the second tick. The second singer is known by its ATTACK (the lead's front is the
+ *  thin 12.5 %) and its body carries the upper harmonics the chorus was missing. Duty is
+ *  spectrum, not amplitude: this brightens the section without touching a volume column. */
 const VOICE = s.instrument('voice', {
   volume: { values: [10, 13, 14, 14, 13, 12], loop: 5 },
-  duty: { values: [2], loop: 0 },
+  duty: { values: [2, 1], loop: 1 },
 })
 /** The saw bass: every sixteenth detached — four sounding ticks of a five-tick row. */
 const SAW_BASS = s.instrument('saw-bass', {
@@ -111,15 +116,27 @@ const SAW_BASS = s.instrument('saw-bass', {
 const SAW_HOLD = s.instrument('saw-hold', {
   volume: { values: [15], loop: 0 },
 })
-/** The saw as a brass lead: a slow bend-in from 8 units flat over eight ticks, a swell. */
+/** The saw as a brass lead: a slow stepped bend-in, on pitch by tick 7, and a swell.
+ *  The macro ACCUMULATES, so the offset the ear hears is the running sum 4 3 3 2 2 1 1 0 0.
+ *  Four units, not eight: A' now sings in the lead register (MIDI 68-81), where the saw's
+ *  14-step divider is short enough that eight units would be a 93-cent scoop on the top
+ *  note and most of a two-row note would be out of tune. Four keeps the bend at the 22-47
+ *  cents it had an octave down, over the same nine ticks. */
 const SAW_LEAD = s.instrument('saw-lead', {
   volume: { values: [10, 12, 14, 15, 15, 15, 14, 14], loop: 7 },
-  pitch: { values: [8, -1, -1, -1, -1, -1, -1, -1, -1, 0] },
+  pitch: { values: [4, -1, 0, -1, 0, -1, 0, -1, 0] },
 })
 /** The VRC6 pad: the chip's own attack, a duty that opens 7 → 3 on every chord change. */
 const PAD = s.instrument('pad', {
   volume: { values: [9, 12, 14, 15], loop: 3 },
   duty: { values: [7, 6, 5, 4, 3], loop: 4 },
+})
+/** The chorus pad: the same chip attack, but it settles one duty step THINNER (2 = 3/16
+ *  high time) than the pad everywhere else, so the biggest section is also the brightest
+ *  one. No level change — the volume macro is identical to PAD's. */
+const PAD_BRIGHT = s.instrument('pad-open', {
+  volume: { values: [9, 12, 14, 15], loop: 3 },
+  duty: { values: [7, 6, 5, 4, 3, 2], loop: 5 },
 })
 /** VRC6 chord stabs (`0xy`): bright 25 %, self-ending. */
 const STAB = s.instrument('stab', {
@@ -158,7 +175,14 @@ const VIB = nib(4, 2) // 4xy: the album's medium "singing" vibrato, written a be
  *  after the last event. `transpose` moves every pitch; `fixedVol` overrides the
  *  events' own volumes (a re-orchestration keeps the rhythm and pitches, not the level). */
 function phrase(sec, lane, inst, startRow, events, opts = {}) {
-  const { vib = 0, vibMin = 8, vibAfter = 4, transpose = 0, cutAtEnd = true, vol: defaultVol = 12, fixedVol } = opts
+  const { vib = 0, vibMin = 8, vibAfter = 4, transpose = 0, cutAtEnd = true, vol: defaultVol = 12, fixedVol, volShift = 0, volMax = 15, cap } = opts
+  // `cap`: a doubling line folds an octave down rather than climb past it (§1 -- above MIDI
+  // 91 the 16-step divider is too coarse for the octave to lock against a 2A03 pulse).
+  const pitchOf = (note) => {
+    const p = n(note) + transpose
+    return cap !== undefined && p > cap ? p - 12 : p
+  }
+  const level = (v) => fixedVol ?? Math.max(0, Math.min(volMax, (v ?? defaultVol) + volShift))
   let row = startRow
   let pendingCancel = false
   const cancel = () => (pendingCancel ? [['4', 0]] : [])
@@ -175,7 +199,7 @@ function phrase(sec, lane, inst, startRow, events, opts = {}) {
     }
     const own = fx ? [fx] : []
     const list = [...cancel(), ...own]
-    sec.put(lane, row, { note: n(note) + transpose, inst, vol: fixedVol ?? vol ?? defaultVol, fx: list.length ? list : undefined })
+    sec.put(lane, row, { note: pitchOf(note), inst, vol: level(vol), fx: list.length ? list : undefined })
     pendingCancel = false
     if (vib && len >= vibMin && row + vibAfter < sec.len) {
       sec.put(lane, row + vibAfter, { fx: [['4', vib]] })
@@ -316,14 +340,17 @@ const HOOK_THIRDS_2 = [...HOOK_THIRDS.slice(0, 6), [6, 0, 'f#4', 'd4'], [7, 0, '
 /** C — the chorus tune, sixteen bars over
  *    A · A/C# · D · E · C#m7 · F#m · Bm7 · E7 ‖ A · A/C# · D · E · C#m7 · F#m Bm7 · Dm · A.
  *  Long notes bloom into vibrato a beat in; the single peak is a5 on bar 0 beat 3; the
- *  second half restarts under the peak; the borrowed iv carries an f-natural appoggiatura
+ *  second half restarts under the peak; a passing eighth fills the third the tune leaps in
+ *  bar 0 (c#5-d5-e5) and in bar 4 (g#5-f#5-e5), and only there — bars 8 and 12 keep the bare
+ *  leap, so the second half of the tune is the plainer telling; the borrowed iv carries an
+ *  f-natural appoggiatura
  *  and the tune RISES d5 → e5 onto the tonic while the bass falls D → A. */
 const CHORUS = [
-  [4, 'c#5', 14], [4, 'e5', 14], [8, 'a5', 15],
+  [2, 'c#5', 14], [2, 'd5', 12], [4, 'e5', 14], [8, 'a5', 15],
   [4, 'g#5', 13], [2, 'f#5', 13], [2, 'e5', 13], [8, 'f#5', 14],
   [4, 'f#5', 13], [4, 'e5', 13], [4, 'd5', 13], [4, '-'],
   [4, 'b4', 12], [4, 'c#5', 13], [8, 'e5', 14],
-  [4, 'g#5', 14], [4, 'e5', 13], [4, 'c#5', 13], [4, 'b4', 12],
+  [2, 'g#5', 14], [2, 'f#5', 12], [4, 'e5', 13], [4, 'c#5', 13], [4, 'b4', 12],
   [8, 'a4', 12], [4, 'b4', 12], [4, 'c#5', 13],
   [4, 'd5', 13], [4, 'c#5', 12], [8, 'b4', 13],
   [4, 'g#4', 12], [4, 'b4', 13], [4, 'd5', 13], [4, '-'],
@@ -359,16 +386,23 @@ const COUNTER = [
   [4, 'f4', 11], [4, '-'], [8, 'd4', 11],
   [4, '~'], [4, 'c#4', 11], [8, '-'],
 ]
-/** Chorus bass roots per bar, and the VRC6 sixths [bar, row, V1, V2] (V1 a sixth above
- *  V2, both under the tune; the iv bar is voiced root + fifth so the tune's f-natural
- *  appoggiatura is the only f, and its resolution to e is heard clean). */
+/** Chorus bass roots per bar, and the VRC6 pad voicing [bar, row, V1, V2] (V1 above V2,
+ *  both under the tune; the iv bar is voiced root + fifth so the tune's f-natural
+ *  appoggiatura is the only f, and its resolution to e is heard clean).
+ *
+ *  Sixths, except where they would be four bars of strict parallel motion: across the
+ *  descending-fifths chain C#m7 - F#m7 - Bm7 - E7 (bars 4-7) a `null` means the voice HOLDS
+ *  its last pitch, so exactly one of the two lanes moves at each change. V1 holds e4 over
+ *  C#m7 -> F#m7 (3rd becoming 7th), V2 holds a3 over F#m7 -> Bm7 (3rd becoming 7th), and the
+ *  two move in contrary motion into E7 — three changes, no similar motion, and the chain is
+ *  spelled in guide tones instead of a parallel slab. */
 const CHORUS_ROOTS = [
   'a1', 'c#2', 'd2', 'e2', 'c#2', 'f#2', 'b1', 'e2',
   'a1', 'c#2', 'd2', 'e2', 'c#2', 'f#2', 'd2', 'a1',
 ].map(midi)
 const CHORUS_SIXTHS = [
   [0, 0, 'c#4', 'e3'], [1, 0, 'e4', 'g#3'], [2, 0, 'f#4', 'a3'], [3, 0, 'g#4', 'b3'],
-  [4, 0, 'e4', 'g#3'], [5, 0, 'f#4', 'a3'], [6, 0, 'd4', 'f#3'], [7, 0, 'e4', 'g#3'],
+  [4, 0, 'e4', 'g#3'], [5, 0, null, 'a3'], [6, 0, 'd4', null], [7, 0, 'e4', 'g#3'],
   [8, 0, 'c#4', 'e3'], [9, 0, 'e4', 'g#3'], [10, 0, 'f#4', 'a3'], [11, 0, 'g#4', 'b3'],
   [12, 0, 'e4', 'g#3'], [13, 0, 'f#4', 'a3'], [13, 8, 'd4', 'f#3'], [14, 0, 'd4', 'a3'],
   [15, 0, 'e4', 'c#4'],
@@ -511,13 +545,20 @@ function kitA2(sec, bar, opts = {}) {
 
 const A2 = s.section("A'", 16)
 {
-  // SAW  the hook, an octave under the pulse statement, as a brass lead with the
-  // bend-in attack; one level (11) so the saw never crowds the mix.
-  phrase(A2, L.SAW, SAW_LEAD, 0, HOOK, { transpose: -12, fixedVol: 11 })
-  phrase(A2, L.SAW, SAW_LEAD, A2.at(8), HOOK_2, { transpose: -12, fixedVol: 11 })
-  // P1  the counter-hook above it.
-  phrase(A2, L.P1, LEAD, 0, COUNTER_HOOK)
-  phrase(A2, L.P1, LEAD, A2.at(8), COUNTER_HOOK_2)
+  // SAW  the hook AT PITCH (MIDI 68-81, the register pulse 1 sang it in), as a brass lead
+  // with the bend-in attack; one level (10) so the saw never crowds the mix. MEASURED: the
+  // saw's rate is frequency-blind, but the render is not -- moving the line up an octave put
+  // its fundamental above the APU high-pass and took the section from -18.43 to -17.61 dBFS,
+  // louder than the chorus. Rate 10 (28/42) instead of 11 (31/42) puts A' back under it. The saw is the
+  // top voice for the whole section: that is what makes the re-orchestration audible as a
+  // re-orchestration of the LEAD rather than a new bass line. Its volume column is a rate,
+  // so moving the register costs nothing in level.
+  phrase(A2, L.SAW, SAW_LEAD, 0, HOOK, { fixedVol: 10 })
+  phrase(A2, L.SAW, SAW_LEAD, A2.at(8), HOOK_2, { fixedVol: 10 })
+  // P1  the counter-hook an octave DOWN (MIDI 59-69) and a notch quieter: an inner voice
+  // under the saw, answering it, never crossing above it.
+  phrase(A2, L.P1, LEAD, 0, COUNTER_HOOK, { transpose: -12, volShift: -1, volMax: 11 })
+  phrase(A2, L.P1, LEAD, A2.at(8), COUNTER_HOOK_2, { transpose: -12, volShift: -1, volMax: 11 })
   // P2  rests for the whole section — the saw's arrival is the event, and a silent
   // lane is the cheapest way to make the pre-chorus's entrance count.
   A2.put(L.P2, 0, { note: CUT })
@@ -527,15 +568,14 @@ const A2 = s.section("A'", 16)
   // V1  the held upper third of each chord, as in A.
   pad(A2, HOOK_THIRDS.map(([b, r, v1]) => [b, r, v1, null]), 8)
   pad(A2, HOOK_THIRDS_2.map(([b, r, v1]) => [b + 8, r, v1, null]), 8)
-  // V2  chord stabs on a SIX-ROW cell (§9.1 recipe D: 2 against the kit's 3): rows
-  // 0, 6, 12 … through bars 0–7 and again through 8–15, so the cell enters frame 6 (and
-  // frame 8) at local row 2 — the phase carried across the frame boundary.
-  for (const start of [0, A2.at(8)]) {
-    for (let row = start; row < start + 128; row += 6) {
-      const bar = Math.floor(row / 16)
-      const [root, x, y] = STAB_CHORDS[bar]
-      A2.put(L.V2, row, { note: n(root), inst: STAB, vol: 9, fx: [['0', nib(x, y)]] })
-    }
+  // V2  chord stabs on a SIX-ROW cell (§9.1 recipe D: 2 against the kit's 3), run UNBROKEN
+  // from row 0 to row 255. Six does not divide 64, so the cell enters each frame two rows
+  // later than the last: 5:0, 6:2, 7:4, 8:0 — a three-frame phase carry, and the cycle
+  // closing on the downbeat of the fourth. Restarting it at row 128 would put two stabs two
+  // rows apart across that frame line and throw the carry away.
+  for (let row = 0; row < A2.len; row += 6) {
+    const [root, x, y] = STAB_CHORDS[Math.floor(row / 16)]
+    A2.put(L.V2, row, { note: n(root), inst: STAB, vol: 9, fx: [['0', nib(x, y)]] })
   }
   A2.put(L.V2, A2.len - 1, { fx: [['0', 0]] }) // the arpeggio latch does not cross into pre
   // NOISE / DPCM  the A′ kit; fills at bars 7 and 15, neither like A's.
@@ -639,7 +679,7 @@ function kitChorus(sec, bar, opts = {}) {
 /** Everything the chorus does except the tune and the counter-voice, so chorus′ can
  *  reuse it a whole step up. `transpose` moves the bass and the harmony. */
 function chorusBed(sec, transpose, opts = {}) {
-  const { padVol = 9, v1 = true } = opts
+  const { padVol = 9, v1 = true, padInst = PAD_BRIGHT } = opts
   // SAW  the gallop on the roots; TRI doubles them an octave up on the beats only, so
   // the two never hammer the same octave.
   gallop(sec, L.SAW, SAW_BASS, 11, CHORUS_ROOTS.map((r) => r + transpose), { accent: 1 })
@@ -647,13 +687,17 @@ function chorusBed(sec, transpose, opts = {}) {
   offbeats(sec, CHORUS_ROOTS.map((r) => r + transpose), { rows: [0], inst: BASS_SHORT })
   // V1 / V2  sixths, the pad opening on each change. When V1 is doubling the tune
   // (chorus′), V2 alone carries the harmony and takes the upper, colour-tone line.
-  if (v1) pad(sec, CHORUS_SIXTHS.map(([b, r, hi, lo]) => [b, r, n(hi) + transpose, n(lo) + transpose]), padVol)
-  else pad(sec, CHORUS_SIXTHS.map(([b, r, hi]) => [b, r, null, n(hi) + transpose]), padVol)
-  // NOISE / DPCM  the chorus kit; the DPCM kick on EVERY beat (the lane is monophonic,
-  // so here the backbeat is the noise lane's high snare alone); fills at bars 7 and 15.
+  const up = (name) => (name === null ? null : n(name) + transpose)
+  if (v1) pad(sec, CHORUS_SIXTHS.map(([b, r, hi, lo]) => [b, r, up(hi), up(lo)]), padVol, padInst)
+  else pad(sec, CHORUS_SIXTHS.map(([b, r, hi]) => [b, r, null, up(hi)]), padVol, padInst)
+  // NOISE / DPCM  the chorus kit; the DPCM lane is monophonic, so it plays kick on 1 and 3
+  // and SNARE on 2 and 4 — the backbeat is layered (noise 41 + DPCM 39) exactly as A's is,
+  // which is what makes the biggest section lift. The four-to-the-floor pulse the brief
+  // asked for survives in the saw gallop's beat accent. Fills at bars 7 and 15.
   for (let bar = 0; bar < 16; bar++) {
     kitChorus(sec, bar, { crash: bar === 0 || bar === 8 })
-    sec.hits(L.DPCM, KIT.inst, 15, [[bar, 0], [bar, 4], [bar, 8], [bar, 12]], KIT.kick)
+    sec.hits(L.DPCM, KIT.inst, 15, [[bar, 0], [bar, 8]], KIT.kick)
+    sec.hits(L.DPCM, KIT.inst, 15, [[bar, 4], [bar, 12]], KIT.snare)
   }
 }
 
@@ -804,8 +848,12 @@ const chorus2 = s.section("chorus'", 16)
   // P2  the counter-voice in B, suspensions and all.
   phrase(chorus2, L.P2, VOICE, 0, COUNTER, { transpose: UP })
   // V1  doubles the tune an octave up at 9 — a thin shimmer over the lead, no vibrato
-  // of its own (two vibratos a beat apart would smear the octave).
-  phrase(chorus2, L.V1, DOUBLE, 0, CHORUS, { transpose: UP + 12, fixedVol: 9 })
+  // of its own (two vibratos a beat apart would smear the octave). Above MIDI 91 the double
+  // FOLDS TO UNISON: at 95 the VRC6's 16-step divider rounds 11.5 cents flat while the 2A03
+  // rounds 3.8 sharp, and a 15-cent octave beats at ~17 Hz on the loudest note of the piece.
+  // At unison the two chips take the SAME timer (both f = fCPU / 16(t+1)), so the eleven
+  // folded notes lock instead of beating and the shimmer thickens the lead's own peak.
+  phrase(chorus2, L.V1, DOUBLE, 0, CHORUS, { transpose: UP + 12, fixedVol: 9, cap: 91 })
   // SAW TRI V2 NOISE DPCM  the chorus bed, a step up; V2 alone carries the harmony.
   chorusBed(chorus2, UP, { v1: false, padVol: 10 })
   // fill 9 (bar 7): four toms falling, high to low.
@@ -872,13 +920,27 @@ s.qa({
     'across frames 18:0-18:63; the pre-chorus (9-10) borrows bVII (G) and the chorus cadence ' +
     '(14:32) borrows iv (Dm) with an f-natural appoggiatura. percussionGap 16 for the break ' +
     '(frame 15): half-time with the layered snare only on beat 3 of bars 0-1, a hat-only bar, ' +
-    'then the tom fill; the intro riff carries the kick on its own attacks. Devices: a six-row ' +
-    "V2 stab cell through A' (5:0, entering 6:2 and 8:2), the hook displaced +2 rows at 16:2, " +
+    'then the tom fill; the intro riff carries the kick on its own attacks. The report tool prints ' +
+    'a longest gap of 32 rows: that is 23:32-23:63, the tag rows no playthrough reaches, because the ' +
+    'B01+D00 pair at 23:31 jumps home two bars early and frame 23 is written four bars long. The ' +
+    "longest gap inside the music is the break's 16. Devices: an unbroken " +
+    "six-row V2 stab cell through A' (entering 5:0, 6:2, 7:4, 8:0), the hook displaced +2 rows at 16:2, " +
     'a six-row hemiola in the saw and V2 from 18:16 to 18:58, a two-bar tag ending with B01+D00 ' +
     'at 23:31. Suspensions on pulse 2: 9-8 at 11:32-36, 4-3 at 11:48-52, cadential 4-3 at ' +
     '14:48-52 (and the same a step up in chorus\'). 0xy params are decimal: 047 = 71, 037 = 55, ' +
-    '038 = 56, 04a = 74. 4xy vibrato 442 = 66, written a beat after the note it colours.',
-  renderChecksum: 2060058519,
+    '038 = 56, 04a = 74. 4xy vibrato 442 = 66, written a beat after the note it colours (11:12, ' +
+    '11:28, 11:60, 12:20, 12:44 in the first chorus). Voicing and mix: the chorus backbeat is ' +
+    "layered as A's is - the monophonic DPCM lane plays kick on 1 and 3 and its own snare on 2 " +
+    "and 4 under the noise kit's high snare (41), and the four-to-the-floor pulse is carried by " +
+    "the saw gallop's beat accent. A' states the hook on the saw AT PITCH (MIDI 68-81) with the " +
+    'counter-hook an octave below it (59-69), so the re-orchestration is the top voice; the saw sits ' +
+    'at rate 10 there because moving the line above the APU high-pass measurably raised the section. ' +
+    "In chorus' the V1 octave double folds to unison above MIDI 91 - twelve notes, the first at 19:8 - " +
+    'because at 95 the VRC6 divider rounds 11.5 cents flat against the 2A03 pulse at +3.8 and the ' +
+    'octave would beat at ~17 Hz on the loudest note of the piece. At 12:16 and 12:32 the two VRC6 ' +
+    'lanes hold a common tone in turn, so the descending-fifths chain is voiced in guide tones ' +
+    'rather than four bars of parallel sixths.',
+  renderChecksum: 1367915919,
 })
 s.check()
 s.write('src/assets/songs/04-tailwind.json')
