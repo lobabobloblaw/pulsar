@@ -45,8 +45,15 @@ Below App's compact threshold (720px, where the tracker cannot render) the
 workspace switch's two segments read **Play** and **Voice** instead of
 Instrument and Tracker, and no segment is disabled at any width. Both pages
 keep the head, the settings strip and the transport row. Play adds the
-keytop, the keybed and the footer; Voice adds the screen well with its pager
-and the voice section. The page is session state owned by `App.svelte`
+keytop, the keybed and the footer; Voice adds the screen well and the voice
+section. On Voice the transport row is one line — play key, Start/Retry
+audio while the engine is idle or failed, BPM, ORDER / ROW — and the song
+picker is not rendered (it stays on Play, where songs are chosen and
+played); at ≤600px the screen's pager dots sit in the well's foot caption
+between the key range and the owner caption, dots only, with the same group
+name, labels, pressed state and 44px coarse target. Both pages fit a 393×700
+phone frame (a 393×852 phone with Safari's toolbar inside the viewport).
+The page is session state owned by `App.svelte`
 (`phonePage`, default Play), not persisted and not in the tracker store;
 growing past 720px shows the desktop switch and shrinking back returns to the
 chosen page. Switching pages never touches playback: the keybed releases

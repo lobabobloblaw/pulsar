@@ -15,6 +15,12 @@
   the frame loop never writes `$state`: a rune write per frame is a reactive
   invalidation that runs for as long as the page is open.
 
+  On the phone's Voice page (`voice`, App's `compact && phonePage === 'voice'`)
+  the row collapses to ONE line — play key, Start/Retry cap while the engine
+  is idle or failed, BPM, ORDER / ROW — and the song picker is not rendered:
+  it stays on the Play page, the page a song is chosen and played from. The
+  desktop and Play layouts are untouched.
+
   ===== PresetBar mount (design §5.6 / §6.2) ===================================
   `src/App.svelte` mounts this bar with the LiveRegion route:
 
@@ -36,8 +42,10 @@
   interface Props {
     announce?: ((message: string) => void) | undefined
     onStartAudio: () => void
+    /** The phone's Voice page: one row, no song picker. */
+    voice?: boolean
   }
-  let { announce, onStartAudio }: Props = $props()
+  let { announce, onStartAudio, voice = false }: Props = $props()
 
   const frame = useFrame()
 
@@ -86,7 +94,7 @@
   })
 </script>
 
-<div class="transport player">
+<div class="transport player" class:voice>
   <button
     type="button"
     class="play"
@@ -112,9 +120,11 @@
     <span class="muted">Audio starting…</span>
   {/if}
 
-  <div class="song" data-slot="preset-bar">
-    <PresetBar announce={announce} />
-  </div>
+  {#if !voice}
+    <div class="song" data-slot="preset-bar">
+      <PresetBar announce={announce} />
+    </div>
+  {/if}
 
   <div class="clock">
     <strong class="bpm">{songBpm}</strong>
@@ -318,7 +328,8 @@
      appearing under a finger moved the keybed 65px mid-tap. The failure
      sentence is the one state that adds a line, and it is a failure. */
   @media (max-width: 600px) {
-    .transport {
+    .transport,
+    :global([data-embedded]) .transport {
       gap: 8px 16px;
       padding: 10px 0;
     }
@@ -330,6 +341,40 @@
     }
     .clock {
       flex: 1 1 auto;
+    }
+  }
+
+  /* The Voice page's single row at phone width: play key, the Start/Retry
+     cap, BPM and ORDER / ROW side by side inside a 355px slab. The failure
+     sentence is the one thing allowed under the row. */
+  @media (max-width: 600px) {
+    .voice,
+    :global([data-embedded]) .voice {
+      gap: 6px;
+    }
+    .voice .play {
+      padding-inline: 8px;
+    }
+    .voice .start {
+      padding-inline: 6px;
+    }
+    .voice .bpm {
+      font-size: 24px;
+    }
+    .voice .clock {
+      flex: 0 0 auto;
+      gap: 4px;
+    }
+    .voice .position {
+      flex-direction: column;
+      gap: 2px;
+      margin-inline-start: auto;
+    }
+    .voice .position .t-micro {
+      letter-spacing: 0;
+    }
+    .voice .position strong {
+      font-size: 16px;
     }
   }
 

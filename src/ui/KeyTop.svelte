@@ -113,6 +113,10 @@
      the row's min-content is the octave group alone and 44px caps still fit
      at 320px. */
   @media (max-width: 600px) {
+    .keytop,
+    :global([data-embedded]) .keytop {
+      padding: 10px 0;
+    }
     .hint {
       display: none;
     }

@@ -7,7 +7,10 @@
   row along the top (page name · engine status), the lattice centred, and a
   caption row along the foot (key range · who owns the keys). The captions
   are real state, printed in the well's own ink, and the pager sits under the
-  module on the slab.
+  module on the slab — except on a phone (≤600px), where the dots sit in the
+  foot caption between the two captions, dots only: the page name already
+  prints top-left, and the row under the well is height the Voice page
+  cannot spare.
 
   Sizing: the canvas takes exactly 128*DOT x 64*DOT CSS pixels and is sized
   by the WIDTH the well can give it — the well's box minus its border and
@@ -318,6 +321,20 @@
   })
 </script>
 
+{#snippet dots()}
+  {#each SCREEN_PAGES as p (p)}
+    <button
+      type="button"
+      class="page-dot"
+      class:active={transport.page === p}
+      aria-pressed={transport.page === p}
+      onclick={() => transport.setPage(p)}
+    >
+      <span class="sr">{pageLabel(p)}</span>
+    </button>
+  {/each}
+{/snippet}
+
 <div class="screen">
   <div class="well" bind:this={well}>
     <div class="cap">
@@ -325,28 +342,25 @@
       <span>{status}</span>
     </div>
     <canvas bind:this={canvas} aria-hidden="true"></canvas>
-    <div class="cap">
+    <div class="cap foot">
       <span>{keyRange}</span>
+      {#if viewport.narrow}
+        <div class="pager inline" role="group" aria-label="screen pages">
+          {@render dots()}
+        </div>
+      {/if}
       <span>{owner}</span>
     </div>
   </div>
 
   <p class="sr" aria-live="off">{screenText}<span bind:this={posEl}></span></p>
 
-  <div class="pager" role="group" aria-label="screen pages">
-    {#each SCREEN_PAGES as p (p)}
-      <button
-        type="button"
-        class="page-dot"
-        class:active={transport.page === p}
-        aria-pressed={transport.page === p}
-        onclick={() => transport.setPage(p)}
-      >
-        <span class="sr">{pageLabel(p)}</span>
-      </button>
-    {/each}
-    <span class="pager-name t-micro" aria-hidden="true">{transport.page}</span>
-  </div>
+  {#if !viewport.narrow}
+    <div class="pager" role="group" aria-label="screen pages">
+      {@render dots()}
+      <span class="pager-name t-micro" aria-hidden="true">{transport.page}</span>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -405,9 +419,17 @@
     white-space: nowrap;
   }
 
+  .cap > span {
+    min-width: 0;
+  }
+
   .cap span:last-child {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .cap.foot {
+    align-items: center;
   }
 
   canvas {
@@ -476,6 +498,45 @@
     color: var(--enclosure-ink-2);
   }
 
+  /* The dots inside the well take the well's own caption ink. */
+  .pager.inline {
+    flex: 0 0 auto;
+    gap: var(--s-2);
+  }
+
+  .pager.inline .page-dot {
+    border-color: var(--screen-caption);
+  }
+
+  .pager.inline .page-dot.active {
+    background: var(--screen-caption);
+    border-color: var(--screen-caption);
+  }
+
+  .pager.inline .page-dot:focus-visible {
+    box-shadow: var(--focus-screen);
+  }
+
+  @media (pointer: coarse) {
+    /* Four 44px targets already hold the visible dots 32px apart; a gap on
+       top would push the owner caption into an ellipsis at phone width. */
+    .pager.inline {
+      gap: 0;
+    }
+    .pager.inline .page-dot,
+    .pager.inline .page-dot.active {
+      border: 0;
+      background: transparent;
+    }
+    .pager.inline .page-dot::before {
+      border-color: var(--screen-caption);
+    }
+    .pager.inline .page-dot.active::before {
+      background: var(--screen-caption);
+      border-color: var(--screen-caption);
+    }
+  }
+
   /* Inside the homepage window the module is shallower (block padding 18 →
      14); the phone keeps its own padding. */
   @media (min-width: 601px) {
@@ -491,6 +552,22 @@
     .well {
       padding: 8px 10px;
       gap: 6px;
+    }
+    /* The foot caption holds four 44px dot targets on a coarse phone. Where
+       the two captions no longer fit beside them (the standalone slab is
+       22px narrower than the embedded one) the owner caption wraps to a
+       second right-aligned line instead of clipping to an ellipsis. */
+    .cap.foot {
+      flex-wrap: wrap;
+      gap: 4px 6px;
+    }
+    .cap.foot > span {
+      flex: 0 0 auto;
+      overflow: visible;
+      text-overflow: clip;
+    }
+    .cap.foot > span:last-child {
+      margin-inline-start: auto;
     }
   }
 

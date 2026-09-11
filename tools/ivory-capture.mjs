@@ -61,10 +61,13 @@ const WIDTHS = [1024, 736]
  *  standalone and embedded. 320x568 is reported only. */
 const PHONE = [
   { width: 390, heights: [844, 810] },
-  { width: 393, heights: [759] },
+  { width: 393, heights: [759, 700] },
   { width: 320, heights: [568] },
 ]
-const FRAMES = new Set([810, 759])
+/** The frames both pages must fit without vertical scrolling: 810 and 759
+ *  are the homepage phone shell's frames (viewport minus the device insets),
+ *  700 is a 393x852 phone once Safari's own toolbar sits inside the viewport. */
+const FRAMES = new Set([810, 759, 700])
 const PAGES = ['play', 'voice']
 /** The coarse-pointer pass: phone portrait twice, then a tablet that can
  *  open the tracker. */

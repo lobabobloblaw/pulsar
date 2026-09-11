@@ -75,9 +75,25 @@
     }
   }
 
+  /* Phones: the caption sits inside the fader's own 44px box (the track is
+     drawn at its vertical centre, under the caption), so the head row is one
+     touch target tall instead of a caption plus a target. */
   @media (max-width: 600px) {
     .output {
+      position: relative;
       width: 100px;
+      height: 44px;
+    }
+    .row {
+      position: absolute;
+      inset: 0 0 auto;
+      pointer-events: none;
+    }
+    input[type='range'] {
+      position: absolute;
+      inset: 0;
+      height: 100%;
+      margin: 0;
     }
   }
 

@@ -310,7 +310,7 @@
   {/snippet}
 
   {#snippet transportRow()}
-    <TransportBar announce={announceText} onStartAudio={startAudio} />
+    <TransportBar announce={announceText} onStartAudio={startAudio} voice={compact && phonePage === 'voice'} />
   {/snippet}
 </Enclosure>
 
