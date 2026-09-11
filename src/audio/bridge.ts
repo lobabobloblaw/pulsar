@@ -42,7 +42,7 @@ import {
   hiddenLookaheadMs,
 } from '../tracker/driver/tempo'
 import { buildDpcmImage } from '../tracker/offlineRender'
-import { emptySong, type Song } from '../tracker/model/types'
+import { CANONICAL_CHANNELS, emptySong, type Song } from '../tracker/model/types'
 import type { NesCycle, RegAddr, WriteSink } from './timeline/types'
 
 export type BridgeState = 'idle' | 'starting' | 'running' | 'error'
@@ -827,7 +827,10 @@ class StubBridge implements AudioBridge {
     tick: 0,
     tickIndex: 0,
     bpm: 0,
-    levels: new Int32Array(5),
+    // One slot per CANONICAL lane, so the synthetic meter fakes every lane an
+    // eight-lane song can show. A five-wide array left the three VRC6 lanes
+    // reading `undefined` in the `?stub` shell — dead meters under live caps.
+    levels: new Int32Array(CANONICAL_CHANNELS.length),
   }
   readonly #stats: DriverStats = {
     ticksGenerated: 0,

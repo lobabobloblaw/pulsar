@@ -11,7 +11,7 @@
  */
 
 import type { AudioBridge } from '../audio/bridge'
-import { bpm as bpmOf, type ClipboardBlock } from './songModel'
+import { bpm as bpmOf, CANONICAL_CHANNELS, type ClipboardBlock } from './songModel'
 import { song } from './song.svelte'
 import { effectiveChannelMute } from './trackerMix'
 
@@ -91,7 +91,13 @@ class TrackerState {
   /** Selection anchor; the selection is the rectangle anchor..cursor. */
   anchor = $state<{ row: number; channel: number } | null>(null)
 
-  muted = $state<boolean[]>([false, false, false, false, false])
+  /** One slot per CANONICAL lane, not per loaded lane: `muted[c]` has to be
+   *  defined for every channel the grid, the M/S caps and `drawFurniture` can
+   *  reach, and a song swap must not leave a hole behind. Sized once from the
+   *  canonical list (five 2A03 + three VRC6) rather than resized on load, so
+   *  the first five choices survive loading an eight-lane song and coming back
+   *  — an array that shrank would silently unmute lanes the user had muted. */
+  muted = $state<boolean[]>(CANONICAL_CHANNELS.map(() => false))
   solo = $state(-1)
 
   clipboard = $state<ClipboardBlock | null>(null)

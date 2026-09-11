@@ -66,6 +66,7 @@
     type PatternView,
   } from '../canvas/patternRenderer'
   import { useFrame } from '../frame'
+  import { laneHeader } from './laneCaptions'
 
   interface Props {
     /** Routed to App's LiveRegion. Throttled here, not there. */
@@ -144,11 +145,11 @@
   const channelCount = $derived(song.doc.channels.length)
   const rowsPerPattern = $derived(song.doc.meta.rowsPerPattern)
   const labels = $derived(song.doc.channels.map((c) => CHANNEL_LABELS[c]))
-  /** The header band prints the lane names in sentence case (`Pulse 1`,
-   *  `DPCM`); announcements keep the store's lowercase spelling. */
-  const headerLabels = $derived(
-    labels.map((l) => (l === 'dpcm' ? 'DPCM' : l.charAt(0).toUpperCase() + l.slice(1))),
-  )
+  /** The header band prints each name INSIDE its lane's own column, so it uses
+   *  the short spelling (`VRC6 P1`); announcements keep the store's lowercase
+   *  one. `laneCaptions.ts` owns both, and the fit is measured in
+   *  `tests/unit/laneCaptions.test.ts`. */
+  const headerLabels = $derived(song.doc.channels.map(laneHeader))
   /** Changes only when the grid's COLUMN geometry changes — not on every edit. */
   const shape = $derived(`${song.doc.channels.length}:${song.doc.effectColumns.join(',')}`)
 
