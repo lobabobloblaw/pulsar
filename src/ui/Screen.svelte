@@ -16,6 +16,14 @@
   its measured SHELL_OVERHEAD are gone: the Ivory slab scrolls, it does not
   fit a fixed height). See dotMatrix.ts for the DPR rule.
 
+  The dot is capped at 3 HERE (dotMax: 3; tokens' DOT_MAX 8 served the old
+  full-width screen and still serves the other renderers). The Ivory well is
+  half the slab: at the 1120px slab its inner width reaches 524px, dot 4 would
+  make a 512x256 lattice and the display module 64px taller than the study's
+  proportion — enough to push the footer off a 1440x900 laptop inside the
+  homepage window. Dot 3 (384x192) is the study's display at 1024 and stays
+  the size up to the widest slab; phones still fall to dot 2.
+
   Pages: boot, params, scope, midi, song. The boot sequence dissolves INTO the
   params page — it is handed the params renderer as its underlay, which is why
   the two are the same function and not two drawings of the same thing.
@@ -204,9 +212,9 @@
     const box = well
     if (!el || !box) return
 
-    const matrix = new DotMatrix(el)
+    const matrix = new DotMatrix(el, { dotMax: 3 })
     // Width only: the height budget is unbounded, so the dot is the largest
-    // integer that fits the well's inner width.
+    // integer that fits the well's inner width, capped at 3 (see the header).
     matrix.resize(latticeWidthBudget(box), Infinity)
 
     const ro = new ResizeObserver(() => {

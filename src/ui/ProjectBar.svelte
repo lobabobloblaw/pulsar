@@ -110,6 +110,10 @@
     color: var(--enclosure-ink-2);
   }
 
+  :global([data-embedded]) .project {
+    padding-top: 14px;
+  }
+
   .save {
     margin: 0;
   }

@@ -71,6 +71,10 @@
     border-top: 1px solid var(--enclosure-hairline);
   }
 
+  :global([data-embedded]) .keytop {
+    padding: 10px 0;
+  }
+
   .scope,
   .hint {
     min-width: 0;

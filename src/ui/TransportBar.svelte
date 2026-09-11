@@ -147,6 +147,12 @@
     padding: 20px 0;
   }
 
+  /* Inside the homepage window the rows sit closer: the casing supplies the
+     outer margins and a 1440x900 laptop has 756px for the whole instrument. */
+  :global([data-embedded]) .transport {
+    padding: 14px 0;
+  }
+
   /* The one vermilion object on the slab. Its own style, not a cap: the
      border is the darker vermilion and the 3px drop is what makes it read as
      a key you press rather than a badge. */

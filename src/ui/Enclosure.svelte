@@ -162,6 +162,11 @@
     border-radius: 0;
     box-shadow: none;
   }
+  /* Tighter vertical rhythm inside the casing (with TransportBar, KeyTop and
+     ProjectBar's embedded rules, about 24px less in total). */
+  :global([data-embedded]) .live {
+    padding-bottom: 16px;
+  }
 
   @media (max-width: 850px) {
     .device {
