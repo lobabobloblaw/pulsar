@@ -700,11 +700,13 @@ export class TrackerDriver {
         this.regs.setEnabled(ch, false)
         this.regs.invalidate(ch)
         // A 2A03 lane's silence is the shared `$4015` byte, written once after the
-        // loop; a VRC6 lane's is its own pair and goes out here, per lane.
-        if (wasArmed && isVrc6Lane(compiled.channels[ch])) {
-          this.regs.vrc6Off(this.sink, this.lastCycleHint, ch)
+        // loop; a VRC6 lane's is its own pair and goes out here, per lane — and must
+        // NOT set `handedBack`, or handing back a VRC6 lane would write `$4015`.
+        if (isVrc6Lane(compiled.channels[ch])) {
+          if (wasArmed) this.regs.vrc6Off(this.sink, this.lastCycleHint, ch)
+        } else {
+          handedBack = true
         }
-        handedBack = true
       }
 
       const slot = compiled.order[this.orderIndex * compiled.channelCount + ch]
@@ -1094,10 +1096,13 @@ export class TrackerDriver {
    *  the lane's state BEFORE it was disarmed — a VRC6 lane that was never on has
    *  nothing to say. */
   private silenceLane(ch: number, cycle: NesCycle, armed: boolean): void {
-    this.regs.status(this.sink, cycle, false)
-    if (armed && isVrc6Lane(this.compiled.channels[ch])) {
-      this.regs.vrc6Off(this.sink, cycle, ch)
+    if (isVrc6Lane(this.compiled.channels[ch])) {
+      // `$4015` is the APU's register and says nothing about the expansion chip.
+      // Writing it here would be a write to five lanes the caller did not mean.
+      if (armed) this.regs.vrc6Off(this.sink, cycle, ch)
+      return
     }
+    this.regs.status(this.sink, cycle, false)
   }
 
   private periodOf(ch: number, note: number): number {

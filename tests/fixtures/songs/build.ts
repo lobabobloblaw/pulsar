@@ -10,7 +10,7 @@
 import { TrackerDriver, type PlayMode } from '../../../src/tracker/driver/trackerDriver'
 import { cycleOfTick } from '../../../src/tracker/driver/tempo'
 import { parseSong } from '../../../src/tracker/model/validate'
-import { emptySong, type Cell, type ChannelId, type Instrument, type Sequence, type SequenceBank, type Song, type SongMeta } from '../../../src/tracker/model/types'
+import { CANONICAL_CHANNELS, CHIP_2A03_CHANNELS, emptySong, type Cell, type ChannelId, type Instrument, type Sequence, type SequenceBank, type Song, type SongMeta } from '../../../src/tracker/model/types'
 import { NTSC_CPU_HZ } from '../../../src/audio/core/constants'
 import { ArrayWriteSink } from '../../../src/audio/timeline/writeSink'
 
@@ -22,20 +22,33 @@ export interface SongSpec {
   instruments?: Instrument[]
   sequences?: Partial<Record<keyof SequenceBank, Sequence[]>>
   effectColumns?: number[]
+  /** How many canonical lanes the song declares. Default five — a 2A03 song, which is
+   *  what every pre-VRC6 test builds and what `emptySong()` still produces. Pass 8 for
+   *  a song with the expansion lanes; anything between is a legal prefix too. */
+  lanes?: number
 }
 
-const CHANNELS: readonly ChannelId[] = ['pulse1', 'pulse2', 'triangle', 'noise', 'dpcm']
+/** The canonical lane list itself, not a copy of it: a second hand-written list is a
+ *  second thing to forget to update, and this one silently mis-addressed every lane
+ *  past the fifth the moment the VRC6 arrived. */
+const CHANNELS: readonly ChannelId[] = CANONICAL_CHANNELS
 
 /** Build a valid `Song`. Every pattern referenced by `order` is created, empty, if the
  *  spec did not name it — so a test only writes the rows it cares about. */
 export function buildSong(spec: SongSpec = {}): Song {
   const base = emptySong()
   const meta = { ...base.meta, ...spec.meta }
-  const order = spec.order ?? [[0, 0, 0, 0, 0]]
+  const lanes =
+    spec.lanes ??
+    spec.effectColumns?.length ??
+    spec.order?.[0]?.length ??
+    CHIP_2A03_CHANNELS.length
+  const ids = CHANNELS.slice(0, lanes)
+  const order = spec.order ?? [ids.map(() => 0)]
 
   const wanted = new Map<string, Cell[]>()
   for (const frame of order) {
-    for (let ch = 0; ch < CHANNELS.length; ch++) wanted.set(`${CHANNELS[ch]}:${frame[ch] ?? 0}`, [])
+    for (let ch = 0; ch < ids.length; ch++) wanted.set(`${ids[ch]}:${frame[ch] ?? 0}`, [])
   }
   for (const [key, rows] of Object.entries(spec.patterns ?? {})) wanted.set(key, rows)
 
@@ -47,7 +60,8 @@ export function buildSong(spec: SongSpec = {}): Song {
   const song: Song = {
     ...base,
     meta,
-    effectColumns: spec.effectColumns ?? [4, 4, 4, 4, 4],
+    channels: ids,
+    effectColumns: spec.effectColumns ?? ids.map(() => 4),
     order,
     patterns,
     instruments: spec.instruments ?? base.instruments,
@@ -120,8 +134,11 @@ export function at(ticks: Emitted[][], tick: number, addr: number): number {
   return -1
 }
 
-/** The channel's 11-bit timer as it stands after `tick`, tracking write-on-change. */
-export function timerSeries(ticks: Emitted[][], loAddr: number): number[] {
+/** The channel's timer as it stands after `tick`, tracking write-on-change.
+ *
+ *  `hiMask` is the lane's high-byte width: 3 bits on the 2A03 (an 11-bit divider),
+ *  4 on the VRC6 (12-bit, with the enable bit in bit 7 of the same register). */
+export function timerSeries(ticks: Emitted[][], loAddr: number, hiMask = 0x07): number[] {
   const hiAddr = loAddr + 1
   let lo = -1
   let hi = 0
@@ -129,11 +146,16 @@ export function timerSeries(ticks: Emitted[][], loAddr: number): number[] {
   for (const tick of ticks) {
     for (const w of tick) {
       if (w.addr === loAddr) lo = w.value
-      else if (w.addr === hiAddr) hi = w.value & 0x07
+      else if (w.addr === hiAddr) hi = w.value & hiMask
     }
     out.push(lo < 0 ? -1 : (hi << 8) | lo)
   }
   return out
+}
+
+/** The VRC6 lane's 12-bit period, from its `$x001`/`$x002` pair. */
+export function vrc6TimerSeries(ticks: Emitted[][], loAddr: number): number[] {
+  return timerSeries(ticks, loAddr, 0x0f)
 }
 
 /** The channel's volume nibble as it stands after each tick. */
@@ -180,4 +202,14 @@ export const REG = {
   NOISE_PERIOD: 0x400e,
   NOISE_LEN: 0x400f,
   STATUS: 0x4015,
+  V1_CTRL: 0x9000,
+  V1_LO: 0x9001,
+  V1_HI: 0x9002,
+  VRC6_FREQ: 0x9003,
+  V2_CTRL: 0xa000,
+  V2_LO: 0xa001,
+  V2_HI: 0xa002,
+  SAW_RATE: 0xb000,
+  SAW_LO: 0xb001,
+  SAW_HI: 0xb002,
 } as const
