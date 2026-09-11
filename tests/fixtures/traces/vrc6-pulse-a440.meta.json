@@ -1,0 +1,14 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 1789773,
+  "expect": {
+    "fundamentalHz": 440.3969,
+    "toleranceCents": 3,
+    "rmsMin": 0.1
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "period 253 = fCPU/(16*254) = 440.3969 Hz, the same anchor as the 2A03 pulse fixture. duty 7 is the VRC6's 50% square: the field is a threshold (high while step <= duty), not a waveform index."
+  }
+}

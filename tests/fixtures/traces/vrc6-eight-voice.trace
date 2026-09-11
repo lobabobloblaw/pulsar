@@ -1,0 +1,38 @@
+# pulsar-trace v1
+# clockRate=1789773 region=ntsc
+# all eight voices at once: the 2A03's five (A major on the pulses and triangle, a
+# noise hit at the half second, the looping DPCM ramp) with the VRC6's three stacked on
+# top — C#5 and A5 on its pulses and E4 on its sawtooth, so every one of the eight is
+# at its own frequency and none of them hides inside another's DFT bin. the 2A03 half
+# compresses through the non-linear ladders while the VRC6 half sums linearly beside
+# it, which is exactly the balance VRC6_GAIN is calibrated for.
+0        4015 0F
+0        4000 BF
+0        4001 08
+0        4002 FD
+0        4003 00
+0        4004 76
+0        4005 08
+0        4006 A9
+0        4007 00
+0        4008 FF
+0        400A FD
+0        400B 00
+0        4010 4F
+0        4012 00
+0        4013 02
+0        4015 1F
+0        9003 00
+0        9000 78
+0        9001 C9
+0        9002 80
+0        A000 75
+0        A001 7E
+0        A002 80
+0        B000 18
+0        B001 83
+0        B002 81
+894886   400C 36
+894886   400E 08
+894886   400F 00
+# END 1789773
