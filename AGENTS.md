@@ -4,11 +4,11 @@ Guidance for AI coding agents working in this repository. Assumes no prior knowl
 
 ## Project overview
 
-**pulsar** is a teenage-engineering-flavored web synthesizer whose voice is a register-accurate NES 2A03 APU (2 pulse channels, triangle, noise, DPCM) running in an AudioWorklet, with a FamiTracker-style tracker. It is played live from a QWERTY keyboard or Web MIDI, and renders songs to WAV.
+**pulsar** is a teenage-engineering-flavored web synthesizer whose voice is a register-accurate NES 2A03 APU (2 pulse channels, triangle, noise, DPCM) plus the VRC6 cartridge expansion (2 pulse channels + sawtooth) — eight voices, eight tracker lanes — running in an AudioWorklet, with a FamiTracker-style tracker. It is played live from a QWERTY keyboard or Web MIDI, and renders songs to WAV.
 
 - Stack: **TypeScript + Svelte 5 (runes) + Vite + Vitest**. **Zero runtime dependencies** — devDependencies only (constraint K4); keep it that way.
 - License: MIT. The APU and DSP are original implementations written against public NESdev documentation — no GPL/LGPL emulator source was consulted (see `NOTICE.md`).
-- `plan-file.md` is the approved implementation plan (phases, milestones, acceptance criteria). Phases 1–2 are complete; evidence lives in `docs/phase1-acceptance.md` / `docs/phase2-acceptance.md`. Later phases per the plan: VRC6, WAV export, expansion chips, FamiTracker/FamiStudio text interchange.
+- `plan-file.md` is the approved implementation plan (phases, milestones, acceptance criteria). Phases 1–2 are complete; evidence lives in `docs/phase1-acceptance.md` / `docs/phase2-acceptance.md`. Later phases per the plan: WAV export, further expansion chips, FamiTracker/FamiStudio text interchange (VRC6 landed 2026-09-11).
 - Note: the "status" section of `README.md` ("phase 1 in progress") is stale — trust this file and the acceptance docs.
 - Browser targets: Chrome/Edge primary (Web MIDI). Safari works via the computer keyboard only (z–m lower octave, q–p upper); it has no Web MIDI.
 

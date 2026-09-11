@@ -24,8 +24,11 @@ and the frame bus are untouched by the redesign — it is a face, not an engine.
                 BPM · ORDER / ROW · state · drv chip
     .live       (tracker closed, or compact) Screen well | KnobRow (three dials)
     .tracker    (tracker open and not compact) TrackerPanel:
-                editbar · OrderList · lane M/S caps · PatternGrid + grid-nav ·
+                editbar · OrderList (frame caps + one hex field per lane) ·
+                lane M/S caps (one pair per lane) · PatternGrid + grid-nav ·
                 InstrumentEditor
+                — "per lane" is the SONG's lanes: five for a 2A03 song, eight
+                  when it carries the VRC6 (see "Tracker lanes" below)
     .keytop     KeyTop: scope caption · − OCTAVE n + · Z–M / Q–I
     .keys       KeyBed (both workspaces)
     .foot       ProjectBar: save state · New/Open/Download · Undo/Redo · PULSAR / 2A03
@@ -38,6 +41,49 @@ is `min(100% - 24px, 1120px)` wide in both workspaces (`100% - 8px` at
 ≤600px), padding 24px (14px at ≤850px). Embedded (`html[data-embedded]`)
 the slab fills the frame with no radius, border or shadow, padding 16px
 (12px at ≤600px), and the page ground is the slab colour.
+
+### Tracker lanes (2026-09-11)
+
+The tracker's three lane surfaces — the canvas grid, the order strip's edit row
+and the M/S cap row — are counted by the loaded document
+(`song.doc.channels`), never by the shell: **five** lanes for a 2A03 song,
+**eight** when the song carries the VRC6 (`vrc6p1`, `vrc6p2`, `vrc6saw` after
+the five). `tracker.muted` is sized from `CANONICAL_CHANNELS` for the same
+reason, and so is the `?stub` bridge's synthetic level array.
+
+**Two spellings of a lane name** (`src/ui/tracker/laneCaptions.ts`). DOM chrome
+prints full words — `VRC6 Pulse 1`, `VRC6 Pulse 2`, `VRC6 Saw` — and the M/S
+caps' accessible names carry that same printed spelling, because aria-label
+replaces visible content and voice control can only match a name containing the
+visible word. The canvas header band prints `VRC6 P1` / `VRC6 P2` instead: it
+draws each name INSIDE that lane's own column, with no clip and no ellipsis.
+
+**The fit, measured** (Chrome 152, preview build, 2026-09-11). `--font-ui` is
+JetBrains Mono at its 0.6 em advance: `measureText('0')` is **7.200 px** at the
+grid's `--t-body-size: 12px` and **6.600 px** at the header band's
+`--t-micro-size: 11px`. `computeLayout` therefore makes a lane **96 px** wide at
+one effect column — the narrowest it can be — of which 4 px is the left pad, so
+a label has **92 px**. Drawn: `Pulse 1` / `Pulse 2` / `VRC6 P1` / `VRC6 P2`
+46.2 px, `Triangle` / `VRC6 Saw` 52.8 px, `Noise` 33.0, `DPCM` 26.4 — the
+expansion lanes sit inside the widest 2A03 name rather than merely inside the
+column (`VRC6 Pulse 1` would fit at 79.2 px but would fill 86 % of a lane where
+`Triangle` fills 57 %). Eight lanes plus the 22 px row gutter span 804 px, well
+inside the tracker panel at either desktop width. `tests/unit/laneCaptions.test.ts`
+re-derives all of this from `computeLayout` and fails if a token moves.
+
+**The order strip at eight lanes**, measured the same day: eight hex fields on
+one row, 835 px wide, no clipping and no document overflow at the 1120 px slab
+(panel 1070 px) and at the homepage's 1120 px embedded frame (panel 1096 px).
+The edit group is one wrapping flex item inside the frame ops, so it takes a
+line of its own there rather than squeezing the buttons. Once the panel is
+narrower than the 835 px the group needs the fields wrap to a second row — one
+row at a 926 px panel (a 1024 px window), two at 658 px (736 px) — which is the
+strip's designed wrapping, not clipping. The M/S caps wrap the same way, to two
+rows from a 1024 px window down.
+
+The footer nameplate stays **PULSAR / 2A03**: it names the console's own APU,
+and the VRC6 is a cartridge expansion, not a different instrument. It is a
+nameplate, not a readout of the loaded song.
 
 ### Phone pages
 
