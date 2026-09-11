@@ -173,3 +173,37 @@ describe('the screen palette mirror cannot drift from the tokens', () => {
     }
   })
 })
+
+describe('the night room redefines every enclosure-facing day token', () => {
+  const css = readFileSync(join(SRC, 'design', 'tokens.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const block = (selector: string): string => {
+    const at = css.indexOf(`${selector} {`)
+    expect(at, `missing block: ${selector}`).toBeGreaterThanOrEqual(0)
+    const end = css.indexOf('\n}', at)
+    return css.slice(at, end)
+  }
+  const names = (body: string): string[] =>
+    [...body.matchAll(/^\s*(--[a-z0-9-]+):/gm)].map((m) => m[1] as string)
+  const day = names(block(':root'))
+  const night = names(block(":root[data-room='night']"))
+  const ENCLOSURE_FACING = /^--(enclosure-|chip-|key-|play-|field-|dial-|sh-slab$|page-bg$)/
+
+  it('finds both blocks and a real token set (guards against a regex that matches nothing)', () => {
+    expect(day.length).toBeGreaterThan(40)
+    expect(night.length).toBeGreaterThan(20)
+    expect(day.filter((n) => ENCLOSURE_FACING.test(n)).length).toBeGreaterThan(20)
+  })
+
+  it('leaves no enclosure-facing day token light at night', () => {
+    // A new --enclosure-*/--chip-*/--key-*/--play-*/--field-*/--dial-* token,
+    // --page-bg or --sh-slab added to the day root without a night value would
+    // keep its day colour in the dark room — invisible until someone switches.
+    const missing = day.filter((n) => ENCLOSURE_FACING.test(n) && !night.includes(n))
+    expect(missing).toEqual([])
+  })
+
+  it('defines no glass token: the lattice and the grid are room-invariant', () => {
+    expect(night.filter((n) => /^--(screen-|grid-)/.test(n))).toEqual([])
+    expect(day.filter((n) => /^--(screen-|grid-)/.test(n)).length).toBeGreaterThan(10)
+  })
+})

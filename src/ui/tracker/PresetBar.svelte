@@ -174,6 +174,10 @@
     border-radius: var(--r-1);
   }
 
+  :global([data-room='night']) .picker select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1.5l4 4 4-4' fill='none' stroke='%23eeefe8' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+
   /* Phones: the caption hugs its field. */
   @media (max-width: 600px) {
     .picker {

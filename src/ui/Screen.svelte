@@ -401,9 +401,21 @@
     background: linear-gradient(145deg, rgb(255 255 255 / 0.03), transparent 50%);
   }
 
+  /* Night: the bezel darkens with the slab so the module still reads as an
+     inset object, and the face still ends on the lattice colour. The
+     --screen-* tokens are room-invariant by contract, so this is a scoped
+     rule rather than a token. */
+  :global([data-room='night']) .well {
+    background-image: linear-gradient(135deg, #2e3d35, #1e2925 70%);
+    border-color: #4a5148;
+  }
+
   @media (prefers-contrast: more) {
     .well::after {
       background: none;
+    }
+    :global([data-room='night']) .well {
+      background-image: none;
     }
   }
 

@@ -326,12 +326,10 @@
     align-items: flex-end;
     justify-content: center;
     padding-bottom: 9px;
-    color: #62665b;
-    background: linear-gradient(#e3e4da 0%, var(--key-face) 70%);
+    color: var(--key-legend);
+    background: linear-gradient(var(--key-face-top) 0%, var(--key-face) 70%);
     border-radius: 2px 2px var(--r-cap) var(--r-cap);
-    box-shadow:
-      0 4px 0 #b0b3a4,
-      0 5px 2px rgb(0 0 0 / 0.3);
+    box-shadow: var(--key-shadow);
     z-index: 0;
     transition:
       transform var(--dur-fast) var(--ease),
@@ -347,12 +345,10 @@
     width: calc(65% / var(--whites));
     height: 74px;
     color: #c5c9ba;
-    background: linear-gradient(var(--key-face-sharp), #3f4439);
-    border: 1px solid #151a10;
+    background: linear-gradient(var(--key-face-sharp), var(--key-sharp-bottom));
+    border: 1px solid var(--key-sharp-border);
     border-radius: 2px 2px var(--r-cap) var(--r-cap);
-    box-shadow:
-      0 4px 0 #141710,
-      0 6px 4px rgb(0 0 0 / 0.3);
+    box-shadow: var(--key-sharp-shadow);
     z-index: 2;
     transition:
       transform var(--dur-fast) var(--ease),
@@ -361,8 +357,10 @@
 
   /* Pressed state is never colour alone: the key also drops and swallows its
      shadow, and aria-pressed carries it to assistive tech. */
+  /* The held key's ink is the day ink in both rooms: the held colour does
+     not change with the room, and pale night ink would sit at 2.4:1 on it. */
   .key.pressed {
-    color: var(--enclosure-ink);
+    color: #252720;
     background: var(--key-active);
     box-shadow: 0 1px 0 #a74325;
     transform: translateY(3px);

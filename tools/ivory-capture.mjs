@@ -74,6 +74,26 @@ const PAGES = ['play', 'voice']
 const TOUCH = [{ width: 820, height: 1180, tracker: true }]
 const MIN_TARGET = 44
 const MIN_FIELD_FONT = 16
+
+/** `--room=night` forces the night room (the app reads localStorage's
+ *  `pulsar.room` before first paint) and prefixes every file with `night-`,
+ *  so a day/night pair exists for each capture. */
+let ROOM = 'day'
+let ROOM_PREFIX = ''
+
+async function openContext(browser, options) {
+  const context = await browser.newContext(options)
+  if (ROOM === 'night') {
+    await context.addInitScript(() => {
+      try {
+        localStorage.setItem('pulsar.room', 'night')
+      } catch {
+        /* private mode: the day room is what gets captured */
+      }
+    })
+  }
+  return context
+}
 const VARIANTS = ['standalone', 'embed']
 const MODES = ['live', 'tracker']
 const HEIGHT = 900
@@ -86,9 +106,11 @@ function parseArgs(argv) {
     selftest: false,
     empty: false,
     touchOnly: false,
+    room: 'day',
   }
   for (const arg of argv) {
     if (arg === '--selftest') out.selftest = true
+    else if (arg.startsWith('--room=')) out.room = arg.slice('--room='.length)
     else if (arg === '--empty') out.empty = true
     else if (arg === '--touch-only') out.touchOnly = true
     else if (arg.startsWith('--base=')) out.base = arg.slice('--base='.length)
@@ -195,7 +217,7 @@ async function runCaptures(base, outDir, loadSong) {
     for (const mode of MODES) {
       for (const width of WIDTHS) {
         for (const variant of VARIANTS) {
-          const context = await browser.newContext({
+          const context = await openContext(browser, {
             viewport: { width, height: HEIGHT },
             deviceScaleFactor: 1,
           })
@@ -260,7 +282,7 @@ async function runCaptures(base, outDir, loadSong) {
 
           await page.waitForTimeout(300)
 
-          const fileName = variant === 'embed' ? `embed-${mode}-${width}.png` : `${mode}-${width}.png`
+          const fileName = `${ROOM_PREFIX}${variant === 'embed' ? 'embed-' : ''}${mode}-${width}.png`
           const filePath = `${outDir}/${fileName}`
           await page.screenshot({ path: filePath, fullPage: true })
 
@@ -449,7 +471,7 @@ async function runTouch(base, outDir, loadSong) {
   const failures = []
   try {
     for (const t of TOUCH) {
-      const context = await browser.newContext({
+      const context = await openContext(browser, {
         viewport: { width: t.width, height: t.height },
         deviceScaleFactor: 1,
         hasTouch: true,
@@ -489,7 +511,7 @@ async function runTouch(base, outDir, loadSong) {
         [touchAuditFn.toString(), MIN_TARGET, MIN_FIELD_FONT],
       )
       if (!audit.coarse) issues.push('(pointer: coarse) did not match at audit time')
-      const fileName = `touch-${t.width}.png`
+      const fileName = `${ROOM_PREFIX}touch-${t.width}.png`
       await page.screenshot({ path: `${outDir}/${fileName}`, fullPage: true })
 
       if (audit.scrollWidth > audit.innerWidth) {
@@ -605,7 +627,7 @@ async function runPhone(base, outDir, loadSong, coarse) {
         const t = { width: spec.width, height }
         const first = height === spec.heights[0]
       for (const variant of VARIANTS) {
-        const context = await browser.newContext({
+        const context = await openContext(browser, {
           viewport: { width: t.width, height: t.height },
           deviceScaleFactor: 1,
           ...(coarse ? { hasTouch: true, isMobile: true } : {}),
@@ -720,7 +742,7 @@ async function runPhone(base, outDir, loadSong, coarse) {
           const unnamed = await checkUnnamedControls(page)
           for (const u of unnamed) issues.push(`unnamed control: ${u}`)
 
-          const fileName = `${variant === 'embed' ? 'embed-' : ''}${coarse ? 'touch-' : ''}${pageName}-${t.width}${first ? '' : `x${t.height}`}.png`
+          const fileName = `${ROOM_PREFIX}${variant === 'embed' ? 'embed-' : ''}${coarse ? 'touch-' : ''}${pageName}-${t.width}${first ? '' : `x${t.height}`}.png`
           await page.screenshot({ path: `${outDir}/${fileName}`, fullPage: true })
           await page.close()
 
@@ -854,7 +876,7 @@ async function runSelftest(base) {
 
   let exitCode = 1
   try {
-    const context = await browser.newContext({ viewport: { width: 1024, height: HEIGHT } })
+    const context = await openContext(browser, { viewport: { width: 1024, height: HEIGHT } })
     const page = await context.newPage()
     await page.goto(`${base}/?selftest`, { waitUntil: 'load' })
 
@@ -897,6 +919,8 @@ async function runSelftest(base) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2))
+  ROOM = args.room === 'night' ? 'night' : 'day'
+  ROOM_PREFIX = ROOM === 'night' ? 'night-' : ''
   let code
   if (args.selftest) {
     code = await runSelftest(args.base)

@@ -67,13 +67,29 @@
   --chip-bg: #eeeee6; /* the cap face */
   --chip-ink: #252720;
   --chip-accent: var(--a-vermilion); /* cap borders that mean "act now" */
+  --chip-border: var(--enclosure-hairline); /* the cap's edge */
+  --chip-pressed-ink: #eeeee6; /* text on a latched, ink-filled cap */
+  --field-bg: #eeeee6; /* selects and inputs */
+  --field-border: var(--enclosure-hairline);
   --play-bg: #d2401d; /* white text 4.7:1; a hair under the accent */
   --play-border: #9c311b;
   --play-drop: #a33c25;
   --key-face: #fafaf2;
+  --key-face-top: #e3e4da; /* the white key's shoulder */
+  --key-shadow: 0 4px 0 #b0b3a4, 0 5px 2px rgb(0 0 0 / 0.3);
+  --key-legend: #62665b; /* the note name on a white key */
   --key-face-sharp: #272b25;
+  --key-sharp-bottom: #3f4439;
+  --key-sharp-border: #151a10;
+  --key-sharp-shadow: 0 4px 0 #141710, 0 6px 4px rgb(0 0 0 / 0.3);
   --key-active: #e7825d;
   --key-bed: #929789;
+
+  /* ---- the dials: tick ring, domed cap ---------------------------------- */
+  --dial-ring: #343a311c;
+  --dial-cap: radial-gradient(circle at 36% 23%, #fffffb, #eeeee4 45%, #c5c8ba 100%);
+  --dial-border: #bbc0ae;
+  --dial-shadow: 0 5px 6px rgb(0 0 0 / 0.25), inset 0 2px 2px #fff, inset 0 -2px 3px #9a9f8f;
 
   /* ---- surface roles: screen (the one lit object) ----------------------- */
   --screen-bg: #1e2925;
@@ -183,23 +199,57 @@
   --t-position-size: 18px;
 }
 
-/* Room dimmer — NOT dark mode. Ivory dimmed: the slab drops to a mid mineral
- * grey with darker ink, while the keys, the screen and the grid glass stay
- * byte-identical, which is what preserves the lit-screen hierarchy. */
+/* Night room — a dark Ivory: Obsidian's materials on Ivory's layout. A near-
+ * black ground, a graphite slab with pale ink, dark caps and fields, darker
+ * keys and dials; the screen lattice and the grid glass stay byte-identical
+ * (K5), and the bezels around them darken with the slab so the inset modules
+ * still read as objects. Measured: ink 12.5:1 on the slab, muted 7.0:1;
+ * both clear on the cap, the field and the face's darkest stop (see
+ * docs/ivory-gui.md). tests/unit/ivoryWiring.test.ts pins that every
+ * enclosure-facing day token is redefined here and no glass token is. */
 :root[data-room='night'] {
-  --page-bg: #6f716a;
-  --enclosure-bg: #a6a89c;
-  --enclosure-face: linear-gradient(120deg, #b4b6aa 0%, #a6a89c 50%, #979a8d 100%);
-  --enclosure-border: #7c7f74;
-  --enclosure-ink: #15170f; /* 7.5:1 on the slab, 6.3:1 on its darkest stop */
-  --enclosure-ink-2: #2e3129; /* 5.5:1 on the slab, 4.6:1 on its darkest stop */
-  --enclosure-hairline: #85897d;
-  --enclosure-mark: #15170f;
-  --chip-bg: #c3c5b9;
-  --chip-ink: #15170f;
-  --sh-slab: inset 0 1px rgb(255 255 255 / 0.5), inset 0 -5px 2px #7f8277, 0 12px 24px rgb(0 0 0 / 0.3);
+  --page-bg: #141614;
+  --enclosure-bg: #262a24;
+  --enclosure-face: linear-gradient(120deg, #2f342c 0%, #262a24 50%, #1e221c 100%);
+  --enclosure-border: #3d423a;
+  --enclosure-ink: #eeefe8;
+  --enclosure-ink-2: #b3b8ad;
+  --enclosure-hairline: #464b43;
+  --enclosure-accent: var(--a-vermilion);
+  --enclosure-mark: #eeefe8;
+  --chip-bg: #353a33;
+  --chip-ink: #eeefe8;
+  --chip-accent: var(--a-vermilion);
+  --chip-border: #4c524a;
+  --chip-pressed-ink: #262a24;
+  --field-bg: #1a1d19;
+  --field-border: #464b43;
+  --play-bg: #d2401d;
+  --play-border: #9c311b;
+  --play-drop: #7a2a16;
+  --key-face: #e4e6da;
+  --key-face-top: #c9ccbf;
+  --key-shadow: 0 4px 0 #8f9385, 0 5px 2px rgb(0 0 0 / 0.5);
+  --key-legend: #4d5347;
+  --key-face-sharp: #1c201b;
+  --key-sharp-bottom: #2c312a;
+  --key-sharp-border: #0c0e0b;
+  --key-sharp-shadow: 0 4px 0 #050605, 0 6px 4px rgb(0 0 0 / 0.6);
+  --key-active: #e7825d;
+  --key-bed: #0f110f;
+  --dial-ring: rgb(230 238 232 / 0.14);
+  --dial-cap: radial-gradient(circle at 36% 23%, #e2e4d8, #c9ccbf 45%, #9ea294 100%);
+  --dial-border: #7d8276;
+  --dial-shadow: 0 5px 6px rgb(0 0 0 / 0.6), inset 0 2px 2px #f3f4ec, inset 0 -2px 3px #6f746a;
+  --sh-inset: inset 0 1px 2px rgb(0 0 0 / 0.5);
+  --sh-cap: 0 2px 1px rgb(0 0 0 / 0.4);
+  --sh-bed: inset 0 3px 5px rgb(0 0 0 / 0.8);
+  --sh-well: 0 1px rgb(255 255 255 / 0.08), inset 0 2px 8px rgb(0 0 0 / 0.8);
+  --sh-slab: inset 0 1px rgb(255 255 255 / 0.06), inset 0 -5px 2px #171a16, 0 12px 24px rgb(0 0 0 / 0.5);
 
-  /* No --grid-* or --screen-* overrides here: glass does not dim with the room. */
+  /* No --grid-* or --screen-* overrides here: glass does not change with the
+     room. The screen well's bezel and face and the grid well's bezel are
+     night-scoped rules in Screen.svelte and PatternGrid.svelte. */
 }
 
 /* Reduced motion zeroes decorative durations everywhere at once. Canvas cannot
@@ -224,7 +274,8 @@
 /* High contrast drops every sheen and gradient to a flat fill; the tokens
  * above already clear their ratios on flat colour. */
 @media (prefers-contrast: more) {
-  :root {
+  :root,
+  :root[data-room='night'] {
     --enclosure-face: none;
     --screen-face: none;
     --sh-cap: none;
@@ -305,7 +356,7 @@ body {
   white-space: nowrap;
   color: var(--enclosure-ink);
   background: var(--chip-bg);
-  border: 1px solid var(--enclosure-hairline);
+  border: 1px solid var(--chip-border);
   border-radius: var(--r-cap);
   box-shadow: var(--sh-cap);
   cursor: pointer;
@@ -331,7 +382,7 @@ button.key:disabled {
    aria-pressed too, and their pressed look is the held-key colour, not an
    inverted cap. */
 button.key[aria-pressed='true'] {
-  color: var(--chip-bg);
+  color: var(--chip-pressed-ink);
   background: var(--enclosure-ink);
   border-color: var(--enclosure-ink);
 }
@@ -367,8 +418,8 @@ button.key[aria-pressed='true'] {
   font-family: var(--font-ui);
   font-size: var(--t-value-size);
   color: var(--enclosure-ink);
-  background-color: var(--chip-bg);
-  border: 1px solid var(--enclosure-hairline);
+  background-color: var(--field-bg);
+  border: 1px solid var(--field-border);
   border-radius: var(--r-1);
   box-shadow: var(--sh-inset);
 }
@@ -386,6 +437,12 @@ select.window {
   background-repeat: no-repeat;
   background-position: right 7px center;
   cursor: pointer;
+}
+
+/* The chevron is an encoded image, so the night room needs its own, in the
+   muted night ink. */
+:root[data-room='night'] select.window {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M1 1.5l3 3 3-3' fill='none' stroke='%23b3b8ad' stroke-width='1.4'/%3E%3C/svg%3E");
 }
 
 /* A cap and a caption stacked; kept for the small op rows. */

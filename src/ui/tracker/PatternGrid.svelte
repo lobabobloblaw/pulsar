@@ -892,6 +892,12 @@
     border-radius: var(--r-2);
   }
 
+  /* Night: the bezel darkens with the slab; nothing inside the well changes
+     (the --grid-* tokens are room-invariant by contract). */
+  :global([data-room='night']) .grid-host {
+    border-color: #4a5148;
+  }
+
   .grid-nav {
     display: flex;
     flex-wrap: wrap;

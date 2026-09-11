@@ -85,6 +85,14 @@
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.13);
   }
 
+  :global([data-room='night']) .modes {
+    background: rgb(0 0 0 / 0.35);
+  }
+
+  :global([data-room='night']) .modes button[aria-pressed='true'] {
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.5);
+  }
+
   .modes button:focus-visible {
     outline: none;
     box-shadow: var(--focus);

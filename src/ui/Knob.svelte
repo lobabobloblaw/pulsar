@@ -246,7 +246,7 @@
     width: var(--dial);
     height: var(--dial);
     border-radius: var(--r-max);
-    background: repeating-conic-gradient(#343a311c 0deg 2deg, transparent 2deg 7deg);
+    background: repeating-conic-gradient(var(--dial-ring) 0deg 2deg, transparent 2deg 7deg);
     cursor: ns-resize;
     touch-action: none;
     -webkit-user-select: none;
@@ -273,12 +273,9 @@
     inset: 8px;
     display: block;
     border-radius: var(--r-max);
-    background: radial-gradient(circle at 36% 23%, #fffffb, #eeeee4 45%, #c5c8ba 100%);
-    border: 1px solid #bbc0ae;
-    box-shadow:
-      0 5px 6px rgb(0 0 0 / 0.25),
-      inset 0 2px 2px #fff,
-      inset 0 -2px 3px #9a9f8f;
+    background: var(--dial-cap);
+    border: 1px solid var(--dial-border);
+    box-shadow: var(--dial-shadow);
   }
 
   .indicator {

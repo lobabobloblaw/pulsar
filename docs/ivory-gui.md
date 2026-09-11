@@ -75,18 +75,19 @@ pattern renderer paints the lane-name band from them.
 
 | role | day | night |
 | --- | --- | --- |
-| page ground (standalone) | `#efefeb` | `#6f716a` |
-| slab `--enclosure-bg`, face gradient, border | `#deded4`; `120deg #eeefe5 → #deded4 → #cdd0c5`; `#adb0a3` | `#a6a89c`; `#b4b6aa → #a6a89c → #979a8d`; `#7c7f74` |
-| ink `--enclosure-ink` | `#252720` | `#15170f` |
-| muted `--enclosure-ink-2` | `#555849` | `#2e3129` |
-| line `--enclosure-hairline` | `#b9bcb0` | `#85897d` |
+| page ground (standalone) | `#efefeb` | `#141614` |
+| slab `--enclosure-bg`, face gradient, border | `#deded4`; `120deg #eeefe5 → #deded4 → #cdd0c5`; `#adb0a3` | `#262a24`; `#2f342c → #262a24 → #1e221c`; `#3d423a` |
+| ink `--enclosure-ink` | `#252720` | `#eeefe8` |
+| muted `--enclosure-ink-2` | `#555849` | `#b3b8ad` |
+| line `--enclosure-hairline` | `#b9bcb0` | `#464b43` |
 | accent `--enclosure-accent` | `#df4a28` (components only) | same |
-| play key fill / border / drop | `#d2401d` / `#9c311b` / `#a33c25` | same |
-| cap `--chip-bg` | `#eeeee6` | `#c3c5b9` |
-| keys | white `#e3e4da → #fafaf2`, black `#272b25 → #3f4439`, held `#e7825d`, bed `#929789` | same |
-| screen well | bg `#1e2925`, face `135deg #34463d → #1e2925 70%`, bezel `#272c25`, caption `#d0e6b3` | same |
+| play key fill / border / drop | `#d2401d` / `#9c311b` / `#a33c25` | `#d2401d` / `#9c311b` / `#7a2a16` |
+| cap `--chip-bg`, border; field `--field-bg` | `#eeeee6`, `#b9bcb0`; `#eeeee6` | `#353a33`, `#4c524a`; `#1a1d19` |
+| keys | white `#e3e4da → #fafaf2`, black `#272b25 → #3f4439`, held `#e7825d`, bed `#929789` | white `#c9ccbf → #e4e6da`, black `#1c201b → #2c312a`, held same, bed `#0f110f` |
+| dials `--dial-*` | ring `#343a311c`, cap `#fffffb → #eeeee4 → #c5c8ba`, border `#bbc0ae` | ring `rgb(230 238 232 / 0.14)`, cap `#e2e4d8 → #c9ccbf → #9ea294`, border `#7d8276` |
+| screen well | bg `#1e2925`, face `135deg #34463d → #1e2925 70%`, bezel `#272c25`, caption `#d0e6b3` | face `#2e3d35 → #1e2925`, bezel `#4a5148` (scoped rules; lattice unchanged) |
 | screen lattice (`SCREEN` in `tokens.ts`) | bg `#1e2925`, dotOff `#2b3730`, ink `#e6f6cb`, dim `#9fb394`, accent `#f48c65` | same |
-| grid glass `--grid-*` | bg `#1e2925`, alt `#182019`, beat `#263229`, bar `#2e3d33`, ink `#e6f6cb`, dim `#b7c6b0`, muted `#7c8977`, hairline `#3a493f`, accent `#ffb391`, selection `#3a4d42`, focus `#ec9a71`, header `#28362e` / `#dbe4d4`, well border `#252c26` | same |
+| grid glass `--grid-*` | bg `#1e2925`, alt `#182019`, beat `#263229`, bar `#2e3d33`, ink `#e6f6cb`, dim `#b7c6b0`, muted `#7c8977`, hairline `#3a493f`, accent `#ffb391`, selection `#3a4d42`, focus `#ec9a71`, header `#28362e` / `#dbe4d4`, well border `#252c26` | same glass; well bezel `#4a5148` (scoped rule) |
 | focus | `0 0 0 2px var(--enclosure-bg), 0 0 0 4px var(--enclosure-accent)`; on glass `0 0 0 2px #1e2925, 0 0 0 4px #ffb391` | same |
 
 Type: brand 36px/1 sans 600 tracked −2px (32px on a phone); captions
@@ -107,6 +108,15 @@ the darkest stops). Glass: ink 13.16:1, dim 8.38:1, accent 8.65:1, muted
 marks 4.08:1, header ink 9.69:1 on the band. Screen: ink 13.16:1, dim
 6.68:1, accent 6.28:1, caption 7.49:1 on the face's lightest stop.
 `prefers-contrast: more` drops every gradient and sheen to the flat values.
+
+Night (a dark Ivory, 2026-09-10): ink `#eeefe8` 12.5:1 on the slab, 10.0:1
+on the cap, 14.1:1 on the field, 13.6:1 on the face's darkest stop; muted
+`#b3b8ad` 7.0:1 / 5.6:1 / 7.9:1 / 7.6:1; white on the play fill 4.7:1; the
+key legend `#4d5347` 6.1:1 on the white key's foot (`#e4e6da`) and 4.8:1 on
+its shoulder; the screen and grid bezels `#4a5148` 1.8:1 against the slab as
+non-text edges. The lattice and the grid glass are byte-identical in both
+rooms; `tests/unit/ivoryWiring.test.ts` pins that the night block redefines
+every enclosure-facing day token and no glass token.
 
 ## What moved and what was retired
 
