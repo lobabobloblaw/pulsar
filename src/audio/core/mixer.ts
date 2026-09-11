@@ -61,3 +61,18 @@ export function mixExact(
 }
 
 export type MixerMode = 'lut' | 'linear'
+
+/** Linear gain applied to the VRC6's summed output (`pulse1 + pulse2 + saw`, 0..61
+ *  in practice and 0..63 nominal) before it is added to whichever 2A03 mix is running.
+ *
+ *  `PULSE_LUT[15] / 15` — chosen so ONE VRC6 pulse at volume 15 swings exactly as far
+ *  as a LONE 2A03 pulse at volume 15. The reference point matters: the 2A03's own
+ *  pulse ladder compresses, so a pulse sitting inside a full 2A03 mix contributes less
+ *  than the same pulse alone. Calibrating against the lone pulse is what reproduces the
+ *  balance a VRC6 cartridge actually has — the expansion is audibly the louder voice in
+ *  a busy passage, because it keeps its full level while the 2A03's own channels are
+ *  busy compressing each other.
+ *
+ *  It is a plain multiply, not a table, because the VRC6 has no ladder to model: the
+ *  three outputs meet at the cartridge's expansion audio pin and sum. */
+export const VRC6_GAIN = PULSE_LUT[15] / 15

@@ -17,6 +17,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ArrayWriteSink } from '../../src/audio/timeline/writeSink'
 import { centsBetween, dftFundamentalHz, hasNonFinite, maxAbs, rms, zeroCrossingHz } from '../helpers/analysis'
+import { dBc, goertzel } from '../helpers/dft'
 import { makeApu, renderWith } from '../helpers/renderTrace'
 
 const FIXTURES = join(import.meta.dirname, '..', 'fixtures', 'traces')
@@ -35,6 +36,16 @@ interface ParsedTrace {
   region: string
   durationCycles: number
   writes: ArrayWriteSink
+}
+
+/** Every address `Apu2A03.applyWrite` recognises: the 2A03 block and the VRC6's three.
+ *  A fixture is a claim about the hardware, so an address no chip in the engine has is
+ *  a typo in the fixture, not a write to ignore. */
+function isEngineAddress(addr: number): boolean {
+  if (addr >= 0x4000 && addr <= 0x4017) return true
+  if (addr >= 0x9000 && addr <= 0x9003) return true
+  if (addr >= 0xa000 && addr <= 0xa002) return true
+  return addr >= 0xb000 && addr <= 0xb002
 }
 
 /** Trace format v1: `# ` comments, then `<cycle> <addrHex> <valueHex>` rows, then
@@ -68,7 +79,7 @@ function parseTrace(text: string): ParsedTrace {
     if (!Number.isInteger(cycle) || cycle < lastCycle) {
       throw new Error(`trace rows must be chronological: ${line}`)
     }
-    if (addr < 0x4000 || addr > 0x4017) throw new Error(`address out of range: ${line}`)
+    if (!isEngineAddress(addr)) throw new Error(`address out of range: ${line}`)
     if (value < 0 || value > 0xff) throw new Error(`value out of range: ${line}`)
     lastCycle = cycle
     writes.write(cycle, addr, value)
@@ -134,13 +145,19 @@ describe('fixture hygiene', () => {
     const traces = files.filter((f) => f.endsWith('.trace')).map((f) => f.slice(0, -6))
     const metas = files.filter((f) => f.endsWith('.meta.json')).map((f) => f.slice(0, -10))
     expect(traces.sort()).toEqual(metas.sort())
-    expect(traces.length).toBe(6)
+    expect(traces.length).toBe(9)
   })
 
   it('the parser rejects malformed traces', () => {
     expect(() => parseTrace('0 4000 FF\n# END 100')).toThrow(/header/)
     expect(() => parseTrace('# pulsar-trace v1\n0 4000 FF')).toThrow(/END/)
     expect(() => parseTrace('# pulsar-trace v1\n0 3FFF FF\n# END 100')).toThrow(/address/)
+    // The VRC6 ranges are exact, not a blanket "anything above $4017": $9004, $A003
+    // and $B003 are unmapped and a fixture naming one is wrong.
+    expect(() => parseTrace('# pulsar-trace v1\n0 9004 FF\n# END 100')).toThrow(/address/)
+    expect(() => parseTrace('# pulsar-trace v1\n0 A003 FF\n# END 100')).toThrow(/address/)
+    expect(() => parseTrace('# pulsar-trace v1\n0 B003 FF\n# END 100')).toThrow(/address/)
+    expect(() => parseTrace('# pulsar-trace v1\n0 9002 FF\n# END 100')).not.toThrow()
     expect(() => parseTrace('# pulsar-trace v1\n10 4000 FF\n0 4000 00\n# END 100')).toThrow(
       /chronological/,
     )
@@ -296,5 +313,110 @@ describe('all-channels-mix', () => {
 
   it('has a stable output checksum', () => {
     expect(checksum(signal)).toMatchInlineSnapshot(`"17fba1f6"`)
+  })
+})
+
+/** A single known frequency's magnitude, measured a quarter second in. */
+function partial(signal: Float32Array, sampleRate: number, hz: number): number {
+  return goertzel(signal, sampleRate, hz, 12_000, 32_768)
+}
+
+describe('vrc6-pulse-a440', () => {
+  const { signal, meta } = render('vrc6-pulse-a440')
+
+  it('sounds A440 off the VRC6, at the 2A03 pulse anchor', () => {
+    const hz = zeroCrossingHz(signal, meta.sampleRate, 0.25, 4800)
+    expect(Math.abs(centsBetween(hz, meta.expect.fundamentalHz as number))).toBeLessThan(
+      meta.expect.toleranceCents as number,
+    )
+    expect(rms(signal, 4800, 43200)).toBeGreaterThan(meta.expect.rmsMin as number)
+    expect(hasNonFinite(signal)).toBe(false)
+  })
+
+  it('and duty 7 really is the 50 % square: the even harmonics are gone', () => {
+    const f = meta.expect.fundamentalHz as number
+    const h1 = partial(signal, meta.sampleRate, f)
+    expect(dBc(partial(signal, meta.sampleRate, 2 * f), h1)).toBeLessThan(-60)
+    expect(dBc(partial(signal, meta.sampleRate, 3 * f), h1)).toBeGreaterThan(-12)
+  })
+
+  // measured: fundamental 440.398 Hz (zero-crossing) / 440.394 Hz (DFT) against the
+  // ideal 440.3969; peak-to-peak 0.287 at the default 2.0 master gain, rms 0.107 —
+  // the same swing as the lone 2A03 pulse fixture, which is what VRC6_GAIN is for.
+  it('has a stable output checksum', () => {
+    expect(checksum(signal)).toMatchInlineSnapshot(`"624d498e"`)
+  })
+})
+
+describe('vrc6-saw-e5', () => {
+  const { signal, meta } = render('vrc6-saw-e5')
+
+  it('sounds fCPU/(14·254) — the sawtooth divisor, not the pulse one', () => {
+    const hz = dftFundamentalHz(signal, meta.sampleRate, 8192, 32768, 100, 2000)
+    expect(Math.abs(centsBetween(hz, meta.expect.fundamentalHz as number))).toBeLessThan(
+      meta.expect.toleranceCents as number,
+    )
+    expect(rms(signal, 4800, 43200)).toBeGreaterThan(meta.expect.rmsMin as number)
+    expect(hasNonFinite(signal)).toBe(false)
+  })
+
+  it('and it is a RAMP, not a square: the second harmonic is right behind the first', () => {
+    const f = meta.expect.fundamentalHz as number
+    const h1 = partial(signal, meta.sampleRate, f)
+    // A 50 % square has no second harmonic at all (−153 dBc on the pulse fixture
+    // above). A seven-level ramp has one about 4.6 dB down.
+    expect(dBc(partial(signal, meta.sampleRate, 2 * f), h1)).toBeGreaterThan(-10)
+  })
+
+  // measured: fundamental 503.312 Hz (zero-crossing) / 503.308 Hz (DFT) against the
+  // ideal 503.3107; second harmonic −4.59 dBc, third −7.49 dBc; rms 0.163, peak 0.554.
+  it('has a stable output checksum', () => {
+    expect(checksum(signal)).toMatchInlineSnapshot(`"3ea5af69"`)
+  })
+})
+
+describe('vrc6-eight-voice', () => {
+  const { signal, meta, clipped } = render('vrc6-eight-voice')
+
+  it('plays all eight voices without clipping or NaN', () => {
+    expect(rms(signal, 4800, signal.length)).toBeGreaterThan(meta.expect.rmsMin as number)
+    expect(maxAbs(signal)).toBeLessThanOrEqual(meta.expect.peakMax as number)
+    expect(clipped).toBeLessThanOrEqual(meta.expect.clippedSamplesMax as number)
+    expect(hasNonFinite(signal)).toBe(false)
+  })
+
+  it('really has eight sources contributing', () => {
+    const { trace, meta: m } = loadFixture('vrc6-eight-voice')
+    const mem = dpcmMemory(m)
+    const apu = makeApu({ sampleRate: m.sampleRate, durationSamples: 128 })
+    if (mem !== null) apu.setDpcmMemory(mem)
+    trace.writes.replayTo(apu)
+    apu.runTo(1_000_000)
+    expect(apu.pulse1.isSilent()).toBe(false)
+    expect(apu.pulse2.isSilent()).toBe(false)
+    expect(apu.triangle.isSilent()).toBe(false)
+    expect(apu.noise.isSilent()).toBe(false)
+    expect(apu.dmc.isIdle()).toBe(false)
+    expect(apu.vrc6p1.isSilent()).toBe(false)
+    expect(apu.vrc6p2.isSilent()).toBe(false)
+    expect(apu.vrc6saw.isSilent()).toBe(false)
+    expect(meta.expect.channelsSounding).toBe(8)
+  })
+
+  it('and each VRC6 voice is audible at its own frequency, beside the 2A03 ones', () => {
+    const sr = meta.sampleRate
+    const carrier = partial(signal, sr, 440.3969) // 2A03 pulse 1
+    expect(dBc(partial(signal, sr, 553.7664), carrier)).toBeGreaterThan(-12) // vrc6 p1 C#5
+    expect(dBc(partial(signal, sr, 880.7938), carrier)).toBeGreaterThan(-15) // vrc6 p2 A5
+    expect(dBc(partial(signal, sr, 329.4869), carrier)).toBeGreaterThan(-12) // vrc6 saw E4
+    // Anti-vacuity: a frequency no voice occupies is far below all of them.
+    expect(dBc(partial(signal, sr, 1500), carrier)).toBeLessThan(-25)
+  })
+
+  // measured: with the 2A03 pulse 1 (A440) as the carrier, the VRC6 partials land at
+  // C#5 553.77 Hz −4.39 dBc, A5 880.79 Hz −7.93 dBc and saw E4 329.49 Hz −4.51 dBc;
+  // the whole mix peaks at 0.813 with rms 0.192 and zero clipped samples.
+  it('has a stable output checksum', () => {
+    expect(checksum(signal)).toMatchInlineSnapshot(`"87864a3c"`)
   })
 })

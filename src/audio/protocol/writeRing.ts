@@ -115,7 +115,8 @@ export class RingProducer {
     return this.pushCode(cycle, encodeWrite(addr, value))
   }
 
-  /** Same, for a pre-encoded wire code. */
+  /** Same, for a pre-encoded wire code — the 24-bit `(addr & 0xffff) << 8 | value`
+   *  form from timeline/types.ts, which carries the VRC6 block unchanged. */
   pushCode(cycle: NesCycle, code: number): boolean {
     const header = this.header
     const w = this.writeIndex

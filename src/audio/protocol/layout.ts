@@ -21,7 +21,7 @@
  *    208  i32  clippedSamples  consumer-owned
  *    212  i32  running         consumer-owned (1 while the processor renders)
  *    256  f64  cycles[4096]    NES cycle of each queued write
- *    33024 i32 codes[4096]     16-bit wire encoding, `(addr & 0x1f) << 8 | value`
+ *    33024 i32 codes[4096]     24-bit wire encoding, `(addr & 0xffff) << 8 | value`
  *
  *  Indices live in `[0, 2·CAPACITY)`, not `[0, CAPACITY)`. The extra bit is what
  *  distinguishes a full ring from an empty one without a separate count, and masking
@@ -37,8 +37,12 @@
 
 /** 'PUL1' — a buffer that does not start with this is not ours. */
 export const RING_MAGIC = 0x50554c31
-/** Bump on any layout change; the consumer refuses a buffer it does not understand. */
-export const RING_VERSION = 1
+/** Bump on any layout change; the consumer refuses a buffer it does not understand.
+ *  v2 widened the code slot from the 16-bit `(addr & 0x1f) << 8 | value` encoding to
+ *  the 24-bit whole-address one, so the VRC6 block at $9000/$A000/$B000 can cross the
+ *  wire. A stale worklet chunk holding the v1 decoder must REFUSE this ring rather
+ *  than misdecode every address into the $4000 page. */
+export const RING_VERSION = 2
 
 /** Queued writes the ring can hold. Power of two — `SLOT_MASK` depends on it. */
 export const RING_CAPACITY = 4096

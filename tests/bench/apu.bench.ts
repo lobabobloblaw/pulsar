@@ -117,6 +117,49 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
+    name: 'all eight voices, musical (2A03 + VRC6)',
+    gated: true,
+    // Measured ~173 events/quantum: the five-channel row's ~99 plus ~74 from the three
+    // VRC6 oscillators, which clock at the CPU rate rather than half of it. The floor
+    // catches a VRC6 that never arms — a missing enable bit, or a channel left frozen
+    // by D-V1 — because the scenario would then be the five-channel one renamed.
+    minEvents: 140,
+    build: () => {
+      const a = apu()
+      a.setDpcmMemory(dpcmMemory())
+      a.write(0, 0x4015, 0x0f)
+      a.write(0, 0x4000, 0xbf)
+      a.write(0, 0x4001, 0x08)
+      a.write(0, 0x4002, 253)
+      a.write(0, 0x4003, 0x00)
+      a.write(0, 0x4004, 0x76)
+      a.write(0, 0x4005, 0x08)
+      a.write(0, 0x4006, 169)
+      a.write(0, 0x4007, 0x00)
+      a.write(0, 0x4008, 0xff)
+      a.write(0, 0x400a, 253)
+      a.write(0, 0x400b, 0x00)
+      a.write(0, 0x400c, 0x36)
+      a.write(0, 0x400e, 0x08)
+      a.write(0, 0x400f, 0x00)
+      a.write(0, 0x4010, 0x4a)
+      a.write(0, 0x4012, 0x00)
+      a.write(0, 0x4013, 0xff)
+      a.write(0, 0x4015, 0x1f)
+      // VRC6: C#5 and A5 on the pulses, E4 on the saw — the eight-voice golden chord.
+      a.write(0, 0x9000, 0x78)
+      a.write(0, 0x9001, 201 & 0xff)
+      a.write(0, 0x9002, 0x80)
+      a.write(0, 0xa000, 0x75)
+      a.write(0, 0xa001, 126 & 0xff)
+      a.write(0, 0xa002, 0x80)
+      a.write(0, 0xb000, 24)
+      a.write(0, 0xb001, 387 & 0xff)
+      a.write(0, 0xb002, 0x80 | ((387 >> 8) & 0x0f))
+      return a
+    },
+  },
+  {
     name: 'worst case (~800 deltas: bright noise + two top-octave pulses + dpcm)',
     gated: true,
     // Measured ~760 deltas/quantum; the 267 µs gate is written against this stream.

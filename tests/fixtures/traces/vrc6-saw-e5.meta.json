@@ -1,0 +1,14 @@
+{
+  "clockRate": 1789773,
+  "sampleRate": 48000,
+  "durationCycles": 1789773,
+  "expect": {
+    "fundamentalHz": 503.3107,
+    "toleranceCents": 3,
+    "rmsMin": 0.05
+  },
+  "reference": {
+    "renderer": "pulsar",
+    "notes": "period 253 = fCPU/(14*254) = 503.3107 Hz. rate 42 walks the accumulator 0,42,84..252 and the DAC sees accum>>3, so the ramp is the seven levels 0,5,10,15,21,26,31."
+  }
+}
