@@ -1,8 +1,12 @@
 <!--
-  pulsar — KeyBed (plan C8).
+  pulsar — KeyBed (plan C8, Ivory bed).
 
   Two octaves and a top C, matching the QWERTY map exactly, so the printed
-  legends and the physical keys are the same instrument rather than two.
+  note names and the physical keys are the same instrument rather than two.
+  Below 600px the bed shows ONE octave (semitones 0–11, seven whites and five
+  blacks) and the keytop's octave caps move it; QWERTY still plays both rows.
+  Nothing in the bed scrolls: white keys are flex children that share the
+  width, black keys are positioned by percentage of the white count.
 
   This component RENDERS ONLY. It does not listen for typing — input/keyboard.ts
   owns the window keydown/keyup listeners, which is what lets a letter play a
@@ -41,9 +45,10 @@
 <script lang="ts">
   import { tracker } from '../state/tracker.svelte'
   import { bridge } from '../audio/bridge'
-  import { LOCAL_VELOCITY, codeForSemitone, keyLegend } from '../input/keyboard'
+  import { LOCAL_VELOCITY, codeForSemitone } from '../input/keyboard'
   import { noteHolder, type NoteHolder } from '../input/noteOwnership'
   import { noteName, transport } from '../state/transport.svelte'
+  import { viewport } from './viewport.svelte'
 
   interface Props {
     announce?: ((message: string) => void) | undefined
@@ -58,7 +63,8 @@
     black: boolean
     /** Index among white keys — drives x position for both key types. */
     whiteIndex: number
-    legend: string
+    /** The QWERTY code that plays it (kept for the map's own sake). */
+    code: string | undefined
   }
 
   const KEYS: KeyDef[] = buildKeys()
@@ -68,31 +74,27 @@
     let whites = 0
     for (let s = 0; s < SEMITONES; s++) {
       const black = BLACK.has(s % 12)
-      const code = codeForSemitone(s)
-      out.push({
-        semitone: s,
-        black,
-        whiteIndex: whites,
-        legend: black ? '' : code ? keyLegend(code) : '',
-      })
+      out.push({ semitone: s, black, whiteIndex: whites, code: codeForSemitone(s) })
       if (!black) whites++
     }
     return out
   }
 
-  const WHITE_KEYS = KEYS.filter((k) => !k.black)
-  const BLACK_KEYS = KEYS.filter((k) => k.black)
+  /** The phone shows one octave; the keytop's octave caps move it. */
+  const visible = $derived(viewport.narrow ? KEYS.filter((k) => k.semitone < 12) : KEYS)
+  const whiteKeys = $derived(visible.filter((k) => !k.black))
+  const blackKeys = $derived(visible.filter((k) => k.black))
+  const lastSemitone = $derived((visible[visible.length - 1] as KeyDef).semitone)
 
   const audio = bridge()
-  let scroll = $state<HTMLDivElement | null>(null)
-  let range = $state(0)
-  function shiftRange(delta: number): void {
-    releaseAll()
-    range = Math.max(0, Math.min(1, range + delta))
-    if (scroll) scroll.scrollLeft = range * 280
-  }
 
   let cursor = $state(0)
+
+  // A narrower bed can leave the cursor on a key that no longer exists;
+  // aria-activedescendant must always name a rendered key.
+  $effect(() => {
+    if (cursor > lastSemitone) cursor = lastSemitone
+  })
 
   interface PointerHold {
     semitone: number
@@ -109,6 +111,8 @@
 
   const noteOfSemitone = (s: number): number => (transport.octave + 1) * 12 + s
   const keyId = (s: number): string => `key-${s}`
+  /** `c4` -> `C4`: the printed name on a white key. */
+  const printedName = (s: number): string => noteName(noteOfSemitone(s)).toUpperCase()
 
   /** Registers one physical hold; only the first global holder reaches audio. */
   function play(semitone: number, holder: NoteHolder): number {
@@ -184,7 +188,7 @@
   function onKeyDown(e: KeyboardEvent): void {
     switch (e.key) {
       case 'ArrowRight':
-        cursor = Math.min(SEMITONES - 1, cursor + 1)
+        cursor = Math.min(lastSemitone, cursor + 1)
         break
       case 'ArrowLeft':
         cursor = Math.max(0, cursor - 1)
@@ -193,7 +197,7 @@
         cursor = 0
         break
       case 'End':
-        cursor = SEMITONES - 1
+        cursor = lastSemitone
         break
       case ' ':
       case 'Enter':
@@ -219,45 +223,38 @@
 
 <svelte:window onpointermove={onPointerMove} onpointerup={endPointer} onpointercancel={endPointer} onblur={releaseAll} />
 
-<div class="range-controls">
-  <button type="button" aria-label="lower keyboard range" disabled={range === 0} onclick={() => shiftRange(-1)}>← Lower keys</button>
-  <span>octave {transport.octave + range}</span>
-  <button type="button" aria-label="upper keyboard range" disabled={range === 1} onclick={() => shiftRange(1)}>Upper keys →</button>
-</div>
-<div class="bed-scroll" bind:this={scroll}>
-  <div
-    class="bed"
-    role="toolbar"
-    aria-orientation="horizontal"
-    aria-label="keybed, octave {transport.octave}"
-    tabindex="0"
-    aria-activedescendant={keyId(cursor)}
-    onkeydown={onKeyDown}
-    onkeyup={onKeyUp}
-    onfocusout={releaseCursorNote}
-    onpointerleave={endPointer}
-  >
-    {#each WHITE_KEYS as k (k.semitone)}
+<div
+  class="bed"
+  role="toolbar"
+  aria-orientation="horizontal"
+  aria-label="keybed, octave {transport.octave}"
+  tabindex="0"
+  aria-activedescendant={keyId(cursor)}
+  onkeydown={onKeyDown}
+  onkeyup={onKeyUp}
+  onfocusout={releaseCursorNote}
+  onpointerleave={endPointer}
+>
+  <div class="row" style:--whites={whiteKeys.length}>
+    {#each whiteKeys as k (k.semitone)}
       <div
         id={keyId(k.semitone)}
         data-semitone={k.semitone}
         class="key white"
         class:pressed={isPressed(k.semitone)}
         class:cursor={cursor === k.semitone}
-        class:snap={k.semitone % 12 === 0}
         role="button"
         tabindex="-1"
         aria-label={noteName(noteOfSemitone(k.semitone))}
         aria-pressed={isPressed(k.semitone)}
-        style:left="{k.whiteIndex * 40}px"
         onpointerdown={(e) => onPointerDown(e, k.semitone)}
         onpointerenter={(e) => onPointerEnter(e, k.semitone)}
       >
-        <span class="legend t-label">{k.legend}</span>
+        <span class="legend">{printedName(k.semitone)}</span>
       </div>
     {/each}
 
-    {#each BLACK_KEYS as k (k.semitone)}
+    {#each blackKeys as k (k.semitone)}
       <div
         id={keyId(k.semitone)}
         data-semitone={k.semitone}
@@ -268,7 +265,7 @@
         tabindex="-1"
         aria-label={noteName(noteOfSemitone(k.semitone))}
         aria-pressed={isPressed(k.semitone)}
-        style:left="{k.whiteIndex * 40 - 13}px"
+        style:--wi={k.whiteIndex}
         onpointerdown={(e) => onPointerDown(e, k.semitone)}
         onpointerenter={(e) => onPointerEnter(e, k.semitone)}
       ></div>
@@ -277,137 +274,110 @@
 </div>
 
 <style>
-  .range-controls { display: none; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; margin-bottom: 8px; }
-  .range-controls button { min-height: 44px; padding: 8px; border: 1px solid var(--enclosure-hairline); border-radius: 4px; background: var(--enclosure-bg); color: var(--enclosure-ink); font: inherit; }
-  .range-controls button:disabled { opacity: .4; }
-  @media (max-width: 650px) { .range-controls { display: flex; } }
-
-  .bed-scroll {
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x proximity;
-    padding-bottom: var(--s-1);
-  }
-
+  /* The bed: a recessed tray under the panel lip, the keys standing in it. */
   .bed {
-    position: relative;
-    height: 140px;
-    /* 15 white keys x 40px */
-    width: 600px;
-    margin-inline: auto;
+    height: 136px;
+    padding: 7px 7px 10px;
+    background: var(--key-bed);
+    border-radius: var(--r-cap);
+    box-shadow: var(--sh-bed);
     touch-action: none;
   }
 
   .bed:focus-visible {
     outline: none;
-    box-shadow: var(--focus);
-    border-radius: var(--r-1);
+    box-shadow: var(--sh-bed), var(--focus);
   }
 
+  .row {
+    position: relative;
+    display: flex;
+    gap: 4px;
+    height: 100%;
+  }
+
+  /* The global `.key` is the cap vocabulary; a piano key is not a cap. */
   .key {
-    position: absolute;
-    top: 0;
+    min-height: 0;
+    padding: 0;
+    gap: 0;
+    font: inherit;
+    white-space: normal;
+    border: 0;
+    box-shadow: none;
     cursor: pointer;
     -webkit-user-select: none;
     user-select: none;
     touch-action: none;
   }
 
-  /* The lip of the enclosure shades the top of every key — the fallboard
-     shadow that makes the bed read as recessed under the panel. */
-  .bed::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 10px;
-    z-index: 2;
-    pointer-events: none;
-    background: linear-gradient(180deg, rgb(0 0 0 / 0.2), transparent);
-  }
-
   .white {
-    width: 40px;
-    height: 140px;
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    padding-bottom: var(--s-3);
-    background-color: var(--key-face);
-    /* Lit from above: bright shoulder, body, a shaded front lip at the foot. */
-    background-image: linear-gradient(
-      180deg,
-      rgb(255 255 255 / 0.55),
-      rgb(255 255 255 / 0) 16%,
-      rgb(0 0 0 / 0) 88%,
-      rgb(0 0 0 / 0.07)
-    );
-    border: 1px solid var(--enclosure-hairline);
-    border-radius: 0 0 var(--r-2) var(--r-2);
+    padding-bottom: 9px;
+    color: #62665b;
+    background: linear-gradient(#e3e4da 0%, var(--key-face) 70%);
+    border-radius: 2px 2px var(--r-cap) var(--r-cap);
     box-shadow:
-      var(--sh-inset),
-      0 2px 2px rgb(0 0 0 / 0.16);
-    color: var(--n-600);
+      0 4px 0 #b0b3a4,
+      0 5px 2px rgb(0 0 0 / 0.3);
     z-index: 0;
     transition:
       transform var(--dur-fast) var(--ease),
       box-shadow var(--dur-fast) var(--ease);
   }
 
-  .white.snap {
-    scroll-snap-align: start;
-  }
-
+  /* Black keys straddle the gap between two whites: centred on the boundary
+     at whiteIndex / whites, 65% of a white's pitch wide. */
   .black {
-    width: 26px;
-    height: 88px;
-    background-color: var(--key-face-sharp);
-    background-image: linear-gradient(
-      180deg,
-      rgb(255 255 255 / 0.22),
-      rgb(255 255 255 / 0) 18%,
-      rgb(0 0 0 / 0.25)
-    );
-    border-radius: 0 0 var(--r-1) var(--r-1);
+    position: absolute;
+    top: 0;
+    left: calc(var(--wi) * 100% / var(--whites) - 32.5% / var(--whites));
+    width: calc(65% / var(--whites));
+    height: 74px;
+    color: #c5c9ba;
+    background: linear-gradient(var(--key-face-sharp), #3f4439);
+    border: 1px solid #151a10;
+    border-radius: 2px 2px var(--r-cap) var(--r-cap);
     box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.16),
-      0 3px 4px rgb(0 0 0 / 0.38);
-    z-index: 1;
+      0 4px 0 #141710,
+      0 6px 4px rgb(0 0 0 / 0.3);
+    z-index: 2;
     transition:
       transform var(--dur-fast) var(--ease),
       box-shadow var(--dur-fast) var(--ease);
   }
 
   /* Pressed state is never colour alone: the key also drops and swallows its
-     light, the white legend flips, and aria-pressed carries it to assistive
-     tech. */
-  .white.pressed {
+     shadow, and aria-pressed carries it to assistive tech. */
+  .key.pressed {
+    color: var(--enclosure-ink);
     background: var(--key-active);
-    color: var(--n-000);
-    transform: translateY(2px);
-    box-shadow: inset 0 2px 3px rgb(0 0 0 / 0.25);
+    box-shadow: 0 1px 0 #a74325;
+    transform: translateY(3px);
   }
 
   .black.pressed {
-    transform: translateY(2px);
-    box-shadow:
-      inset 0 -3px 0 0 var(--key-active),
-      0 1px 2px rgb(0 0 0 / 0.3);
+    border-color: #a74325;
   }
 
   @media (prefers-contrast: more) {
-    .bed::before {
-      background: none;
+    .white {
+      background: var(--key-face);
     }
-    .white,
     .black {
-      background-image: none;
+      background: var(--key-face-sharp);
     }
   }
 
   .key.cursor::after {
     content: '';
     position: absolute;
-    inset: auto 50% 6px;
+    inset: auto 50% 26px;
     width: 6px;
     height: 6px;
     margin-left: -3px;
@@ -417,28 +387,20 @@
 
   .black.cursor::after {
     bottom: 8px;
-    background: var(--n-000);
+    background: var(--key-face);
   }
 
   .legend {
     pointer-events: none;
+    font-family: var(--font-ui);
+    font-size: var(--t-caption-size);
+    line-height: 1;
     transition: color var(--dur-fast) var(--ease);
   }
 
-  @media (max-width: 560px) {
-    .bed-scroll {
-      scroll-snap-type: x mandatory;
-    }
-  }
-
-  /* Thumbs get a deeper bed; the widths stay — 40px white keys are already
-     honest touch targets. */
+  /* Thumbs get a deeper bed. */
   @media (pointer: coarse) {
     .bed {
-      height: 164px;
-    }
-
-    .white {
       height: 164px;
     }
 

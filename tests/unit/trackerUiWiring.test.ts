@@ -40,21 +40,31 @@ function section(code: string, start: string, end: string): string {
 
 describe('the preset bar is mounted', () => {
   const app = codeOf('App.svelte')
+  const bar = codeOf('ui', 'TransportBar.svelte')
 
-  it('fills TrackerPanel\'s presetBar seam', () => {
+  it("fills the transport row's preset-bar seam", () => {
     // The component was complete and rendered by nobody: the panel showed its
     // "presets land here" placeholder and the whole album was unreachable in the app.
-    expect(app).toMatch(/import PresetBar from '\.\/ui\/tracker\/PresetBar\.svelte'/)
-    expect(app).toMatch(
-      /<TrackerPanel[\s\S]*?\{#snippet presetBar\(\)\}[\s\S]*?<PresetBar[\s\S]*?\{\/snippet\}[\s\S]*?<\/TrackerPanel>/,
-    )
+    // Ivory moved the mount from App's TrackerPanel snippet into the transport row.
+    expect(bar).toMatch(/import PresetBar from '\.\/tracker\/PresetBar\.svelte'/)
+    expect(bar).toMatch(/<div[^>]*data-slot="preset-bar"[^>]*>[\s\S]*?<PresetBar[\s\S]*?<\/div>/)
   })
 
   it('routes its announcements to the app LiveRegion', () => {
     // A preset that fails to load says so through `announce`, and App owns the only
-    // live region there is. Mounting it without the prop drops those messages.
-    const mount = section(app, '{#snippet presetBar()}', '{/snippet}')
-    expect(mount).toMatch(/<PresetBar\s+announce=\{announceText\}\s*\/>/)
+    // live region there is. Mounting it without the prop drops those messages — at
+    // either hop: App -> TransportBar -> PresetBar.
+    const mount = section(bar, 'data-slot="preset-bar"', '</div>')
+    expect(mount).toMatch(/<PresetBar\s+announce=\{announce\}\s*\/>/)
+    expect(app).toMatch(/import TransportBar from '\.\/ui\/TransportBar\.svelte'/)
+    expect(app).toMatch(/<TransportBar\s+announce=\{announceText\}[^>]*\/>/)
+  })
+
+  it('is mounted exactly once, by the transport row', () => {
+    // Two mounts would be two selects fighting over one document; the old
+    // TrackerPanel seam is gone and App must not grow a second one.
+    expect(app).not.toMatch(/<PresetBar/)
+    expect(bar.match(/<PresetBar/g)).toHaveLength(1)
   })
 })
 

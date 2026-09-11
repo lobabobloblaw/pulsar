@@ -1,17 +1,17 @@
 <!--
-  pulsar — the preset browser (design §5.6, preset-suite §7.3 step 9).
+  pulsar — the song picker (design §5.6, preset-suite §7.3 step 9; Ivory).
 
-  One chip-styled native `<select>`, one option per registered song, filling
-  `TrackerPanel`'s documented `presetBar` seam. It was a row of chips until the
-  2026-08-04 UI audit: fourteen songs wrapped the transport bar to three rows,
-  and the album will only grow — a picker costs one chip of space forever.
-  Native `<select>`, so keyboard operation, focus order and screen-reader
-  semantics still come free — a preset browser is not a place to invent a
-  widget. Styling is the StatusBar's chip vocabulary verbatim (`--chip-bg`,
-  `--chip-accent`, `--t-micro`, lowercase); tokens only, no literal colours.
+  One native `<select>`, one option per registered song, mounted in the
+  transport row's `data-slot="preset-bar"` seam. It was a row of chips until
+  the 2026-08-04 UI audit: fourteen songs wrapped the transport bar to three
+  rows, and the album will only grow — a picker costs one slot of space
+  forever. Native `<select>`, so keyboard operation, focus order and
+  screen-reader semantics still come free — a song browser is not a place to
+  invent a widget. Ivory prints a small "Song" caption above an underlined,
+  transparent select in the UI sans.
 
   Songs come from `src/assets/songs/index.ts`, which is a glob of that directory,
-  so this component never learns any song's name: adding a file adds a chip.
+  so this component never learns any song's name: adding a file adds an option.
 
   Loading is deliberately two calls and nothing else — `song.load()` replaces the
   document (clearing undo and the dirty flag) and `bridge.loadSong()` hands the
@@ -96,10 +96,9 @@
 
 {#if PRESETS.length > 0}
   <div class="presets" role="group" aria-label="preset songs">
-    <label class="t-micro picker">
-      <span class="muted">songs</span>
+    <label class="picker">
+      <span class="name">Song</span>
       <select
-        class="window"
         bind:this={selectEl}
         value={active ?? ''}
         class:bad={failed !== null}
@@ -122,13 +121,13 @@
     aria-label="discard unsaved changes"
     oncancel={cancelDiscard}
   >
-    <p class="t-body">
-      this song has unsaved edits. loading
-      <strong>{pending?.title ?? 'another preset'}</strong> discards them.
+    <p>
+      This song has unsaved edits. Loading
+      <strong>{pending?.title ?? 'another song'}</strong> discards them.
     </p>
     <div class="row">
-      <button type="button" class="chip action" onclick={cancelDiscard}>keep editing</button>
-      <button type="button" class="chip action" onclick={confirmDiscard}>discard and load</button>
+      <button type="button" class="key" onclick={cancelDiscard}>Keep editing</button>
+      <button type="button" class="key" onclick={confirmDiscard}>Discard and load</button>
     </div>
   </dialog>
 {/if}
@@ -136,79 +135,72 @@
 <style>
   .presets {
     min-width: 0;
+  }
+
+  /* A caption over an underlined value: the picker reads as a printed field,
+     not a boxed control. Native popup, native semantics. */
+  .picker {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--s-1);
-  }
-
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    padding: 3px var(--s-2);
-    font-size: var(--t-micro-size);
-    font-weight: var(--t-micro-weight);
-    letter-spacing: var(--t-micro-track);
-    text-transform: lowercase;
-    color: var(--chip-ink);
-    background: var(--chip-bg);
-    border: 0;
-    border-radius: var(--r-1);
-    box-shadow: var(--sh-inset);
-    white-space: nowrap;
-  }
-
-  .action {
-    color: var(--chip-accent);
-    cursor: pointer;
-  }
-
-  .muted {
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    font-size: 11px;
     color: var(--enclosure-ink-2);
   }
 
-  /* Silk name, glass window: the picker reads as a program slot — the ground
-     and chevron come from tokens' `.window`. Native popup, native semantics. */
-  .picker {
+  .picker select {
+    width: 100%;
     min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: var(--s-1);
+    padding: 6px 24px 6px 0;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.3;
+    color: var(--enclosure-ink);
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='7'%3E%3Cpath d='M1 1.5l4 4 4-4' fill='none' stroke='%23252720' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 4px center;
+    border: 0;
+    border-bottom: 1px solid var(--enclosure-hairline);
+    border-radius: 0;
+    appearance: none;
+    cursor: pointer;
+    text-overflow: ellipsis;
   }
 
-  .picker select {
-    font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
-    min-width: 0;
-    max-width: min(42ch, 100%);
+  .picker select:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+    border-radius: var(--r-1);
   }
 
   @media (pointer: coarse) {
     .picker select {
-      font-size: 16px;
-    }
-    .chip.action {
       min-height: 44px;
+      font-size: 16px;
     }
   }
 
-  /* A failed load RINGS the window — non-text red, visible on the slab; the
-     live-region announcement already said it in words. Red text on glass
-     would sit at 2.5:1. */
+  /* A failed load RINGS the field — non-text red, visible on the slab; the
+     live-region announcement already said it in words. */
   .picker select.bad {
-    box-shadow:
-      inset 0 1px 3px rgb(0 0 0 / 0.6),
-      0 0 0 2px var(--st-bad);
+    box-shadow: 0 0 0 2px var(--st-bad);
   }
 
   .confirm {
     max-width: 44ch;
-    padding: var(--s-3);
+    padding: 20px;
+    font-family: var(--font-sans);
+    font-size: var(--t-ui-size);
+    line-height: 1.5;
     color: var(--enclosure-ink);
-    background: var(--enclosure-bg);
-    border: 1px solid var(--grid-hairline);
-    border-radius: var(--r-2);
+    background: var(--chip-bg);
+    border: 1px solid var(--enclosure-hairline);
+    border-radius: 8px;
+  }
+
+  .confirm p {
+    margin: 0;
   }
 
   .confirm::backdrop {
@@ -217,12 +209,8 @@
 
   .row {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--s-2);
     margin-block-start: var(--s-3);
-  }
-
-  button:focus-visible {
-    outline: none;
-    box-shadow: var(--focus);
   }
 </style>

@@ -1,11 +1,12 @@
 <!--
-  pulsar — app shell (plan C2).
+  pulsar — app shell (plan C2, Ivory).
 
   Responsibilities, and only these:
    - own the SINGLE requestAnimationFrame loop and publish it on the
      'pulsar.frame' context. Order inside a frame is fixed: pump the bridge
-     first (it refreshes meter/scope), then let the renderers read. The loop
-     never writes $state — the dev fps chip at 4 Hz is the one exception.
+     first (it refreshes meter/scope), then the tracker, then let the
+     renderers read. The loop never writes $state — the dev fps chip at 4 Hz
+     is the one exception.
    - create the audio bridge, wire the parameter store to it, and mirror bridge
      status into transport.
    - own the boot gesture: the first keydown (or the first pointer press, for
@@ -13,6 +14,9 @@
      bridge.start(). Autoplay policy requires that call to come from a gesture.
    - attach the QWERTY listener and construct the MIDI controller. MIDI
      permission is requested lazily, never on load.
+   - compose the Ivory enclosure: head (brand, workspace switch, settings,
+     output) · settings strip · transport row · live modules or the tracker ·
+     keytop · keybed · footer.
 
   The ?selftest hook below is the lead's headless gate harness. Do not change
   its shape: the runner looks for `pre[data-selftest]` and reads document.title.
@@ -30,15 +34,17 @@
   import LiveRegion from './ui/a11y/LiveRegion.svelte'
   import Brand from './ui/Brand.svelte'
   import Enclosure from './ui/Enclosure.svelte'
-  import PlayerStrip from './ui/PlayerStrip.svelte'
-  import ProjectBar from './ui/ProjectBar.svelte'
-  import { downloadProject, installProjectHost } from './state/projectHost'
   import KeyBed from './ui/KeyBed.svelte'
+  import KeyTop from './ui/KeyTop.svelte'
   import KnobRow from './ui/KnobRow.svelte'
+  import ModeSwitch from './ui/ModeSwitch.svelte'
+  import OutputControl from './ui/OutputControl.svelte'
+  import ProjectBar from './ui/ProjectBar.svelte'
   import Screen from './ui/Screen.svelte'
-  import StatusBar from './ui/StatusBar.svelte'
-  import PresetBar from './ui/tracker/PresetBar.svelte'
+  import Settings from './ui/Settings.svelte'
+  import TransportBar from './ui/TransportBar.svelte'
   import TrackerPanel from './ui/tracker/TrackerPanel.svelte'
+  import { downloadProject, installProjectHost } from './state/projectHost'
   import { createBootSequence } from './ui/canvas/bootSequence'
   import { createFrameBus, provideFrame } from './ui/frame'
   import { noteName } from './state/transport.svelte'
@@ -55,6 +61,7 @@
   let started = false
   const compactQuery = matchMedia('(max-width: 720px)')
   let compact = $state(compactQuery.matches)
+  let settingsOpen = $state(false)
 
   // Keep the audio document current independent of which responsive view is
   // mounted. Reopening the editor must not restart a playing song.
@@ -147,8 +154,8 @@
     })
 
     // Playing surfaces start on press. Native controls own their click: starting
-    // on pointerdown could remove the power button before pointerup, sending the
-    // click to the MIDI button that shifted into its place.
+    // on pointerdown could remove the start cap before pointerup, sending the
+    // click to whatever shifted into its place.
     const onPointerDown = (event: PointerEvent): void => {
       if (started && boot.done) return
       if (event.target instanceof Element && event.target.closest('button,input,select,textarea,summary,a')) return
@@ -218,62 +225,71 @@
 
 <!-- The one main landmark; the stage/device manage their own layout, so a plain
      block wrapper is inert visually and satisfies axe's landmark-one-main/region. -->
-<!-- The tracker area only exists while the panel is open, so the enclosure keeps
-     its Phase-1 shape (and its Phase-1 width) when it is closed. -->
-<!-- The screen is ONE component with two homes: the enclosure's screen area in
-     live mode, the tracker panel's left pane while tracking (§4.1 as amended —
-     the workbench replaces the screen and knob rows so the open panel fits a
-     laptop viewport). One snippet, so the two mounts cannot drift. -->
-<!-- The preset browser fills TrackerPanel's `presetBar` seam from here (design §5.6),
-     and gets the SAME LiveRegion route as the panel: a preset that fails to load says
-     so out loud, and that message has nowhere else to go. -->
-{#snippet screenView()}
-  <Screen {boot} />
-  <!-- The live instrument always has song controls, including after rotation
-       to tablet width. The editor supplies its own transport while visible. -->
-  {#if !tracker.open || compact}<PlayerStrip announce={announceText} />{/if}
+<!-- The tracker workspace only exists while the editor is open AND the viewport
+     can show it (today's `tracker.open && !compact` rule); otherwise the live
+     modules render. The transport row and the keybed are in the enclosure in
+     both workspaces, so nothing about playback or note entry moves. -->
+{#snippet trackerArea()}
+  <TrackerPanel announce={announceText} />
 {/snippet}
 
-{#snippet trackerArea()}
-  <TrackerPanel announce={announceText}>
-    {#snippet screen()}
-      {@render screenView()}
-    {/snippet}
-    {#snippet presetBar()}
-      <PresetBar announce={announceText} />
-    {/snippet}
-  </TrackerPanel>
+{#snippet settingsStrip()}
+  <Settings id="settings-strip" onConnectMidi={connectMidi} />
 {/snippet}
 
 <main aria-label="pulsar">
 {#if song.draftError}
   <div class="draft-alert" role="alert">
     <span>{song.draftMessage}</span>
-    <button type="button" onclick={downloadProject}>Download project</button>
+    <button type="button" class="key" onclick={downloadProject}>Download project</button>
   </div>
 {/if}
-<Enclosure tracker={tracker.open && !compact ? trackerArea : undefined} screen={screenView}>
+<Enclosure
+  tracker={tracker.open && !compact ? trackerArea : undefined}
+  settings={settingsOpen ? settingsStrip : undefined}
+>
   {#snippet brand()}
     <Brand />
   {/snippet}
 
-  {#snippet status()}
-    <StatusBar onStartAudio={startAudio} onConnectMidi={connectMidi} />
+  {#snippet modes()}
+    <ModeSwitch {compact} />
   {/snippet}
 
-  {#snippet knobs()}
+  {#snippet settingsButton()}
+    <button
+      type="button"
+      class="key"
+      aria-expanded={settingsOpen}
+      aria-controls="settings-strip"
+      onclick={() => { settingsOpen = !settingsOpen }}
+    >
+      Settings
+    </button>
+  {/snippet}
+
+  {#snippet output()}
+    <OutputControl />
+  {/snippet}
+
+  {#snippet transportRow()}
+    <TransportBar announce={announceText} onStartAudio={startAudio} />
+  {/snippet}
+
+  {#snippet live()}
+    <Screen {boot} />
     <KnobRow />
   {/snippet}
 
+  {#snippet keytop()}
+    <KeyTop {compact} />
+  {/snippet}
+
   {#snippet keys()}
-    {#if !tracker.open || compact}<KeyBed {announce} />{/if}
+    <KeyBed {announce} />
   {/snippet}
 
   {#snippet foot()}
-    <!-- The face carries no usage prose (compact pass): the boot screen
-         teaches the first key, the midi screen page carries the fallback
-         mapping, and the full legend lives in the tracker's keyboard
-         reference. Only the disclaimer is printed. -->
     <ProjectBar />
   {/snippet}
 </Enclosure>
@@ -285,6 +301,18 @@
 
 
 <style>
-  .draft-alert { position: sticky; top: 0; z-index: 20; padding: 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--enclosure-ink); background: var(--enclosure-bg); border-bottom: 2px solid var(--enclosure-mark); font-size: 14px; }
-  .draft-alert button { font: inherit; min-height: 44px; padding: 8px 12px; color: inherit; border: 1px solid currentColor; border-radius: 4px; background: var(--enclosure-bg); }
+  .draft-alert {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    font-size: var(--t-ui-size);
+    color: var(--enclosure-ink);
+    background: var(--chip-bg);
+    border-bottom: 2px solid var(--enclosure-accent);
+  }
 </style>

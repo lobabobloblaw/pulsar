@@ -1,15 +1,24 @@
 <!--
-  pulsar — Screen (plan C9).
+  pulsar — Screen (plan C9, Ivory well).
 
-  A 128x64 dot lattice in a recessed well. The only lit object on the page.
+  A 128x64 dot lattice in a deep green well. The only lit object on the page.
 
-  Sizing: the canvas takes exactly 128*DOT x 64*DOT CSS pixels and the leftover
-  width of the well becomes bezel, so the dot pitch is always an integer and the
-  lattice never resamples. See dotMatrix.ts for the DPR rule.
+  The well is a bordered display module the width of its column: a caption
+  row along the top (page name · engine status), the lattice centred, and a
+  caption row along the foot (key range · who owns the keys). The captions
+  are real state, printed in the well's own ink, and the pager sits under the
+  module on the slab.
 
-  Pages: boot, params, scope, midi. The boot sequence dissolves INTO the params
-  page — it is handed the params renderer as its underlay, which is why the two
-  are the same function and not two drawings of the same thing.
+  Sizing: the canvas takes exactly 128*DOT x 64*DOT CSS pixels and is sized
+  by the WIDTH the well can give it — the well's box minus its border and
+  padding — with an unbounded height budget, so the dot pitch is always an
+  integer and the lattice never resamples (the old viewport-height budget and
+  its measured SHELL_OVERHEAD are gone: the Ivory slab scrolls, it does not
+  fit a fixed height). See dotMatrix.ts for the DPR rule.
+
+  Pages: boot, params, scope, midi, song. The boot sequence dissolves INTO the
+  params page — it is handed the params renderer as its underlay, which is why
+  the two are the same function and not two drawings of the same thing.
 
   The canvas is aria-hidden and everything it shows is mirrored as text for
   assistive tech. A screen that only exists as pixels is not a screen.
@@ -19,7 +28,7 @@
   import { LATTICE, SCREEN } from '../design/tokens'
   import { params } from '../state/params.svelte'
   import { song } from '../state/song.svelte'
-  import { bpm as bpmOf } from '../state/songModel'
+  import { bpm as bpmOf, CHANNEL_LABELS } from '../state/songModel'
   import { tracker } from '../state/tracker.svelte'
   import { SCREEN_PAGES, transport, type ScreenPage } from '../state/transport.svelte'
   import type { BootSequence } from './canvas/bootSequence'
@@ -27,6 +36,7 @@
   import { GLYPH_H, screenSafe } from './canvas/font5x7'
   import { SCOPE_BOX, drawScope, drawScopeFrame } from './canvas/meterRenderer'
   import { useFrame } from './frame'
+  import { viewport } from './viewport.svelte'
 
   interface Props {
     boot: BootSequence
@@ -36,7 +46,6 @@
   const audio = bridge()
   const frame = useFrame()
 
-  let wrap = $state<HTMLDivElement | null>(null)
   let well = $state<HTMLDivElement | null>(null)
   let canvas = $state<HTMLCanvasElement | null>(null)
   /** The live half of the song page's text mirror. Written from the frame loop
@@ -129,7 +138,7 @@
     } else if (midi.permission === 'denied') {
       lines.push('denied', 'reload and allow', 'midi access')
     } else if (midi.permission === 'unknown') {
-      lines.push('not connected', 'press the midi key', 'to connect a device')
+      lines.push('not connected', 'connect midi in', 'settings')
     } else if (midi.ports.length === 0) {
       lines.push('no devices', 'plug one in, it is', 'picked up live')
     } else {
@@ -172,54 +181,38 @@
     else drawParams(m, now)
   }
 
-  /** The sizing rule needs the width the canvas can actually occupy.
-   *  `clientWidth` includes the well's padding, and feeding that here once
+  /** The width the lattice may take: the well's box minus its border and its
+   *  padding, floored. Feeding a padding-inflated width to the sizing rule once
    *  picked a dot one too large — the canvas then hit reset.css's
    *  `max-width: 100%` and the lattice resampled at 2.036 device px per CSS px
-   *  instead of overflowing loudly. */
-  /** The width the lattice may take: the full screen row minus the module's
-   *  bezel padding. Measured on the WRAPPER — the well hugs the canvas like a
-   *  fitted display module, so measuring the well itself would chase its own
-   *  content around. */
-  function latticeWidthBudget(wrapEl: HTMLElement, wellEl: HTMLElement): number {
+   *  instead of overflowing loudly. The well is the width of its column, not
+   *  of its content, so measuring it does not chase the canvas around. */
+  function latticeWidthBudget(wellEl: HTMLElement): number {
     const cs = getComputedStyle(wellEl)
-    return wrapEl.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-  }
-
-  /** Vertical room the live shell keeps around the canvas — stage padding,
-   *  the rail, well padding + pager, knobs, keys, foot and the grid gaps,
-   *  measured over CDP on the compact-pass layout (457px, 2026-08-04; pinned
-   *  with 3px slack). The lattice takes what is left of the viewport: dot 7
-   *  at ≥908px tall, 6 at ≥844, 5 at ≥780, down to DOT_MIN. The WIDTH budget
-   *  (960 slab − 32 device pad − 16 well pad = 912) caps the dot at 7 — dot 8
-   *  needs 1024. If the shell ever grows past this the page scrolls a little —
-   *  visible and recoverable, which beats a lattice that resamples. */
-  const SHELL_OVERHEAD = 460
-
-  function canvasHeightBudget(): number {
-    return Math.max(0, window.innerHeight - SHELL_OVERHEAD)
+    const box = wellEl.getBoundingClientRect().width
+    return Math.floor(
+      box -
+        parseFloat(cs.borderLeftWidth) -
+        parseFloat(cs.borderRightWidth) -
+        parseFloat(cs.paddingLeft) -
+        parseFloat(cs.paddingRight),
+    )
   }
 
   $effect(() => {
     const el = canvas
     const box = well
-    const outer = wrap
-    if (!el || !box || !outer) return
+    if (!el || !box) return
 
     const matrix = new DotMatrix(el)
-    matrix.resize(latticeWidthBudget(outer, box), canvasHeightBudget())
+    // Width only: the height budget is unbounded, so the dot is the largest
+    // integer that fits the well's inner width.
+    matrix.resize(latticeWidthBudget(box), Infinity)
 
-    // ResizeObserver sees the row's width change; a purely vertical window
-    // resize moves only the viewport budget, so the window listener is not
-    // redundant with it.
     const ro = new ResizeObserver(() => {
-      matrix.resize(latticeWidthBudget(outer, box), canvasHeightBudget())
+      matrix.resize(latticeWidthBudget(box), Infinity)
     })
-    ro.observe(outer)
-    const onWindowResize = (): void => {
-      matrix.resize(latticeWidthBudget(outer, box), canvasHeightBudget())
-    }
-    window.addEventListener('resize', onWindowResize)
+    ro.observe(box)
 
     const stop = frame.subscribe((now) => {
       if (transport.page === 'boot' && !boot.done) {
@@ -237,7 +230,6 @@
 
     return () => {
       stop()
-      window.removeEventListener('resize', onWindowResize)
       ro.disconnect()
       matrix.destroy()
     }
@@ -274,8 +266,7 @@
       // The position is NOT in this string: `tracker.position` is a plain object
       // read in rAF (design §2.4), so a $derived over it would never invalidate
       // and the mirror would silently freeze at whatever row it first saw. The
-      // live half is written to `posEl` from the frame loop instead, the same
-      // way Meter.svelte writes its readout.
+      // live half is written to `posEl` from the frame loop instead.
       return `song page. ${meta.name || 'untitled'} by ${meta.author || 'no author'}, ${
         Math.round(bpmOf(meta))
       } bpm.`
@@ -288,12 +279,47 @@
   function pageLabel(p: ScreenPage): string {
     return `${p} page`
   }
+
+  /* ---- the well's printed captions ------------------------------------- */
+
+  const pageName = $derived(transport.page.toUpperCase())
+
+  const status = $derived.by(() => {
+    const a = transport.audio.state
+    if (a === 'error') return 'AUDIO ERROR'
+    if (a === 'idle') return 'TAP A KEY TO START'
+    if (a === 'starting') return 'STARTING'
+    return tracker.playing ? 'SONG PLAYBACK' : 'READY'
+  })
+
+  /** What the bed reaches: two octaves and the top C, or the phone's one. */
+  const keyRange = $derived(
+    viewport.narrow
+      ? `C${transport.octave} — B${transport.octave}`
+      : `C${transport.octave} — C${transport.octave + 2}`,
+  )
+
+  const lane = $derived(
+    (CHANNEL_LABELS[song.doc.channels[tracker.channel] ?? 'pulse1'] ?? 'pulse 1').toUpperCase(),
+  )
+
+  const owner = $derived.by(() => {
+    if (tracker.playing) return `SONG / ${lane}`
+    if (transport.midi.ports.length > 0) return `MIDI · ${transport.midi.ports.length}`
+    return 'QWERTY / TOUCH'
+  })
 </script>
 
 <div class="screen">
-  <div class="wellwrap" bind:this={wrap}>
-    <div class="well" bind:this={well}>
-      <canvas bind:this={canvas} aria-hidden="true"></canvas>
+  <div class="well" bind:this={well}>
+    <div class="cap">
+      <span>{pageName}</span>
+      <span>{status}</span>
+    </div>
+    <canvas bind:this={canvas} aria-hidden="true"></canvas>
+    <div class="cap">
+      <span>{keyRange}</span>
+      <span>{owner}</span>
     </div>
   </div>
 
@@ -317,32 +343,29 @@
 
 <style>
   .screen {
-    min-width: 0;
-    grid-template-columns: minmax(0, 1fr);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--s-3);
-  }
-
-  .wellwrap {
     min-width: 0;
-    grid-template-columns: minmax(0, 1fr);
-    display: grid;
-    justify-items: center;
   }
 
-  /* The well hugs the lattice like a fitted display module: a machined rim
-     around dark glass, not a tray of empty screen. */
+  /* The display module: a thick bezel around deep green glass, the captions
+     printed in the glass's own pale ink, the lattice centred between them. */
   .well {
     position: relative;
-    width: fit-content;
     display: grid;
-    place-items: center;
-    padding: var(--s-2);
-    background: var(--screen-bg);
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+    align-content: center;
+    gap: 14px;
+    min-width: 0;
+    padding: 18px 20px;
+    color: var(--screen-caption);
+    background-color: var(--screen-bg);
+    background-image: var(--screen-face);
+    border: 7px solid var(--screen-bezel);
     border-radius: var(--r-3);
-    box-shadow:
-      var(--sh-well),
-      0 0 0 1px rgb(0 0 0 / 0.4);
+    box-shadow: var(--sh-well);
   }
 
   /* Glass: one faint diagonal sheet reflection. Decoration, so it dies under
@@ -351,14 +374,9 @@
     content: '';
     position: absolute;
     inset: 0;
-    border-radius: inherit;
+    border-radius: 3px;
     pointer-events: none;
-    background: linear-gradient(
-      115deg,
-      rgb(255 255 255 / 0.06),
-      rgb(255 255 255 / 0.015) 30%,
-      transparent 46%
-    );
+    background: linear-gradient(145deg, rgb(255 255 255 / 0.03), transparent 50%);
   }
 
   @media (prefers-contrast: more) {
@@ -367,7 +385,25 @@
     }
   }
 
+  .cap {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-family: var(--font-ui);
+    font-size: var(--t-caption-size);
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .cap span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   canvas {
+    justify-self: center;
     border-radius: var(--r-0);
     image-rendering: pixelated;
     /* Opt out of reset.css's `canvas { max-width: 100% }`: a squeezed lattice
@@ -395,8 +431,8 @@
   }
 
   .page-dot.active {
-    background: var(--enclosure-mark);
-    border-color: var(--enclosure-mark);
+    background: var(--enclosure-ink);
+    border-color: var(--enclosure-ink);
   }
 
   .page-dot:focus-visible {
@@ -423,12 +459,30 @@
     }
 
     .page-dot.active::before {
-      background: var(--enclosure-mark);
-      border-color: var(--enclosure-mark);
+      background: var(--enclosure-ink);
+      border-color: var(--enclosure-ink);
     }
   }
 
   .pager-name {
     color: var(--enclosure-ink-2);
+  }
+
+  @media (max-width: 600px) {
+    .well {
+      padding: 12px 10px;
+      gap: 10px;
+    }
+  }
+
+  /* 320px: the 2-dot lattice is 256px wide; the well gives up its side
+     padding so the integer dot still fits inside the bezel. */
+  @media (max-width: 360px) {
+    .well {
+      padding-inline: 4px;
+    }
+    .cap {
+      padding-inline: 4px;
+    }
   }
 </style>

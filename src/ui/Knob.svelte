@@ -1,23 +1,26 @@
 <!--
-  pulsar — Knob (plan C7).
+  pulsar — Knob (plan C7, Ivory dial).
 
-  DEVIATION FROM plan-file.md, DELIBERATE: this is SVG, not canvas.
+  DEVIATION FROM plan-file.md, DELIBERATE (D-U1): this is DOM, not canvas.
 
   plan-file's "put the knobs on canvas" advice is aimed at the Phase-2 pattern
-  grid, where hundreds of cells repaint per frame. Four knobs are a different
+  grid, where hundreds of cells repaint per frame. Three dials are a different
   problem. Each one animates exactly one property — `transform: rotate()` on a
-  single <line> — which the compositor handles without a paint, and in exchange
-  SVG gives us free DPR crispness, CSS-variable theming that follows the room
-  dimmer for nothing, and NATIVE focus and ARIA. A canvas knob would have to
-  reimplement role="slider", the focus ring, and hit testing by hand.
+  single indicator element — which the compositor handles without a paint, and
+  in exchange the DOM gives us free DPR crispness, CSS-variable theming that
+  follows the room dimmer for nothing, and NATIVE focus and ARIA. A canvas
+  knob would have to reimplement role="slider", the focus ring, and hit
+  testing by hand. (It was an SVG until the Ivory pass; the tick ring is now
+  a conic gradient and the cap a radial one, which is the same argument with
+  fewer nodes.)
 
-  REVISIT TRIGGER: more than 24 simultaneous knobs on screen (Phase 2's
-  instrument editor is the likely cause). At that point re-measure with a
-  DevTools recording; if the layer count or paint time regresses, move all knobs
-  to ONE shared canvas — not one canvas each.
+  REVISIT TRIGGER: more than 24 simultaneous knobs on screen. At that point
+  re-measure with a DevTools recording; if the layer count or paint time
+  regresses, move all knobs to ONE shared canvas — not one canvas each.
 
-  Geometry: 56px dial, 240 degrees of travel (-120 to +120), 24 detent dots,
-  3px ink indicator, label above, numeric readout always beneath.
+  Geometry: 88px dial (72 on a phone), 270 degrees of travel (-135 to +135),
+  a 3x20px accent indicator with rounded ends, label above, numeric readout
+  and the printed range beneath.
 
   SHIFT = FINE, AND WHAT THAT HONESTLY MEANS PER PARAMETER.
 
@@ -41,6 +44,10 @@
 
   Dragging is unaffected: it is a continuous gesture whose sensitivity (range/200
   vs range/1000 per pixel) is meaningful on every parameter, integer or not.
+
+  DISABLED (song playback): the driver owns the timeline, so the dial keeps its
+  ARIA and its focus stop but ignores every gesture and says so through
+  `aria-disabled`; the row's caption says why.
 -->
 <script lang="ts">
   import { untrack } from 'svelte'
@@ -51,11 +58,13 @@
 
   interface Props {
     id: ParamId
+    /** The printed range line under the value (`0 — 15`). */
+    detail?: string
+    disabled?: boolean
   }
-  let { id }: Props = $props()
+  let { id, detail = '', disabled = false }: Props = $props()
 
-  const SWEEP = 240
-  const DETENTS = 24
+  const SWEEP = 270
 
   const d = $derived(params.descriptor(id))
   const value = $derived(params.get(id))
@@ -64,6 +73,11 @@
   const angle = $derived(-SWEEP / 2 + SWEEP * fraction)
 
   const labelId = $derived(`knob-${id.replace('.', '-')}-label`)
+
+  /** The registry's labels are lowercase for the 5x7 screen face; the slab
+   *  prints them in sentence case. `aria-labelledby` still points at this. */
+  const labelText = $derived(d.label.charAt(0).toUpperCase() + d.label.slice(1))
+  const valueText = $derived(text.charAt(0).toUpperCase() + text.slice(1))
 
   let dragging = $state(false)
 
@@ -98,14 +112,6 @@
     params.set(id, acc)
   }
 
-  function detentAngle(i: number): number {
-    return -SWEEP / 2 + (SWEEP * i) / (DETENTS - 1)
-  }
-
-  function detentFilled(i: number): boolean {
-    return i / (DETENTS - 1) <= fraction + 1e-6
-  }
-
   /** Horizontal travel accumulated across the gesture. Touch has no Shift, so
    *  pulling the finger ASIDE is the touch-native fine mode (the scrubbing
    *  idiom): past 48px of offset the same vertical travel moves at the
@@ -119,6 +125,7 @@
   }
 
   function onMove(dx: number, dy: number, e: PointerEvent): void {
+    if (disabled) return
     aside += dx
     const fine = e.shiftKey || (e.pointerType === 'touch' && Math.abs(aside) > 48)
     const range = d.max - d.min
@@ -132,14 +139,17 @@
   }
 
   function onWheel(steps: number, e: WheelEvent): void {
+    if (disabled) return
     commit(acc + steps * (e.shiftKey ? fineStep : d.step))
   }
 
   function reset(): void {
+    if (disabled) return
     acc = params.reset(id)
   }
 
   function onPointerDown(e: PointerEvent): void {
+    if (disabled) return
     if (e.altKey) {
       e.preventDefault()
       reset()
@@ -147,6 +157,7 @@
   }
 
   function onKeyDown(e: KeyboardEvent): void {
+    if (disabled) return
     const step = e.shiftKey ? fineStep : d.step
     let handled = true
     switch (e.key) {
@@ -180,7 +191,8 @@
   }
 </script>
 
-<div class="knob">
+<div class="knob" class:disabled>
+  <span class="label" id={labelId}>{labelText}</span>
   <div
     class="dial"
     class:dragging
@@ -192,69 +204,49 @@
     aria-valuemax={d.max}
     aria-valuenow={value}
     aria-valuetext={speak(text)}
+    aria-disabled={disabled ? 'true' : undefined}
+    style:--angle="{angle}deg"
     onkeydown={onKeyDown}
     onpointerdown={onPointerDown}
     ondblclick={reset}
-    use:pointerDrag={{ onStart, onMove, onEnd, accept: (e) => !e.altKey }}
+    use:pointerDrag={{ onStart, onMove, onEnd, accept: (e) => !disabled && !e.altKey }}
     use:nonPassiveWheel={{ onWheel }}
   >
-    <svg viewBox="0 0 56 56" width="56" height="56" aria-hidden="true" focusable="false">
-      {#each { length: DETENTS } as _, i (i)}
-        <circle
-          class="detent"
-          class:filled={detentFilled(i)}
-          cx="28"
-          cy="4.5"
-          r="1.5"
-          transform="rotate({detentAngle(i)} 28 28)"
-        />
-      {/each}
-
-      <circle class="cap" cx="28" cy="28" r="18" />
-      <!-- Dome light: a soft shade along the lower curve, a sheen along the
-           upper. Static on purpose — the light does not rotate with the
-           indicator, and the one animated transform stays the rotation
-           (D-U1). -->
-      <path class="shade" d="M14 32.5 A16.5 16.5 0 0 0 42 32.5" />
-      <path class="sheen" d="M15 22.5 A16 16 0 0 1 41 22.5" />
-      <g transform="rotate({angle} 28 28)">
-        <line class="indicator" x1="28" y1="13" x2="28" y2="24" />
-      </g>
-    </svg>
+    <!-- The cap sits inside the tick ring; the one animated transform is the
+         indicator's rotation (D-U1). -->
+    <span class="cap" aria-hidden="true"><i class="indicator"></i></span>
   </div>
-
-  <!-- One printed line under the dial: name and value together, the way a
-       panel is silkscreened (compact pass). The numeric readout plan-file §10
-       requires stays visible; the id feeding aria-labelledby stays with it. -->
-  <p class="readout">
-    <span class="label t-label" id={labelId}>{d.label}</span>
-    <span class="value t-value">{text}</span>
-  </p>
+  <span class="value">{valueText}</span>
+  {#if detail}<span class="detail">{detail}</span>{/if}
 </div>
 
 <style>
   .knob {
-    display: grid;
-    justify-items: center;
-    gap: var(--s-2);
+    --dial: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
   }
 
-  .readout {
-    display: flex;
-    align-items: baseline;
-    gap: var(--s-1);
-    margin: 0;
-    line-height: 1;
+  .knob.disabled {
+    opacity: 0.45;
   }
 
   .label {
-    color: var(--enclosure-ink-2);
+    font-family: var(--font-sans);
+    font-size: var(--t-ui-size);
+    color: var(--enclosure-ink);
   }
 
+  /* The tick ring: a conic repeat of 2° ink marks every 7°. */
   .dial {
-    width: 56px;
-    height: 56px;
+    position: relative;
+    width: var(--dial);
+    height: var(--dial);
     border-radius: var(--r-max);
+    background: repeating-conic-gradient(#343a311c 0deg 2deg, transparent 2deg 7deg);
     cursor: ns-resize;
     touch-action: none;
     -webkit-user-select: none;
@@ -270,59 +262,69 @@
     cursor: grabbing;
   }
 
-  .detent {
-    fill: var(--enclosure-hairline);
+  .disabled .dial {
+    cursor: default;
   }
 
-  /* Blue as a component fill only — 3:1 against the aluminium is enough for a
-     non-text indicator (WCAG 1.4.11), and it never carries meaning alone: the
-     numeric readout underneath always says the same thing in words. */
-  .detent.filled {
-    fill: var(--enclosure-accent);
-  }
-
+  /* The domed cap: lit from the upper left, a shaded lower rim, a contact
+     shadow onto the ring. */
   .cap {
-    fill: var(--key-face);
-    stroke: var(--enclosure-hairline);
-    stroke-width: 1;
-    /* The cap sits ON the face: a contact shadow where it meets the panel. */
-    filter: drop-shadow(0 1.5px 1px rgb(0 0 0 / 0.3));
+    position: absolute;
+    inset: 8px;
+    display: block;
+    border-radius: var(--r-max);
+    background: radial-gradient(circle at 36% 23%, #fffffb, #eeeee4 45%, #c5c8ba 100%);
+    border: 1px solid #bbc0ae;
+    box-shadow:
+      0 5px 6px rgb(0 0 0 / 0.25),
+      inset 0 2px 2px #fff,
+      inset 0 -2px 3px #9a9f8f;
   }
 
-  .shade {
-    fill: none;
-    stroke: rgb(0 0 0 / 0.12);
-    stroke-width: 3.5;
-    stroke-linecap: round;
-    filter: blur(1.5px);
+  .indicator {
+    position: absolute;
+    top: 5px;
+    left: calc(50% - 1.5px);
+    width: 3px;
+    height: 20px;
+    border-radius: 2px;
+    background: var(--enclosure-accent);
+    transform-origin: 50% calc((var(--dial) - 16px) / 2 - 5px);
+    transform: rotate(var(--angle));
   }
 
-  .sheen {
-    fill: none;
-    stroke: rgb(255 255 255 / 0.6);
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    filter: blur(1.2px);
+  .value {
+    font-family: var(--font-ui);
+    font-size: var(--t-dial-size);
+    font-weight: 500;
+    line-height: 1;
+    color: var(--enclosure-ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .detail {
+    font-family: var(--font-ui);
+    font-size: var(--t-caption-size);
+    line-height: 1.4;
+    text-align: center;
+    white-space: nowrap;
+    color: var(--enclosure-ink-2);
   }
 
   @media (prefers-contrast: more) {
     .cap {
-      filter: none;
-    }
-    .shade,
-    .sheen {
-      display: none;
+      background: var(--chip-bg);
+      box-shadow: none;
     }
   }
 
-  .indicator {
-    stroke: var(--enclosure-mark);
-    stroke-width: 3;
-    stroke-linecap: butt;
-  }
-
-  .value {
-    color: var(--enclosure-ink);
-    font-variant-numeric: tabular-nums;
+  @media (max-width: 600px) {
+    .knob {
+      --dial: 72px;
+      gap: 10px;
+    }
+    .indicator {
+      height: 16px;
+    }
   }
 </style>

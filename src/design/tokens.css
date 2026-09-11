@@ -1,20 +1,26 @@
-/* pulsar — design tokens (plan C1).
+/* pulsar — design tokens (Ivory, 2026-09-10).
  *
- * Governing idea: a light aluminium slab with ONE dark emissive well. The screen
- * is the only lit object on the page, and everything lit is built from one
- * primitive — a 3px dot on a 4px lattice. The space scale IS the lattice pitch.
+ * Governing idea: a pale mineral slab, warm-white caps, ONE deep green display
+ * well and one vermilion transport key. The slab is a lit object on a paper
+ * ground; the screen and the tracker's grid are the same dark glass, and that
+ * glass is room-invariant. Everything lit is still built from one primitive —
+ * a 3px dot on a 4px lattice — and the space scale is the lattice pitch.
  *
- * Accent rule (measured WCAG): one accent per surface, the one that clears 4.5:1
- * on it. Enclosure (light) -> blue #1270b8 (5.20:1 on white chips; only 3.65:1 on
- * #d8d8d8, so on the slab it is a COMPONENT color, never text). Screen (dark) ->
- * amber #ffc003 (10.82:1). Blue never appears inside the screen; amber never
- * appears on the enclosure. Green/red only as a 6px dot always paired with text.
+ * Accent rule (measured WCAG, `docs/ivory-gui.md` carries the table): the
+ * vermilion #df4a28 is a COMPONENT colour on the slab (3.0:1) — indicator,
+ * play-key border, focus ring — never text on the slab. The play key's fill is
+ * a hair darker (#d2401d) so its white label clears 4.5:1. Muted ink is
+ * #555849, not the study's #62665b, because the slab face is a gradient and
+ * captions have to clear 4.5:1 on its DARKEST stop (#cdd0c5), not only on the
+ * nominal slab colour. Glass ink #e6f6cb clears 13:1; the glass accent #ffb391
+ * 8.7:1; the empty-cell marks 4.1:1 (non-text).
  */
 
 /* One self-hosted face. Declared here rather than importing fontsource's
  * stylesheet so that (a) only the latin subset ships and (b) font-display is
  * `block` — an instrument that reflows its numerals mid-load reads as broken
- * (D6). The @fontsource-variable/jetbrains-mono package supplies the file. */
+ * (D6). The @fontsource-variable/jetbrains-mono package supplies the file. The
+ * sans is a SYSTEM stack: Ivory adds no font asset. */
 @font-face {
   font-family: 'JetBrains Mono Variable';
   font-style: normal;
@@ -28,81 +34,81 @@
 }
 
 :root {
-  /* ---- neutrals (measured from teenage.engineering, plan-file §10) ------- */
+  /* ---- neutrals (the Ivory greys; names kept, values re-pointed) --------- */
   --n-000: #ffffff;
-  --n-100: #d8d8d8;
-  --n-200: #c9c9c9;
-  --n-300: #bdbdbd;
-  --n-400: #a8a8a8;
-  --n-500: #8f8f8f;
-  --n-600: #484848;
-  --n-700: #303030;
-  --n-800: #181818;
-  --n-900: #000000;
+  --n-100: #eeeee6;
+  --n-200: #deded4;
+  --n-300: #cdd0c5;
+  --n-400: #b9bcb0;
+  --n-500: #929789;
+  --n-600: #555849;
+  --n-700: #3f4439;
+  --n-800: #252720;
+  --n-900: #151a10;
 
-  /* ---- accents (one per surface; never mixed across surfaces) ----------- */
-  --a-blue: #1270b8;
+  /* ---- accents ----------------------------------------------------------- */
+  --a-blue: #1270b8; /* retired from the face; kept for any dev readout */
   --a-green: #1aa167;
   --a-red: #ce2021;
   --a-amber: #ffc003;
-  --a-gray: #bdbdbd;
+  --a-gray: #b9bcb0;
+  --a-vermilion: #df4a28;
 
-  /* ---- surface roles: enclosure (light aluminium) ----------------------- */
-  --page-bg: var(--n-200);
-  --enclosure-bg: var(--n-100);
-  --enclosure-ink: var(--n-800); /* 12.46:1 on #d8d8d8 */
-  --enclosure-ink-2: var(--n-600); /* 6.42:1 on #d8d8d8 */
-  --enclosure-hairline: var(--n-400); /* rules + unlit marks only, never text */
-  --enclosure-accent: var(--a-blue); /* components only on the slab (3.65:1) */
-  --enclosure-mark: var(--n-800); /* knob indicator, key ink */
-  --chip-bg: var(--n-000); /* blue text is legal here: 5.20:1 */
-  --chip-ink: var(--n-800);
-  --chip-accent: var(--a-blue);
-  --key-face: var(--n-000);
-  --key-face-sharp: var(--n-800);
-  --key-active: var(--a-blue);
+  /* ---- surface roles: enclosure (the Ivory slab) ------------------------- */
+  --page-bg: #efefeb;
+  --enclosure-bg: #deded4;
+  --enclosure-face: linear-gradient(120deg, #eeefe5 0%, #deded4 50%, #cdd0c5 100%);
+  --enclosure-border: #adb0a3;
+  --enclosure-ink: #252720; /* 11.2:1 on the slab, 9.7:1 on its darkest stop */
+  --enclosure-ink-2: #555849; /* 5.4:1 on the slab, 4.7:1 on its darkest stop */
+  --enclosure-hairline: #b9bcb0; /* rules + unlit marks only, never text */
+  --enclosure-accent: var(--a-vermilion); /* components only on the slab (3.0:1) */
+  --enclosure-mark: #252720; /* page dots, alert rule: ink */
+  --chip-bg: #eeeee6; /* the cap face */
+  --chip-ink: #252720;
+  --chip-accent: var(--a-vermilion); /* cap borders that mean "act now" */
+  --play-bg: #d2401d; /* white text 4.7:1; a hair under the accent */
+  --play-border: #9c311b;
+  --play-drop: #a33c25;
+  --key-face: #fafaf2;
+  --key-face-sharp: #272b25;
+  --key-active: #e7825d;
+  --key-bed: #929789;
 
   /* ---- surface roles: screen (the one lit object) ----------------------- */
-  --screen-bg: #181818;
-  --screen-dot-off: #303030; /* the unlit lattice is deliberately visible */
-  --screen-ink: #ffffff; /* 17.75:1 */
-  --screen-dim: #a8a8a8; /* 7.47:1 */
-  --screen-accent: #ffc003; /* 10.82:1 */
-  --screen-bezel: var(--n-600);
+  --screen-bg: #1e2925;
+  --screen-dot-off: #2b3730; /* the unlit lattice is deliberately visible */
+  --screen-ink: #e6f6cb; /* 13.2:1 */
+  --screen-dim: #9fb394; /* 6.7:1 */
+  --screen-accent: #f48c65; /* 6.3:1 */
+  --screen-bezel: #272c25;
+  --screen-face: linear-gradient(135deg, #34463d, #1e2925 70%);
+  --screen-caption: #d0e6b3; /* 7.5:1 on the face's lightest stop */
 
   /* ---- surface roles: the pattern grid (phase-2 design §4.2) ------------
-   * The grid is a working surface laid ON the aluminium, not a second lit
-   * object — the screen stays the only lit thing on the page. It is the one
-   * canvas that must read its palette from THIS file at runtime rather than
-   * from a tokens.ts mirror, because enclosure tokens change with the room and
-   * the screen's do not (K5). gridMetrics.ts resolves these with one
-   * getComputedStyle at mount and again on a data-room change, which is why
-   * every value here is a plain colour: a var() or a color-mix() would reach
-   * the canvas unresolved.
+   * The grid, the order strip's glass and the envelope handle share the
+   * screen's dark glass and, like the screen, are room-invariant (K5). The
+   * grid is the one canvas that reads its palette from THIS file at runtime
+   * (gridMetrics.ts, one getComputedStyle at mount and on a data-room
+   * change), which is why every value here is a plain colour: a var() or a
+   * color-mix() would reach the canvas unresolved.
    *
-   * Measured, day room:  ink 17.75:1 · ink-dim 9.15:1 · ink-muted 3.03:1 (the
-   * empty-cell marks, non-text) · accent 4.61:1 on the field. The highlight
-   * bands are neutral luminance steps derived from --n-100 / --n-300, never
-   * colour: exactly one accent lives on this surface and it belongs to the
-   * cursor and the playhead. */
-  /* The tracker's work surfaces are LIT DISPLAYS, not paper (device pass
-     2026-08-04): grid, order table and envelope share the dot-matrix
-     screen's dark glass, so like the screen they are room-invariant — glass
-     does not dim with the room, which is also what keeps a bright field from
-     out-shining the screen at night (the reason this block once carried a
-     night override). Amber is the glass accent; blue stays on aluminium. */
-  --grid-bg: #181818; /* the screen well's ground */
-  --grid-bg-alt: #101010; /* header + gutter ground, a step deeper */
-  --grid-bg-beat: #222222; /* rowHighlight band */
-  --grid-bg-bar: #2c2c2c; /* rowHighlight2 band */
-  --grid-ink: #ececec; /* note column — 14.6:1 on the glass */
-  --grid-ink-dim: #a8a8a8; /* instrument, volume, effects, row numbers — 7.0:1 */
-  --grid-ink-muted: #5e5e5e; /* '...' placeholders — non-text marks, one
-                                step darker so the marks still clear 3:1 */
-  --grid-hairline: #343434; /* column + channel rules */
-  --grid-accent: #ffc003; /* cursor + playhead — the screen's amber, nothing else */
-  --grid-selection: #2c3f52; /* a blue-family wash the ink stays readable on (8.6:1) */
-  --grid-focus: #ffc003;
+   * Measured: ink 13.2:1 · ink-dim 8.4:1 · accent 8.7:1 · muted marks 4.1:1
+   * (non-text) · header ink 9.7:1 on the header band. */
+  --grid-bg: #1e2925;
+  --grid-bg-alt: #182019; /* gutter ground, a step deeper */
+  --grid-bg-beat: #263229; /* rowHighlight band */
+  --grid-bg-bar: #2e3d33; /* rowHighlight2 band */
+  --grid-ink: #e6f6cb;
+  --grid-ink-dim: #b7c6b0;
+  --grid-ink-muted: #7c8977; /* '...' placeholders — non-text marks */
+  --grid-hairline: #3a493f;
+  --grid-accent: #ffb391; /* cursor + playhead */
+  --grid-selection: #3a4d42;
+  --grid-focus: #ec9a71;
+  --grid-header: #28362e; /* the lane-name band */
+  --grid-header-ink: #dbe4d4;
+  --grid-well-border: #252c26;
 
   /* ---- status (always paired with text, never color alone) -------------- */
   --st-ok: var(--a-green);
@@ -119,31 +125,28 @@
   --s-7: 48px;
   --s-8: 64px;
 
-  /* ---- radius: 0 for dots and the screen interior, 20px for the shell --- */
+  /* ---- radius: fields 3, caps 5, wells 6, screen 10, slab 17 ------------- */
   --r-0: 0px;
   --r-1: 3px;
+  --r-cap: 5px;
   --r-2: 6px;
-  --r-3: 12px;
-  --r-4: 20px;
+  --r-3: 10px;
+  --r-4: 17px;
   --r-max: 50%;
 
-  /* ---- the shadow vocabulary — three, each with one job ----------------- */
-  /* inset: a control emboss · well: a recessed display · slab: the enclosure
-     itself as an OBJECT — chamfer light along the top edge, shade under the
-     bottom edge, a tight contact shadow and an ambient drop onto the desk.
-     (This section said "exactly two shadows" until the materials pass; the
-     discipline stands — a new shadow needs a new physical story.) */
-  --sh-inset: inset 0 1px 0 rgb(255 255 255 / 0.7), inset 0 -1px 0 rgb(0 0 0 / 0.12);
-  --sh-well: inset 0 3px 8px rgb(0 0 0 / 0.55), 0 1px 0 rgb(255 255 255 / 0.55);
-  --sh-slab:
-    inset 0 1px 0 rgb(255 255 255 / 0.65),
-    inset 0 -2px 0 rgb(0 0 0 / 0.1),
-    0 2px 3px rgb(0 0 0 / 0.18),
-    0 18px 40px -16px rgb(0 0 0 / 0.4);
+  /* ---- the shadow vocabulary, each with one physical story --------------- */
+  /* inset: a recessed field · cap: a raised cap's contact · bed: the keybed's
+     recess under the panel lip · well: the display module's glass · slab: the
+     enclosure as an object on the desk. */
+  --sh-inset: inset 0 1px 2px rgb(0 0 0 / 0.12);
+  --sh-cap: 0 2px 1px rgb(0 0 0 / 0.07);
+  --sh-bed: inset 0 3px 5px rgb(0 0 0 / 0.38);
+  --sh-well: 0 1px rgb(255 255 255 / 0.6), inset 0 2px 8px rgb(0 0 0 / 0.56);
+  --sh-slab: inset 0 1px #fff, inset 0 -5px 2px #aeb1a4, 0 12px 24px rgb(0 0 0 / 0.13);
 
   /* ---- focus: one double ring, used verbatim everywhere ----------------- */
-  --focus: 0 0 0 2px var(--n-000), 0 0 0 4px var(--a-blue);
-  --focus-screen: 0 0 0 2px var(--n-900), 0 0 0 4px var(--a-amber);
+  --focus: 0 0 0 2px var(--enclosure-bg), 0 0 0 4px var(--enclosure-accent);
+  --focus-screen: 0 0 0 2px #1e2925, 0 0 0 4px #ffb391;
 
   /* ---- motion ----------------------------------------------------------- */
   --dur-fast: 90ms;
@@ -151,45 +154,52 @@
   --ease: cubic-bezier(0.2, 0, 0, 1);
 
   /* ---- type ------------------------------------------------------------- */
+  /* `--font-ui` stays the mono: gridMetrics.ts measures the grid with it. The
+     sans carries UI text, buttons and the wordmark. */
   --font-ui: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', 'Menlo',
     'Consolas', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
 
-  --t-brand-size: 28px;
-  --t-brand-weight: 800;
-  --t-brand-track: -0.04em;
+  --t-ui-size: 14px;
+  --t-brand-size: 36px;
+  --t-brand-weight: 600;
+  --t-brand-track: -2px;
   --t-page-size: 16px;
   --t-page-weight: 700;
   --t-value-size: 13px;
   --t-value-weight: 600;
-  --t-body-size: 12px;
+  --t-body-size: 12px; /* the grid's cell type — gridMetrics reads this */
   --t-body-weight: 400;
-  --t-label-size: 12px;
-  --t-label-weight: 500;
-  --t-label-track: 0.08em;
-  --t-micro-size: 11px;
+  --t-label-size: 14px;
+  --t-label-weight: 400;
+  --t-label-track: 0;
+  --t-micro-size: 11px; /* the grid's header type — gridMetrics reads this */
   --t-micro-weight: 500;
-  --t-micro-track: 0.1em;
+  --t-micro-track: 1px;
+  --t-caption-size: 10px; /* every printed caption on the slab and the glass */
+  --t-dial-size: 22px;
+  --t-bpm-size: 28px;
+  --t-position-size: 18px;
 }
 
-/* Room dimmer — NOT dark mode. Lowers enclosure luminance for a dim room while
- * the screen tokens stay byte-identical, which is what preserves the
- * lit-screen hierarchy. Blue drops to fill-only (it never sits on the slab in
- * either room); the knob indicator and slab marks go to ink. */
+/* Room dimmer — NOT dark mode. Ivory dimmed: the slab drops to a mid mineral
+ * grey with darker ink, while the keys, the screen and the grid glass stay
+ * byte-identical, which is what preserves the lit-screen hierarchy. */
 :root[data-room='night'] {
-  --page-bg: #7d7d7d;
-  --enclosure-bg: var(--n-500);
-  --sh-slab:
-    inset 0 1px 0 rgb(255 255 255 / 0.22),
-    inset 0 -2px 0 rgb(0 0 0 / 0.18),
-    0 2px 3px rgb(0 0 0 / 0.3),
-    0 18px 40px -16px rgb(0 0 0 / 0.55);
-  --enclosure-ink: #0d0d0d; /* 6.01:1 on #8f8f8f */
-  --enclosure-ink-2: var(--n-800); /* 5.44:1 on #8f8f8f */
-  --enclosure-hairline: var(--n-600);
-  --enclosure-mark: #0d0d0d;
+  --page-bg: #6f716a;
+  --enclosure-bg: #a6a89c;
+  --enclosure-face: linear-gradient(120deg, #b4b6aa 0%, #a6a89c 50%, #979a8d 100%);
+  --enclosure-border: #7c7f74;
+  --enclosure-ink: #15170f; /* 7.5:1 on the slab, 6.3:1 on its darkest stop */
+  --enclosure-ink-2: #2e3129; /* 5.5:1 on the slab, 4.6:1 on its darkest stop */
+  --enclosure-hairline: #85897d;
+  --enclosure-mark: #15170f;
+  --chip-bg: #c3c5b9;
+  --chip-ink: #15170f;
+  --sh-slab: inset 0 1px rgb(255 255 255 / 0.5), inset 0 -5px 2px #7f8277, 0 12px 24px rgb(0 0 0 / 0.3);
 
-  /* No --grid-* overrides here: the tracker's surfaces are lit glass now and
-   * stay identical in both rooms, exactly like the dot-matrix screen. */
+  /* No --grid-* or --screen-* overrides here: glass does not dim with the room. */
 }
 
 /* Reduced motion zeroes decorative durations everywhere at once. Canvas cannot
@@ -211,6 +221,17 @@
   }
 }
 
+/* High contrast drops every sheen and gradient to a flat fill; the tokens
+ * above already clear their ratios on flat colour. */
+@media (prefers-contrast: more) {
+  :root {
+    --enclosure-face: none;
+    --screen-face: none;
+    --sh-cap: none;
+    --sh-slab: none;
+  }
+}
+
 /* ---- global type roles ------------------------------------------------- */
 
 html {
@@ -218,9 +239,10 @@ html {
 }
 
 body {
-  font-family: var(--font-ui);
-  font-size: var(--t-body-size);
-  font-weight: var(--t-body-weight);
+  font-family: var(--font-sans);
+  font-size: var(--t-ui-size);
+  font-weight: 400;
+  line-height: 1.4;
   font-variant-numeric: tabular-nums; /* readouts must not reflow mid-drag */
   color: var(--enclosure-ink);
   background: var(--page-bg);
@@ -231,56 +253,73 @@ body {
   font-weight: var(--t-page-weight);
 }
 
+/* A value in a field: mono, tabular. */
 .t-value {
+  font-family: var(--font-ui);
   font-size: var(--t-value-size);
   font-weight: var(--t-value-weight);
   font-variant-numeric: tabular-nums;
 }
 
+/* A control's printed name: the UI sans, sentence case. */
 .t-label {
+  font-family: var(--font-sans);
   font-size: var(--t-label-size);
   font-weight: var(--t-label-weight);
   letter-spacing: var(--t-label-track);
 }
 
+/* THE caption: mono 10px, tracked, uppercase, muted. Every printed legend on
+   the slab is this; captions on the glass override only the colour. */
 .t-micro {
-  font-size: var(--t-micro-size);
+  font-family: var(--font-ui);
+  font-size: var(--t-caption-size);
   font-weight: var(--t-micro-weight);
   letter-spacing: var(--t-micro-track);
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--enclosure-ink-2);
 }
 
-/* Only for dynamic strings we do not author (MIDI port names). A global
-   text-transform would mangle them in the other direction. */
+.t-body {
+  font-family: var(--font-sans);
+  font-size: var(--t-body-size);
+  font-weight: var(--t-body-weight);
+}
+
 /* ---- device controls ---------------------------------------------------- */
-/* The hardware vocabulary (plan-file §10, UI audit follow-up): a control is a
-   CAP — a physical button carrying one geometric glyph — with its label
-   silkscreened on the slab beneath it, never on the cap. Passive state is an
-   LED next to a printed name. Chips survive only where the text itself is the
-   control (the songs picker) or a rare warning tag. */
+/* The Ivory vocabulary: a control is a CAP — a warm-white key with its name
+   printed ON it in the UI sans, a hairline border and one contact shadow. A
+   latched cap inverts to ink. Passive state is printed text, never an LED. */
 
 .key {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 9px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--t-ui-size);
+  line-height: 1.2;
+  white-space: nowrap;
   color: var(--enclosure-ink);
-  background-color: var(--chip-bg);
-  /* Top light on the cap face + a hairline of contact under it: raised, not
-     printed. */
-  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.55), rgb(255 255 255 / 0) 45%);
-  border: 0;
-  border-radius: var(--r-1);
-  box-shadow:
-    var(--sh-inset),
-    0 1px 1px rgb(0 0 0 / 0.2);
+  background: var(--chip-bg);
+  border: 1px solid var(--enclosure-hairline);
+  border-radius: var(--r-cap);
+  box-shadow: var(--sh-cap);
   cursor: pointer;
 }
 
-.key:active {
-  transform: translateY(0.5px);
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.28);
+button.key:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+button.key:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
 }
 
 .key:focus-visible {
@@ -289,40 +328,49 @@ body {
 }
 
 /* Caps only — KeyBed's piano keys are <div class="key white|black"> carrying
-   aria-pressed too, and their pressed look is deliberately not a colour fill
-   (a black key stays dark and lights its bottom bar). */
+   aria-pressed too, and their pressed look is the held-key colour, not an
+   inverted cap. */
 button.key[aria-pressed='true'] {
-  color: var(--n-000);
-  background: var(--chip-accent);
+  color: var(--chip-bg);
+  background: var(--enclosure-ink);
+  border-color: var(--enclosure-ink);
+}
+
+/* Record-style latch: edit mode is the one place red means engaged. */
+.key.rec[aria-pressed='true'] {
+  background: var(--play-bg);
+  border-color: var(--play-border);
+  color: #fff;
+}
+
+/* Small caps for rows a caption already names (frame ops, macro actions). */
+.key.mini {
+  min-height: 28px;
+  padding: 3px 8px;
+  font-size: 12px;
+}
+
+/* Text caps: no border, no ground — the footer's project actions. */
+.key.text {
+  min-height: 28px;
+  padding: 5px 8px;
+  font-size: 11px;
+  background: transparent;
+  border-color: transparent;
   box-shadow: none;
 }
 
-/* Record-style latch: edit mode is the one place red means engaged, the way
-   it does on every piece of recording hardware ever made. */
-.key.rec[aria-pressed='true'] {
-  background: var(--st-bad);
-}
-
-/* Editor caps run smaller where a row label already names them. */
-.key.mini {
-  width: 18px;
-  height: 18px;
-}
-
-/* An editable VALUE lives in a small pane of the displays' own glass: dark
-   ground, light ink, no border — a control you read like a readout. The focus
-   halo lands on the SLAB, so it takes the aluminium ring (--focus), never the
-   screen's amber. */
+/* An editable VALUE lives in a field of the cap's own ground: a bordered pane,
+   mono ink, the slab's focus ring. */
 .window {
-  padding: 2px var(--s-1);
+  padding: 7px;
   font-family: var(--font-ui);
-  color: var(--grid-ink);
-  background-color: var(--grid-bg);
-  border: 0;
+  font-size: var(--t-value-size);
+  color: var(--enclosure-ink);
+  background-color: var(--chip-bg);
+  border: 1px solid var(--enclosure-hairline);
   border-radius: var(--r-1);
-  box-shadow:
-    inset 0 1px 3px rgb(0 0 0 / 0.6),
-    0 1px 0 rgb(255 255 255 / 0.35);
+  box-shadow: var(--sh-inset);
 }
 
 .window:focus-visible {
@@ -330,18 +378,17 @@ button.key[aria-pressed='true'] {
   box-shadow: var(--focus);
 }
 
-/* Selects lose the OS arrow for a chevron in the glass's own dim ink — glass
-   is room-invariant, so the literal colour is correct in both rooms. */
+/* Selects lose the OS arrow for a chevron in the muted ink. */
 select.window {
   appearance: none;
-  padding-right: 18px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M1 1.5l3 3 3-3' fill='none' stroke='%23a8a8a8' stroke-width='1.4'/%3E%3C/svg%3E");
+  padding-right: 22px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6'%3E%3Cpath d='M1 1.5l3 3 3-3' fill='none' stroke='%23555849' stroke-width='1.4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 5px center;
+  background-position: right 7px center;
   cursor: pointer;
 }
 
-/* A cap and the label printed under it. */
+/* A cap and a caption stacked; kept for the small op rows. */
 .keyed {
   display: inline-flex;
   flex-direction: column;
@@ -349,11 +396,14 @@ select.window {
   gap: 3px;
 }
 
+/* The printed caption, single line. */
 .silk {
-  font-size: var(--t-micro-size);
+  font-family: var(--font-ui);
+  font-size: var(--t-caption-size);
   font-weight: var(--t-micro-weight);
   letter-spacing: var(--t-micro-track);
   line-height: 1;
+  text-transform: uppercase;
   color: var(--enclosure-ink-2);
   white-space: nowrap;
 }

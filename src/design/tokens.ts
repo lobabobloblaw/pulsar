@@ -16,11 +16,11 @@ export const LATTICE = {
 } as const
 
 export const SCREEN = {
-  bg: '#181818',
-  dotOff: '#303030',
-  ink: '#ffffff',
-  dim: '#a8a8a8',
-  accent: '#ffc003',
+  bg: '#1e2925',
+  dotOff: '#2b3730',
+  ink: '#e6f6cb',
+  dim: '#9fb394',
+  accent: '#f48c65',
 } as const
 
 /** Dot size bounds for the sizing rule in dotMatrix.ts. The floor is 2, not 3

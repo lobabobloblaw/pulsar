@@ -99,9 +99,15 @@ class TransportState {
     this.setRoom(this.room === 'day' ? 'night' : 'day')
   }
 
-  toggleModel(): void {
-    this.consoleModel = this.consoleModel === 'nes' ? 'famicom' : 'nes'
+  /** The one console-model write path: the Settings select calls it directly,
+   *  `toggleModel` is kept for callers that flip it. */
+  setModel(model: ConsoleModel): void {
+    this.consoleModel = model
     this.#bridge?.setConsoleModel(this.consoleModel)
+  }
+
+  toggleModel(): void {
+    this.setModel(this.consoleModel === 'nes' ? 'famicom' : 'nes')
   }
 
   nextPage(): void {

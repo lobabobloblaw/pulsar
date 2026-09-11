@@ -64,6 +64,11 @@ export interface GridPalette {
   selection: string
   hairline: string
   focus: string
+  /** The lane-name band and its ink (Ivory). Optional so a palette literal
+   *  built for the renderer tests needs no new keys; absent, the band takes
+   *  the alternate ground and the ink. */
+  header?: string
+  headerInk?: string
 }
 
 export interface FieldLayout {
@@ -287,8 +292,9 @@ export function drawFurniture(
   // vertically, drawn in the alternate ground so the field reads as a surface
   // laid on the slab rather than a hole in it.
   ctx.fillStyle = palette.bgAlt
-  ctx.fillRect(0, 0, width, layout.headerH)
   ctx.fillRect(0, 0, layout.gutterW, height)
+  ctx.fillStyle = palette.header ?? palette.bgAlt
+  ctx.fillRect(0, 0, width, layout.headerH)
 
   ctx.fillStyle = palette.hairline
   ctx.fillRect(0, layout.headerH - 1, width, 1)
@@ -315,7 +321,7 @@ export function drawFurniture(
       ctx.fillRect(fl.x + fl.w - scrollX, layout.headerH, FIELD_RULE, height - layout.headerH)
     }
 
-    ctx.fillStyle = muted[c] === true ? palette.inkMuted : palette.ink
+    ctx.fillStyle = muted[c] === true ? palette.inkMuted : (palette.headerInk ?? palette.ink)
     ctx.fillText(labels[c] ?? '', x + PAD, midY)
   }
 

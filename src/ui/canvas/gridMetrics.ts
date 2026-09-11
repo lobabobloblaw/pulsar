@@ -18,17 +18,19 @@ import { computeLayout, type GridLayout, type GridPalette } from './patternRende
  *  loaded yet. Fallbacks are the glass values from `tokens.css` — the tracker
  *  surfaces are lit displays and room-invariant since the device pass. */
 const TOKENS = {
-  bg: ['--grid-bg', '#181818'],
-  bgAlt: ['--grid-bg-alt', '#101010'],
-  bgBeat: ['--grid-bg-beat', '#222222'],
-  bgBar: ['--grid-bg-bar', '#2c2c2c'],
-  ink: ['--grid-ink', '#ececec'],
-  inkDim: ['--grid-ink-dim', '#a8a8a8'],
-  inkMuted: ['--grid-ink-muted', '#5e5e5e'],
-  accent: ['--grid-accent', '#ffc003'],
-  selection: ['--grid-selection', '#2c3f52'],
-  hairline: ['--grid-hairline', '#343434'],
-  focus: ['--grid-focus', '#ffc003'],
+  bg: ['--grid-bg', '#1e2925'],
+  bgAlt: ['--grid-bg-alt', '#182019'],
+  bgBeat: ['--grid-bg-beat', '#263229'],
+  bgBar: ['--grid-bg-bar', '#2e3d33'],
+  ink: ['--grid-ink', '#e6f6cb'],
+  inkDim: ['--grid-ink-dim', '#b7c6b0'],
+  inkMuted: ['--grid-ink-muted', '#7c8977'],
+  accent: ['--grid-accent', '#ffb391'],
+  selection: ['--grid-selection', '#3a4d42'],
+  hairline: ['--grid-hairline', '#3a493f'],
+  focus: ['--grid-focus', '#ec9a71'],
+  header: ['--grid-header', '#28362e'],
+  headerInk: ['--grid-header-ink', '#dbe4d4'],
 } as const satisfies Record<keyof GridPalette, readonly [string, string]>
 
 export function resolvePalette(root: Element = document.documentElement): GridPalette {
@@ -38,7 +40,7 @@ export function resolvePalette(root: Element = document.documentElement): GridPa
     return v === '' ? fallback : v
   }
   const out = {} as Record<keyof GridPalette, string>
-  for (const key of Object.keys(TOKENS) as (keyof GridPalette)[]) {
+  for (const key of Object.keys(TOKENS) as (keyof typeof TOKENS)[]) {
     const [name, fallback] = TOKENS[key]
     out[key] = read(name, fallback)
   }

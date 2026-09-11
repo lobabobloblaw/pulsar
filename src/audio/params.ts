@@ -94,14 +94,21 @@ export const PARAMS: Readonly<Record<ParamId, ParamDescriptor>> = {
   },
 }
 
-/** Exactly four, left to right. The audio design's fourth knob ("console
- *  model") is a StatusBar chip-toggle instead — a binary switch is not a knob. */
+/** The Phase-1 parameter set, left to right: the three voice controls and the
+ *  master output. The screen's params page renders all four. The audio
+ *  design's "console model" knob is a Settings select instead — a binary
+ *  switch is not a knob. */
 export const PHASE1_KNOBS: readonly ParamId[] = [
   'pulse1.duty',
   'pulse1.envDecay',
   'pulse1.sweep',
   'master.volume',
 ]
+
+/** The three dials in the voice section (Ivory). `master.volume` is NOT a
+ *  dial: it is the output slider in the enclosure's head, present in both
+ *  workspaces and during playback, so the voice section never renders it. */
+export const VOICE_KNOBS: readonly ParamId[] = ['pulse1.duty', 'pulse1.envDecay', 'pulse1.sweep']
 
 export function paramById(id: ParamId): ParamDescriptor {
   return PARAMS[id]
