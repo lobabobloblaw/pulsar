@@ -200,8 +200,8 @@
     .project,
     :global([data-embedded]) .project {
       justify-content: flex-start;
-      gap: 4px 10px;
-      padding-top: 8px;
+      gap: 6px 10px;
+      padding-top: 12px;
     }
     .save {
       flex-basis: 100%;

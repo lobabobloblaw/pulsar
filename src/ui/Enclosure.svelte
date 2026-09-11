@@ -209,9 +209,11 @@
         calc(var(--s-1) + env(safe-area-inset-left, 0px));
     }
     /* The phone keeps the slab; the desk margin shrinks to a rim so a
-       2-dot lattice still fits inside the screen well at 320px. */
+       2-dot lattice still fits inside the screen well at 320px, and the
+       slab's padding is the embedded 12px in both variants. */
     .device {
       width: calc(100% - 8px);
+      padding: 12px;
     }
     :global([data-embedded]) .device {
       width: 100%;
@@ -258,6 +260,9 @@
     .live {
       order: 5;
       gap: 10px;
+    }
+    :global([data-embedded]) .live {
+      gap: 16px;
     }
     /* The gap under the keybed exists only when the keybed is on the page
        (the desktop-ordered phone, not the Voice page); without the keys the

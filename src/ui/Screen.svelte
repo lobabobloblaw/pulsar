@@ -553,13 +553,20 @@
       padding: 8px 10px;
       gap: 6px;
     }
+    /* Inside the homepage shell the well breathes again (the study's
+       phone well); the standalone slab, 22px narrower, spends that height
+       on its wrapped foot caption instead. */
+    :global([data-embedded]) .well {
+      padding: 14px 10px;
+      gap: 10px;
+    }
     /* The foot caption holds four 44px dot targets on a coarse phone. Where
        the two captions no longer fit beside them (the standalone slab is
        22px narrower than the embedded one) the owner caption wraps to a
        second right-aligned line instead of clipping to an ellipsis. */
     .cap.foot {
       flex-wrap: wrap;
-      gap: 4px 6px;
+      gap: 2px 6px;
     }
     .cap.foot > span {
       flex: 0 0 auto;

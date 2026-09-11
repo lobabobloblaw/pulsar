@@ -330,8 +330,8 @@
   @media (max-width: 600px) {
     .transport,
     :global([data-embedded]) .transport {
-      gap: 8px 16px;
-      padding: 10px 0;
+      gap: 10px 16px;
+      padding: 12px 0;
     }
     .play {
       min-height: 44px;
@@ -347,10 +347,13 @@
   /* The Voice page's single row at phone width: play key, the Start/Retry
      cap, BPM and ORDER / ROW side by side inside a 355px slab. The failure
      sentence is the one thing allowed under the row. */
+  /* The Voice page's one row keeps the tighter block padding: its air goes
+     to the well and the dials instead. */
   @media (max-width: 600px) {
     .voice,
     :global([data-embedded]) .voice {
       gap: 6px;
+      padding: 10px 0;
     }
     .voice .play {
       padding-inline: 8px;
