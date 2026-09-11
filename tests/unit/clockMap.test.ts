@@ -136,11 +136,14 @@ describe('wire encoding', () => {
     }
   })
 
-  it('fits in 16 bits, so an Int32Array slot is never a lie', () => {
-    for (let addr = 0x4000; addr <= 0x4017; addr++) {
+  it('fits in 24 bits, so an Int32Array slot is never a lie', () => {
+    // The encoding carries the WHOLE 16-bit address since the VRC6 arrived, so a code
+    // is 24 bits, not 16. The widest possible one is still a positive int32.
+    for (let addr = 0x4000; addr <= 0xffff; addr++) {
       const code = encodeWrite(addr, 0xff)
       expect(code).toBeGreaterThanOrEqual(0)
-      expect(code).toBeLessThan(0x10000)
+      expect(code).toBeLessThan(0x1000000)
+      expect(code | 0).toBe(code)
     }
   })
 })

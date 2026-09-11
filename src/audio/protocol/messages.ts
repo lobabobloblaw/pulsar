@@ -10,7 +10,7 @@
  *
  *  Write batches travel as two parallel typed arrays rather than as objects:
  *    cycles[i]  f64  NES cycle (integer-valued double — an int32 would wrap at ~20 min)
- *    codes[i]   i32  16-bit wire encoding, `(addr & 0x1f) << 8 | value`
+ *    codes[i]   i32  24-bit wire encoding, `(addr & 0xffff) << 8 | value`
  *  Both buffers are TRANSFERRED down and transferred back up in a `recycle` message,
  *  so the host cycles a small fixed pool instead of allocating per batch.
  *
