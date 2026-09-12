@@ -109,7 +109,20 @@ describe('06 Sunward Banner', () => {
     const heads = [0, 1, 2, 3, 4, 5].map((bar) =>
       attacksIn('pulse1', at(frameOf.build) + bar * BAR, at(frameOf.build) + bar * BAR + 15).map(([, n]) => n))
     expect(heads.map((h) => h[0])).toEqual([74, 76, 78, 79, 81, 83])
-    for (const h of heads) expect(h).toHaveLength(4)
+    // ...and it BREATHES: the second bar of each two-bar unit drops its fifth and rests
+    // the last beat, so the sequence is 4 3 4 3 4 3 notes, not seven bars of machine
+    expect(heads.map((h) => h.length)).toEqual([4, 3, 4, 3, 4, 3])
+    for (const bar of [1, 3, 5]) {
+      const rest = lane('pulse1').get(at(frameOf.build) + bar * BAR + 12)
+      expect(rest?.note, `build bar ${bar}`).toBe(-1)
+      // pulse 2, which doubles it an octave below, rests on the same row or it is not a rest
+      const under = lane('pulse2').get(at(frameOf.build) + bar * BAR + 12)
+      if (bar > 1) expect(under?.note, `pulse2 bar ${bar}`).toBe(-1)
+      // the brass re-swells into the gap: a fresh attack on both VRC6 pulses, that row
+      for (const brass of ['vrc6p1', 'vrc6p2'] as const) {
+        expect(notes(brass).get(at(frameOf.build) + bar * BAR + 12), `${brass} bar ${bar}`).toBeGreaterThan(0)
+      }
+    }
   })
 
   it('modulates up a whole step: the final chorus is the chorus transposed, note for note', () => {
@@ -151,8 +164,21 @@ describe('06 Sunward Banner', () => {
     expect(bars(frameOf.chorus + 1, 3)).toEqual([[0, 6, 12], [0, 6, 12], [0, 6, 12]])
     // 12:0 and 12:16 — the same cell, displaced an 8th late (§9.1 Recipe F)
     expect(bars(frameOf.chorus + 2, 2)).toEqual([[2, 8, 14], [2, 8, 14]])
-    // ...and it snaps back so the section's peak can land on a downbeat
-    expect(bars(frameOf.chorus + 2, 4).slice(2)).toEqual([[0, 6, 12], [0, 6, 12]])
+    // ...and it snaps back so the section's peak can land on a downbeat. The peak bar
+    // then ENDS on row 12 instead of holding into the descent: the second eight bars get
+    // one breath, and it is the only place the tresillo is allowed to drop a third attack
+    expect(bars(frameOf.chorus + 2, 4).slice(2)).toEqual([[0, 6, 12], [0, 6]])
+    for (const frame of [frameOf.chorus + 2, frameOf.chorusP + 2]) {
+      expect(notes('pulse1').get(at(frame, 48))).toBe(frame === frameOf.chorus + 2 ? 83 : 85)
+      expect(lane('pulse1').get(at(frame, 60))?.note, `breath at ${frame}:60`).toBe(-1)
+      expect(notes('pulse1').get(at(frame, 60))).toBeUndefined()
+    }
+    // the chorus hook is four same-direction leaps and they are NOT smoothed away
+    for (const [frame, row] of [[frameOf.chorus, 6], [frameOf.chorus, 38], [frameOf.chorus + 2, 8], [frameOf.chorus + 2, 38]] as const) {
+      const here = notes('pulse1').get(at(frame, row))
+      const before = [...notes('pulse1')].filter(([r]) => r < at(frame, row)).sort((a, b) => a[0] - b[0]).at(-1)
+      expect(Math.abs(here! - before![1]), `${frame}:${row}`).toBeGreaterThanOrEqual(3)
+    }
   })
 
   it('cadences the chorus through an Italian sixth that resolves outward by a semitone', () => {
@@ -187,9 +213,15 @@ describe('06 Sunward Banner', () => {
       const lead = attacksIn('pulse1', first, last)
       const counter = attacksIn('pulse2', first, last)
       const leadRows = new Set(lead.map(([row]) => row))
-      // §9.2 wants 40 % of pulse 2's attacks where pulse 1 has none; this writes 78 %
+      // §9.2 wants 40 % of pulse 2's attacks where pulse 1 has none; this writes 80 %
       const alone = counter.filter(([row]) => !leadRows.has(row)).length
       expect(alone / counter.length).toBeGreaterThan(0.7)
+      // it has a PHRASE, not an obbligato's two-a-bar forever: exactly one of its sixteen
+      // bars is empty, and it is a whole bar of rest, not a longer note
+      const perBar = Array.from({ length: 16 }, (_, bar) =>
+        counter.filter(([row]) => row >= first + bar * BAR && row < first + (bar + 1) * BAR).length)
+      expect(perBar.filter((count) => count === 0)).toHaveLength(1)
+      expect(perBar.indexOf(0)).toBe(5)
       // the two lanes never share an attack-row SET, and pulse 2 never rises above the
       // lead's sounding note — it is the second voice, not a descant
       expect(counter.map(([row]) => row)).not.toEqual(lead.map(([row]) => row))
@@ -198,12 +230,18 @@ describe('06 Sunward Banner', () => {
         if (sounding !== undefined) expect(note, `pulse2 at ${row}`).toBeLessThanOrEqual(sounding[1])
       }
     }
-    // the written 4-3: d4 is prepared as the fifth of G at 11:32, held over the A that
-    // arrives at 11:40, and resolves down a step to c#4 at 11:44
-    expect(notes('pulse2').get(at(11, 32))).toBe(62)
-    expect(notes('pulse2').get(at(11, 36))).toBeUndefined()
+    // the phrase and the suspension are the same gesture: the counter cuts at 11:16,
+    // rests the whole bar, enters a BEAT LATE at 11:36 on d4 — the fifth of the G that
+    // is still sounding — holds it over the A that arrives at 11:40, and resolves down a
+    // step to c#4 at 11:44, answering the lead's own twelve-row rest from 11:54
+    expect(lane('pulse2').get(at(11, 16))?.note).toBe(-1)
+    expect(attacksIn('pulse2', at(11, 16), at(11, 35))).toEqual([])
+    expect(notes('pulse2').get(at(11, 36))).toBe(62)
+    expect(notes('pulse2').get(at(11, 40))).toBeUndefined()
     expect(notes('pulse2').get(at(11, 44))).toBe(61)
+    expect(notes('vrc6saw').get(at(11, 32))).toBe(43) // the G it is prepared over
     expect(notes('vrc6saw').get(at(11, 40))).toBe(45) // the A the suspension leans on
+    expect(lane('pulse1').get(at(11, 54))?.note).toBe(-1)
   })
 
   it('doubles the lead in UNISON in the final chorus, because the octave above would beat', () => {
@@ -233,6 +271,61 @@ describe('06 Sunward Banner', () => {
     }
     expect(worstUnison).toBe(0)
     expect(worstOctave, 'the octave this replaced is audibly narrow').toBeGreaterThan(10)
+  })
+
+  it('makes the lift lift: a doubling harmonic rhythm, a climbing lead, no bass lockstep', () => {
+    const first = at(frameOf.lift)
+    const barRows = (channel: ChannelId, bar: number) =>
+      attacksIn(channel, first + bar * BAR, first + bar * BAR + BAR - 1).map(([row]) => row % BAR)
+    // the saw takes the quarters AND the two off-8ths; the triangle stays on quarters. The
+    // two bass lanes attacking the same four rows for six bars is one bass lane, not two.
+    for (const bar of [0, 1, 2, 3, 4, 5]) {
+      expect(barRows('vrc6saw', bar), `saw bar ${bar}`).toEqual([0, 4, 6, 8, 12, 14])
+      expect(barRows('triangle', bar), `tri bar ${bar}`).toEqual([0, 4, 8, 12])
+    }
+    // the harmonic rhythm DOUBLES over the six-bar phrase: Bb Bb C C Bb C, two bars a
+    // chord and then one a bar, so the phrase still reads 3 + 3 but accelerates
+    const roots = [0, 1, 2, 3, 4, 5].map((bar) => notes('vrc6saw').get(first + bar * BAR))
+    expect(roots).toEqual([46, 46, 48, 48, 46, 48]) // Bb2 Bb2 C3 C3 Bb2 C3
+    // the lead climbs with it instead of holding one note for three bars: d5 through the
+    // first half, then a step a bar — e5, the borrowed f natural, g5 — into the chorus
+    expect(attacksIn('pulse1', first, first + 2 * ROWS - 1).map(([, note]) => note))
+      .toEqual([74, 76, 77, 79])
+    // ...and the column climbs with the line, which is the crescendo the section lacked
+    const cols = attacksIn('pulse1', first, first + 2 * ROWS - 1)
+      .map(([row]) => lane('pulse1').get(row)!.vol)
+    expect(cols).toEqual([12, 12, 13, 14])
+    // four 4-3 suspensions in the brass, one per chord that can hold one, each resolving
+    // down a semitone or a tone four rows after the chord lands
+    for (const [row, held, resolution] of [[0, 63, 62], [32, 65, 64], [80, 65, 64], [96, 62, 61]] as const) {
+      expect(notes('vrc6p1').get(first + row), `suspension at ${row}`).toBe(held)
+      expect(notes('vrc6p1').get(first + row + 4), `resolution at ${row}`).toBe(resolution)
+    }
+  })
+
+  it('brings every returning drum shape back changed, never as the same bar twice', () => {
+    // §9.4, and the generator's own claim. Three of the seven shapes are used twice; a
+    // shape whose two instances are byte-identical noise rows is a copy, not a reprise.
+    const halfBar = (first: number) => attacksIn('noise', first, first + 7)
+      .map(([row, note]) => [row % BAR, note, lane('noise').get(row)!.inst, lane('noise').get(row)!.vol] as const)
+    for (const [name, a, b] of [
+      ['burst', at(9, 24), at(12, 56)],
+      ['toms', at(9, 56), at(21, 56)],
+      ['rim', at(10, 56), at(20, 56)],
+    ] as const) {
+      const A = halfBar(a)
+      const B = halfBar(b)
+      expect(A.length, `${name} A`).toBeGreaterThan(3)
+      expect(JSON.stringify(B), name).not.toEqual(JSON.stringify(A))
+    }
+    // the two shapes that carry a snare come back on the OTHER snare (39 <-> 41)
+    const snareOf = (row: number) => [...notes('noise')]
+      .filter(([r, note]) => r >= row && r <= row + 7 && (note === 39 || note === 41))
+      .map(([, note]) => note)
+    expect(new Set(snareOf(at(9, 24)))).toEqual(new Set([41]))
+    expect(new Set(snareOf(at(12, 56)))).toEqual(new Set([39]))
+    expect(snareOf(at(9, 56)).at(-1)).toBe(41)
+    expect(snareOf(at(21, 56)).at(-1)).toBe(39)
   })
 
   it('stops the kit dead for one bar — the piece’s single metric surprise', () => {

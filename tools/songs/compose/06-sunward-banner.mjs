@@ -11,13 +11,15 @@
  *         (4 bars = 6.4 s). 23 frames; one pass ~2:29 including the coda's ritardando.
  *
  *  KEY    D major. Colour, in four different sections: (1) chained secondaries — E major
- *         (V/V) -> A (V) -> D at theme 4:32-5:0, the lydian g#5 at 4:40;
- *         (2) modal interchange — borrowed bVI (Bb) and bVII (C) through the whole lift,
- *         8:0-9:31; (3) an ITALIAN SIXTH on bVI at chorus 13:32 (bass Bb2, d4 in vrc6p2,
- *         g#4 in vrc6p1, d5 in the lead) resolving outward to A at 13:36 — bass falls a
- *         semitone, g# rises a semitone; (4) a true pivot modulation — A is V in D and IV
- *         in E, so the build quits D through A and confirms E with B7 (pivot at 17:16,
- *         B7 at 17:32-17:63), and the final chorus is UP A WHOLE STEP in E major. The
+ *         (V/V) at 4:32 -> A (V) at 4:48, the lydian g#5 at 4:40, and then the V is
+ *         QUITTED to IV (G at 5:0), the section's authentic cadence coming later at
+ *         5:32-5:48; (2) modal interchange — borrowed bVI (Bb) and bVII (C) through the
+ *         whole lift, 8:0-9:31; (3) an ITALIAN SIXTH on bVI at chorus 13:32 (bass Bb2,
+ *         d4 in vrc6p2, g#4 in vrc6p1, d5 in the lead) resolving outward to A at 13:36 —
+ *         bass falls a semitone, g# rises a semitone; (4) a true pivot modulation — the
+ *         PIVOT CHORD is the A of 17:0-17:15, V in D and IV in E; the sequence turns
+ *         chromatic over it at 17:16 and B7 is held from 17:32 to confirm the new key,
+ *         and the final chorus is UP A WHOLE STEP in E major. The
  *         coda's E -> A7 -> D is a descending-fifths turnaround back into the loop, and
  *         `accidentalFractionMax` is declared at 0.2 to pay for all of it.
  *
@@ -32,8 +34,10 @@
  *                                 (vol 11, bend-in attack); pulse 1 a descant a sixth
  *                                 above; pulse 2 rests; the triangle is the bass alone
  *         8-9    lift       8     bVI-bVII (Bb, C) as a 3+3 SIX-BAR phrase (the piece's
- *                                 asymmetry), a 4-3 suspension chain in the brass, march
- *                                 -> 16th hats, then two bars of the dominant
+ *                                 asymmetry) whose HARMONIC RHYTHM DOUBLES — two bars a
+ *                                 chord, then one — under a lead that climbs d5 e5 f5 g5
+ *                                 and a 4-3 chain in the brass; 8th -> 16th hats, then
+ *                                 two bars of the dominant
  *         10-13  chorus    16     the big tune on a 6+6+4 tresillo; pulse 2 an INDEPENDENT
  *                                 counter-melody for the whole section; V1/V2 a two-voice
  *                                 chorale that holds common tones; all eight lanes on
@@ -76,12 +80,16 @@
  *         placement, snare timbre (39 <-> 41) and ghost density. Seven fill shapes —
  *         roll, toms, push, burst, riser, rim and a written flam pair — placed so no two
  *         consecutive eight-bar seams close the same way, and a shape that returns comes
- *         back on the other snare.
+ *         back on the other snare (`toms` and `burst`) or, where it carries no snare at
+ *         all, on other drums and other rows (`rim`). No fill bar is written twice.
  *
  *  HEADROOM (render gain 2.0; the VRC6 adds linearly, and a saw at 15 is twice a pulse at
  *         15). The saw never exceeds 11, the VRC6 pulses never exceed 9 under a full 2A03
  *         mix — the single 12 is in the fanfare, where the 2A03 is silent — and the lead's
- *         column tops out at 14. Measured at gain 2.0: peak 0.947, 0 clamped samples.
+ *         column tops out at 14, and it reaches it only in the lift's last bar and the
+ *         two choruses. Measured at gain 2.0 over the two-pass render: unclamped peak
+ *         0.909, 0 clamped samples, RMS -17.59 dBFS, longest exact-zero run 59 ms (a
+ *         tom break, not a seam).
  */
 import { CUT, L, REL, Song, n } from './lib.mjs'
 
@@ -195,6 +203,11 @@ function sawBar(sec, bar, root, style, opts = {}) {
     for (const [row, note] of [[0, r], [2, r], [4, r + 12], [6, r], [8, r2], [10, r2], [12, r2 + 12], [14, r2]]) put(row, note)
   } else if (style === 'march') {
     for (const [row, note] of [[0, r], [4, r], [8, r + 12], [12, r]]) put(row, note)
+  } else if (style === 'drive') {
+    // the lift's saw: the triangle's quarters plus the two off-8ths, with the octave leap
+    // on the 'and' of 2 and the 'and' of 4, so the bass pair is not in lockstep (§12.2 —
+    // saw OR triangle leads, the other answers; two lanes on the same four rows is one).
+    for (const [row, note] of [[0, r], [4, r], [6, r + 12], [8, r], [12, r], [14, r + 12]]) put(row, note)
   } else if (style === 'hold') {
     put(0, r)
   }
@@ -223,8 +236,15 @@ function triBar(sec, bar, root, style, opts = {}) {
   if (opts.restAt !== undefined) sec.put(L.TRI, sec.at(bar, opts.restAt), { note: CUT })
 }
 
-/** The six fills, one per shape, so no two 8-bar seams close the same way (§9.4). Each
- *  owns the bar's last half; `drumBar` suppresses the ordinary kit there. */
+/** The seven fills, one per shape, so no two 8-bar seams close the same way (§9.4). Each
+ *  owns the bar's last half; `drumBar` suppresses the ordinary kit there.
+ *
+ *  A shape that returns comes back CHANGED, and `alt` is where that is written: three of
+ *  the seven are used twice, and without it the two instances are byte-identical rows —
+ *  a returning fill that is literally the same bar is a copy, not a reprise. `alt` moves
+ *  the shape onto the other snare (39 <-> 41), or, where the shape carries no snare,
+ *  onto other drums and other rows. */
+const other = (snare) => (snare === SNARE_HI ? SNARE_LO : SNARE_HI)
 const FILLS = {
   // a snare roll thickening from 8ths to 16ths, 7 -> 13
   roll: (hit, ds, _dk, snare) => {
@@ -232,8 +252,14 @@ const FILLS = {
     hit(9, SNARE, 5, snare); hit(11, SNARE, 6, snare); hit(13, SNARE, 8, snare)
     hit(15, SNARE, 13, SNARE_HI); ds(8); ds(14)
   },
-  // a tom run down the kit, high to low, snare on the last 16th
-  toms: (hit, ds, dk, snare) => {
+  // a tom run down the kit, high to low, snare on the last 16th. `alt` runs a wider
+  // spread of toms, one hit later, and lands on the other snare.
+  toms: (hit, ds, dk, snare, alt) => {
+    if (alt) {
+      hit(8, TOM, 14, 44); hit(10, TOM, 13, 42); hit(12, TOM, 12, 40); hit(13, TOM, 14, 38)
+      hit(14, TOM, 13, 36); hit(15, SNARE, 12, other(snare)); dk(12); ds(15)
+      return
+    }
     hit(8, TOM, 14, 43); hit(10, TOM, 13, 43); hit(11, TOM, 12, 41); hit(12, TOM, 14, 37)
     hit(14, TOM, 13, 37); hit(15, SNARE, 12, snare); dk(12); ds(15)
   },
@@ -242,18 +268,29 @@ const FILLS = {
     hit(8, KICK, 12, 36); hit(10, HAT_OPEN, 9, 46); hit(12, SNARE, 13, snare)
     hit(14, HAT_OPEN, 9, 46); hit(15, SNARE, 9, SNARE_HI); dk(8); ds(12)
   },
-  // a 16th burst on the last beat only
-  burst: (hit, ds, dk, snare) => {
-    hit(8, KICK, 12, 36); hit(12, SNARE, 13, snare); hit(13, SNARE, 8, snare)
-    hit(14, SNARE, 11, snare); hit(15, SNARE, 14, snare); dk(8); ds(12); ds(14)
+  // a 16th burst on the last beat only. `alt` puts it on the other snare and starts it a
+  // 16th earlier, so the burst is five hits instead of four.
+  burst: (hit, ds, dk, snare, alt) => {
+    const s = alt ? other(snare) : snare
+    hit(8, KICK, 12, 36)
+    if (alt) hit(11, SNARE, 7, s)
+    hit(12, SNARE, 13, s); hit(13, SNARE, 8, s)
+    hit(14, SNARE, 11, s); hit(15, SNARE, 14, s); dk(8); ds(12); ds(14)
   },
   // a riser: the ROLL instrument's pitch macro climbs while the column does
   riser: (hit, ds) => {
     for (let i = 0; i < 8; i++) hit(8 + i, ROLL, 5 + i, 36 + i)
     ds(15)
   },
-  // the metal tick (noise mode 1) against two kicks — the driest fill in the piece
-  rim: (hit, ds, dk) => {
+  // the metal tick (noise mode 1) against two kicks — the driest fill in the piece. It
+  // carries no snare, so `alt` changes what it does change: the ticks move to a higher
+  // period index and onto different rows, and the kick lands on the last 16th instead.
+  rim: (hit, ds, dk, _snare, alt) => {
+    if (alt) {
+      hit(8, METAL, 11, 43); hit(9, METAL, 9, 43); hit(11, METAL, 12, 44)
+      hit(13, METAL, 10, 43); hit(15, KICK, 13, 36); dk(15); ds(11)
+      return
+    }
     hit(8, METAL, 11, 44); hit(10, METAL, 9, 44); hit(11, METAL, 12, 44)
     hit(12, KICK, 13, 36); hit(14, METAL, 10, 44); dk(12); ds(15)
   },
@@ -273,7 +310,7 @@ const FILLS = {
 function drumBar(sec, bar, opts = {}) {
   const {
     hats = '8ths', kick = [0, 6], snare = SNARE_LO, dpcm = true, ghosts = [10, 15],
-    fill = null, crash = false, hatVol = 0, dpcmKick = null,
+    fill = null, fillAlt = false, crash = false, hatVol = 0, dpcmKick = null,
   } = opts
   const hit = (row, inst, vol, note) => sec.put(L.NOISE, sec.at(bar, row), { note, inst, vol })
   const dk = (row) => sec.put(L.DPCM, sec.at(bar, row), { note: KIT.kick, inst: KIT.inst, vol: 12 })
@@ -293,7 +330,7 @@ function drumBar(sec, bar, opts = {}) {
   for (const row of [4, 12]) if (row < limit) { hit(row, SNARE, 13, snare); if (dpcm) ds(row) }
   if (fill === null) for (const row of ghosts) hit(row, SNARE, 4, snare)
   if (crash) hit(0, CRASH, 12, 46)
-  if (fill !== null) FILLS[fill](hit, dpcm ? ds : () => {}, dpcm ? dk : () => {}, snare)
+  if (fill !== null) FILLS[fill](hit, dpcm ? ds : () => {}, dpcm ? dk : () => {}, snare, fillAlt)
 }
 
 /** `line()` with DELAYED vibrato (§2.5, "the professional move"): an event written with a
@@ -524,28 +561,46 @@ const themeP = s.section('themeP', 8)
 
 // =====================================================================================
 // LIFT — frames 8-9, 8 bars. Modal interchange: borrowed bVI and bVII (Bb and C) in D
-// major, laid out as a 3 + 3 SIX-BAR phrase — the piece's one asymmetry, placed at a
-// section boundary — and then two bars of the dominant under a tom break. V1/V2 carry a
-// chain of written 4-3 suspensions: over Bb the top holds d#4 and steps to d4, over C it
-// holds f4 and steps to e4, over A it holds d4 and steps to c#4, each one prepared as a
-// chord tone of the chord before it. Pulse 1 holds the two common tones (d5 is the third
-// of Bb, e5 the third of C) under a slow vibrato; pulse 2 rests. Saw and triangle march
-// in quarters and then hold. Kit: 8ths for three bars, 16ths from bar 3, the cracking
-// snare at note 41, the burst fill at bar 5 and the tom run at bar 7.
+// major as a 3 + 3 SIX-BAR phrase — the piece's one asymmetry, placed at a section
+// boundary — and then two bars of the dominant under a tom break.
+//
+// A lift has to LIFT, so nothing here sits still for three bars. The harmonic rhythm
+// DOUBLES across the phrase: Bb Bb | C C | Bb C, two bars a chord and then one, arriving
+// at the dominant with the chorus already accelerating. The lead holds d5 through the
+// first three bars (the third of Bb, the ninth over the C of bar 2) and then climbs with
+// the chords, e5 f5 g5 — a stepwise ascent through the borrowed f natural, which is the
+// same modal interchange the chords are — one note a bar. And the bass pair stops
+// marching in lockstep: the sawtooth takes the `drive` figure (quarters plus the two
+// off-8ths, octave leaps on the 'and' of 2 and 4) against the triangle's plain quarters.
+//
+// V1/V2 carry a chain of FOUR written 4-3 suspensions, one at every chord that can hold
+// one: 8:0 over Bb (d#4 -> d4), 8:32 over C (f4 -> e4), 9:16 over C again (f4 -> e4) and
+// 9:32 over A (d4 -> c#4). The two C suspensions are properly prepared — f4 is the fifth
+// of the Bb in the bar before each of them. Pulse 2 rests for the whole section.
+// Kit: 8ths for three bars, 16ths from bar 3, the cracking snare at note 41, the burst
+// fill at bar 5 and the tom run at bar 7.
 // =====================================================================================
 const lift = s.section('lift', 8)
 {
-  sing(lift, L.P1, LEAD, 12, [[0, 0, 'd5', '4', 0x31], [2, 12, '---'], [3, 0, 'e5', '4', 0x31], [5, 12, '---']])
+  sing(lift, L.P1, LEAD, 12, [
+    [0, 0, 'd5', '4', 0x31], [2, 12, '---'],
+    [3, 0, 'e5'], [4, 0, 'f5'], [5, 0, 'g5', '4', 0x31], [5, 12, '---'],
+  ])
+  // the column climbs with the line: the lift is the one place the piece is allowed to
+  // get louder bar by bar, and it is what hands the chorus a crescendo to land on
+  lift.put(L.P1, lift.at(4, 0), { vol: 13 })
+  lift.put(L.P1, lift.at(5, 0), { vol: 14 })
   lift.put(L.P2, 0, { note: CUT })
-  const bass = ['a#2', 'a#2', 'a#2', 'c3', 'c3', 'c3', 'a2', 'a2']
+  const bass = ['a#2', 'a#2', 'c3', 'c3', 'a#2', 'c3', 'a2', 'a2']
   bass.forEach((root, bar) => {
-    sawBar(lift, bar, root, bar < 6 ? 'march' : 'hold', { vol: 10, restAt: bar === 7 ? 8 : undefined })
+    sawBar(lift, bar, root, bar < 6 ? 'drive' : 'hold', { vol: 10, restAt: bar === 7 ? 8 : undefined })
     triBar(lift, bar, root, bar < 6 ? 'double' : 'hold', { restAt: bar === 7 ? 8 : undefined })
   })
-  // [bar, V2's chord tone, V1's suspended note, V1's resolution]
+  // [bar, V2's chord tone, V1's suspended note, V1's resolution]. V1 is always above V2
+  // and the pair never moves in parallel for two chords running.
   const brass = [
-    [0, 'a#3', 'd#4', 'd4'], [1, 'a#3', 'd4'], [2, 'd4', 'f4'],
-    [3, 'c4', 'f4', 'e4'], [4, 'g3', 'e4'], [5, 'g3', 'd4'],
+    [0, 'a#3', 'd#4', 'd4'], [1, 'd4', 'f4'], [2, 'c4', 'f4', 'e4'],
+    [3, 'e4', 'g4'], [4, 'd4', 'f4'], [5, 'c4', 'f4', 'e4'],
     [6, 'a3', 'd4', 'c#4'], [7, 'a3', 'c#4'],
   ]
   for (const [bar, mid, top, resolution] of brass) {
@@ -577,6 +632,12 @@ const lift = s.section('lift', 8)
 // half beats of rest; phrase 2 rides the descending-fifths chain F#m-Bm-Em-A-D to the
 // section's one peak, b5, on the downbeat of bar 11 over the dominant, and cadences
 // through the Italian sixth of bar 14. `t` transposes it for the final chorus.
+//
+// The second eight bars get ONE breath, and it is placed where it means something: the
+// peak bar ends on row 12 (12:60, and 20:60 in the final chorus) instead of holding into
+// bar 12, so the descent home begins after a beat of air rather than out of a line that
+// has sung eight bars without stopping. The four same-direction leaps at 10:6, 10:38,
+// 12:8 and 12:38 are the hook and are left exactly as they are.
 // =====================================================================================
 function chorusTune(t = 0) {
   const rows = [
@@ -591,7 +652,7 @@ function chorusTune(t = 0) {
     /*  8 */ [[2, 'a4'], [8, 'c#5'], [14, 'e5']],
     /*  9 */ [[2, 'f#5'], [8, 'e5'], [14, 'd5']],
     /* 10 */ [[0, 'b4'], [6, 'e5'], [12, 'g5']],
-    /* 11 */ [[0, 'b5'], [6, 'a5', '4', 0x43], [12, 'f#5']],
+    /* 11 */ [[0, 'b5'], [6, 'a5', '4', 0x43], [12, '---']], // the peak, then a beat of air
     /* 12 */ [[0, 'a5'], [6, 'f#5'], [12, 'd5']],
     /* 13 */ [[0, 'e5'], [6, 'd5'], [12, 'b4']],
     /* 14 */ [[0, 'd5'], [8, 'c#5']],
@@ -604,12 +665,17 @@ function chorusTune(t = 0) {
 // =====================================================================================
 // THE COUNTER-MELODY — pulse 2's own tune for the whole chorus (§9.2). It is not the
 // lead at another interval: it moves on rows 4 and 10 where the lead moves on 0, 6 and
-// 12, so 27 of its 32 attacks fall on rows the lead leaves empty; it is an arch of its
-// own (f#4 up to b4, down to d4, back up to b4 and home); it carries a written 4-3
+// 12, so four fifths of its attacks fall on rows the lead leaves empty; it is an arch of
+// its own (f#4 up to b4, down to d4, back up to b4 and home); it carries a written 4-3
 // SUSPENSION at bar 6 — d4 prepared as the fifth of G, held across into the A chord where
 // it is the fourth, resolving down to c#4 on row 12; and it turns against the lead at
 // both cadences: bar 7 (the lead falls c#5 -> b4, the counter rises c#4 -> d4) and bar 15
 // (the lead rises c#5 -> d5, the counter falls a4 -> f#4). It never rises above the lead.
+//
+// It also has a PHRASE, which is the difference between a second tune and an obbligato:
+// it cuts at 11:16 and rests the whole of that bar, then enters a beat late at 11:36
+// straight into the suspension, answering the lead's own twelve-row rest at 11:54. Two
+// attacks in every bar for sixteen bars is an accompaniment figure, not a singer.
 // =====================================================================================
 function counterMelody(t = 0) {
   const rows = [
@@ -618,8 +684,8 @@ function counterMelody(t = 0) {
     /*  2 */ [[4, 'g4'], [10, 'b4']],
     /*  3 */ [[0, 'a4'], [8, 'f#4']],
     /*  4 */ [[4, 'd4'], [10, 'f#4']],
-    /*  5 */ [[4, 'a4'], [10, 'f#4']],
-    /*  6 */ [[0, 'd4'], [12, 'c#4']], // the 4-3 suspension: d4 held across the bar's A
+    /*  5 */ [[0, '---']],             // the counter's one whole bar of rest: 11:16-11:35
+    /*  6 */ [[4, 'd4'], [12, 'c#4']], // a beat late, into the 4-3 it already owns
     /*  7 */ [[0, 'd4'], [8, 'f#4'], [14, '---']],
     /*  8 */ [[4, 'a4'], [10, 'f#4']],
     /*  9 */ [[4, 'd4'], [10, 'f#4']],
@@ -719,13 +785,15 @@ const chorus = s.section('chorus', 16)
     'd2', 'g2', ['e2', 'a2'], 'd2', 'b2', 'f#2', ['g2', 'a2'], 'b2',
     'f#2', 'b2', 'e2', 'a2', 'd2', 'g2', ['a#2', 'a2'], 'd2',
   ], { brassVol: 9 })
+  // `burst` returns here from the lift (9:24) and comes back on the other snare, a hit
+  // wider; `rim` is heard here first and returns altered in the final chorus.
   const fills = { 3: 'rim', 7: 'flam', 11: 'burst', 15: 'roll' }
   // the chorus brass sits one column above the theme's, which is as far as the headroom
   // goes with the saw, both 2A03 pulses and the DPCM pair all sounding (§12.2)
   for (let bar = 0; bar < 16; bar++) {
     drumBar(chorus, bar, {
       hats: '16ths', kick: [0, 8], snare: SNARE_HI, ghosts: [6, 10, 14],
-      fill: fills[bar] ?? null, crash: bar % 4 === 0,
+      fill: fills[bar] ?? null, fillAlt: bar === 11, crash: bar % 4 === 0,
     })
   }
 }
@@ -802,28 +870,42 @@ const bridge = s.section('bridge', 8)
 // third value in the phase-carry table) and only then snaps to 8ths at bar 4, so the
 // metre resolves onto the downbeat exactly where the bass starts driving. The kit goes
 // from beat kicks to a rising 8th-then-16th snare roll, and the brass swells with A0y.
+//
+// The lead rests the last beat of bars 1, 3 and 5 — the second bar of each two-bar unit
+// — and the brass re-swells on exactly those rows (16:28, 16:60, 17:28). A sequence that
+// climbs for seven bars without a breath is the generic version of this gesture.
 // =====================================================================================
 const build = s.section('build', 8)
 {
   const head = (bar, root, third, fourth, fifth) => [
     [bar, 0, root], [bar, 6, third], [bar, 8, fourth], [bar, 12, fifth],
   ]
-  sing(build, L.P1, LEAD, 12, [
+  // §2.10: a line has to breathe, and a sequence that never stops for seven bars is a
+  // machine. The SECOND bar of each two-bar unit drops its fifth and rests the last
+  // beat; the brass, which re-swells on that row, is what answers into the gap.
+  const breathe = (bar, root, third, fourth) => [
+    [bar, 0, root], [bar, 6, third], [bar, 8, fourth], [bar, 12, '---'],
+  ]
+  // 13, a column above the lift and a column under the choruses: the breathing above
+  // costs the section three notes, and a build that comes out quieter than the chorus it
+  // is building towards has been made worse, not better.
+  sing(build, L.P1, LEAD, 13, [
     ...head(0, 'd5', 'a4', 'b4', 'c#5'),
-    ...head(1, 'e5', 'b4', 'c#5', 'd5'),
+    ...breathe(1, 'e5', 'b4', 'c#5'),
     ...head(2, 'f#5', 'c#5', 'd5', 'e5'),
-    ...head(3, 'g5', 'd5', 'e5', 'f#5'),
+    ...breathe(3, 'g5', 'd5', 'e5'),
     ...head(4, 'a5', 'e5', 'f#5', 'g5'),
-    ...head(5, 'b5', 'f#5', 'g#5', 'a#5'),
+    ...breathe(5, 'b5', 'f#5', 'g#5'),
     [6, 0, 'b4'], [6, 4, 'd#5'], [6, 8, 'f#5'], [6, 12, 'a5'],
     [7, 0, 'f#5', '4', 0x43], [7, 8, '---'],
   ])
-  // pulse 2 in octaves under the lead, bars 2-5 only
+  // pulse 2 in octaves under the lead, bars 2-5 only — it rests where the lead rests, or
+  // the breath is not a breath
   build.put(L.P2, 0, { note: CUT })
   for (const [bar, row, note] of [
-    ...head(2, 'f#4', 'c#4', 'd4', 'e4'), ...head(3, 'g4', 'd4', 'e4', 'f#4'),
-    ...head(4, 'a4', 'e4', 'f#4', 'g4'), ...head(5, 'b4', 'f#4', 'g#4', 'a#4'),
-  ]) build.put(L.P2, build.at(bar, row), { note: n(note), inst: COUNTER, vol: 11 })
+    ...head(2, 'f#4', 'c#4', 'd4', 'e4'), ...breathe(3, 'g4', 'd4', 'e4'),
+    ...head(4, 'a4', 'e4', 'f#4', 'g4'), ...breathe(5, 'b4', 'f#4', 'g#4'),
+  ]) build.put(L.P2, build.at(bar, row), note === '---' ? { note: CUT } : { note: n(note), inst: COUNTER, vol: 11 })
   build.put(L.P2, build.at(6, 0), { note: CUT })
 
   const roots = ['d2', 'e2', 'f#2', 'g2', 'a2', 'b2', 'b2', 'b2']
@@ -844,6 +926,12 @@ const build = s.section('build', 8)
   for (const [bar, lo, hi] of brass) {
     hold(build, L.V2, BRASS, 8, bar, 0, lo, 16)
     hold(build, L.V1, BRASS, 8, bar, 0, hi, 16)
+    // ...and on the beat the lead gives back, the brass re-swells into the gap. BRASS's
+    // envelope is a bloom (9 -> 15 -> 13), so a restrike IS a swell and costs no effect.
+    if (bar % 2 === 1) {
+      build.put(L.V2, build.at(bar, 12), { note: n(lo), inst: BRASS, vol: 8 })
+      build.put(L.V1, build.at(bar, 12), { note: n(hi), inst: BRASS, vol: 8 })
+    }
   }
   hold(build, L.V2, BRASS, 7, 6, 0, 'f#4', 30)
   hold(build, L.V1, BRASS, 7, 6, 0, 'd#5', 30)
@@ -885,11 +973,14 @@ const chorusP = s.section('chorusP', 16)
     'e2', 'a2', ['f#2', 'b2'], 'e2', 'c#3', 'g#2', ['a2', 'b2'], 'c#3',
     'g#2', 'c#3', 'f#2', 'b2', 'e2', 'a2', ['c3', 'b2'], 'e2',
   ], { brassVol: 8, doubleFrom: 8, doubleVol: 9 })
+  // both returning shapes come back changed: `rim` on higher ticks and a last-16th kick,
+  // `toms` on a wider spread and the other snare (§9.4 — a reprise, not a copy)
   const fills = { 3: 'push', 7: 'riser', 11: 'rim', 15: 'toms' }
   for (let bar = 0; bar < 16; bar++) {
     drumBar(chorusP, bar, {
       hats: '16ths', hatVol: 1, kick: [0, 6, 8], dpcmKick: [0, 8], snare: SNARE_HI,
-      ghosts: [10, 14], fill: fills[bar] ?? null, crash: bar % 4 === 0,
+      ghosts: [10, 14], fill: fills[bar] ?? null, fillAlt: bar === 11 || bar === 15,
+      crash: bar % 4 === 0,
     })
   }
 }
@@ -975,20 +1066,40 @@ s.qa({
   percussionGap: 16,
   notes: [
     'D major. The raised chromatic allowance covers four prepared and resolved devices,',
-    'each in a different section. (1) Chained secondaries, E (V/V) -> A (V) -> D across',
-    '4:32-5:0, with the tune reaching the lydian g#5 at 4:40. (2) Modal interchange: a',
-    'borrowed bVI (Bb) and bVII (C) for the whole lift, 8:0-9:31, under a suspension',
-    'chain. (3) An Italian sixth at 13:32 — bass Bb2 with d4 on vrc6p2, g#4 on vrc6p1 and',
+    'each in a different section. (1) Chained secondaries in the theme: E (V/V) at 4:32',
+    'resolves to A (V) at 4:48, with the tune reaching the lydian g#5 at 4:40. That V is',
+    'then QUITTED to IV — the chord at 5:0 is G, not D — and the section\'s authentic',
+    'cadence is the A of 5:32 falling to the D of 5:48 under contrary motion. (2) Modal',
+    'interchange: borrowed bVI (Bb) and bVII (C) for the whole lift, 8:0-9:31, a chord a',
+    'bar over its second half, under a suspension chain. (3) An Italian sixth at 13:32 —',
+    'bass Bb2 with d4 on vrc6p2, g#4 on vrc6p1 and',
     'd5 in the lead — resolving outward onto A at 13:36, the bass falling a semitone as',
-    'the g#4 rises one. (4) A true pivot modulation at 17:16-17:63: A is V in D and IV in',
-    'E, so the build leaves D through its own dominant and B7 confirms E, and the final',
+    'the g#4 rises one. (4) A true pivot modulation: the pivot chord is the A of',
+    '17:0-17:15, which is V in D and IV in E; the sequence turns chromatic over it at',
+    '17:16 (g#5, a#5) and B7 is held from 17:32 to confirm E, so the build leaves D',
+    'through its own dominant and the final',
     'chorus is a whole step up, which is most of the accidental count on its own.',
     'Written suspensions and appoggiaturas: 5:28-5:36, the lead strikes d5 over D/F#,',
     'holds it over the A that arrives at 5:32 and resolves to c#5 at 5:36, with vrc6p2',
-    'doing the same underneath; the brass chain at 8:0 (d#4 -> d4), 8:48 (f4 -> e4) and',
-    '9:32 (d4 -> c#4); 10:48, where the lead attacks g5 — the fourth over D — on the',
-    'downbeat and resolves to f#5 at 10:52; and 11:32-11:44, where pulse 2 prepares d4 as',
-    'the fifth of G, holds it over the A of 11:40 and resolves down to c#4.',
+    'doing the same underneath; the brass chain at 8:0 (d#4 -> d4), 8:32 (f4 -> e4),',
+    '9:16 (f4 -> e4) and 9:32 (d4 -> c#4), the two f4 suspensions each prepared as the',
+    'fifth of the Bb in the bar before it; 10:48, where the lead attacks g5 — the fourth',
+    'over D — on the downbeat and resolves to f#5 at 10:52; and 11:36-11:44, where pulse 2',
+    'enters a beat late on d4, the fifth of G, holds it over the A of 11:40 and resolves',
+    'down to c#4.',
+    'TWO DECLARED DEVIATIONS. (a) This piece carries NINE x- instruments against §3.1\'s',
+    'cap of three. Eight lanes on two chips is the reason: the 2A03 lead, its counter-',
+    'voice, the VRC6 brass, the bright reed that sits under a 2A03 lead, the one-shot',
+    'stab, the saw bass, the saw lead with its bend-in attack, and the two noise voices',
+    '(roll, tom) the shared kit has no equivalent of. Every one of them is played in at',
+    'least two sections; none duplicates a bank timbre, and the bank is used by name for',
+    'the other ten. Raising the cap for eight-voice pieces is a question for the director,',
+    'not something this piece should decide. (b) The final chorus doubles the lead in',
+    'UNISON on vrc6p1 from 20:0, not the octave the sketch asked for: a 2A03 pulse and a',
+    'VRC6 pulse share the same 16-step divider, so a unison is exact, while the octave',
+    'above this tune lands on MIDI 90-95 where that divider quantises the pair 9-15 cents',
+    'apart and they would beat at the loudest notes in the piece. The pin in',
+    'tests/unit/track-sunward-banner.test.ts measures both.',
     'Effect params are DECIMAL: 66 is the grid\'s 442 vibrato, 67 is 443, 49 is 431, and',
     'the vrc6p2 stabs use 55 = 037, 71 = 047 and 56 = 038 (F# major in first inversion,',
     'because 0xy only builds upward from the written note). percussionGap is 16 rather',
@@ -997,7 +1108,7 @@ s.qa({
     '(§9.4). The Fxx ritardando slows speed 6 -> 7 -> 9 -> 12 over 22:48-22:63, and the',
     'loop row restores speed 6 at 2:0 because a tempo survives the seam as an effect does.',
   ].join(' '),
-  renderChecksum: 4165215518,
+  renderChecksum: 82701101,
 })
 s.check()
 s.write('src/assets/songs/06-sunward-banner.json')
