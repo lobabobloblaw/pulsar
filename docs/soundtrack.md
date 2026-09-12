@@ -47,8 +47,8 @@ The first three rows are the ports, the last three the pieces composed here.
 | Winding Stair | Descent in triple metre, eight voices | 150 | 2:14 | Entries, A, B, stretto, landing, A′, spiral, coda, turn (28 frames of four 3/4 bars — the album's only piece in three) in G minor; a real three-voice imitative exposition, each entry answered a fifth below while the voice before it hands over to a countersubject on rows the entry never uses; four stretto entries a bar apart down the circle, the subject inverted in close canon over two voices alone, then in augmentation in the triangle; a six-link chromatic bass descent, hemiola cadences, a Neapolitan in both positions, and the lowest statement of all on the sawtooth two octaves down, glided rather than struck |
 | Blue Hour | Shuffle, eight voices | 120 | 2:08 | Head, A, A′, bridge, trade, comp, hush, A″, out (16 frames of four bars on a six-rows-to-the-beat grid) in G mixolydian — the album's only swung piece, and the ratio is exact rather than a tempo trick: every one of 1,349 attacks across all eight lanes lands on row 0, 2 or 4 of the beat and none on 1, 3 or 5. A walking triangle bass with chromatic approaches into every change, VRC6 pulses comping guide tones on the "and" and the push, the two 2A03 pulses trading phrases, a kit that is mostly ghosts, a chain of descending fifths and a tritone substitution at the last cadence |
 | Long Light | Open mid-tempo, eight voices | 100 | 2:34 | Horizon, A, A′, B, air, answer, build, light, descent (16 frames of four bars) in F lydian, the raised fourth heard rather than implied; a five-row ostinato phasing against the four-row beat for three full cycles, an arpeggio bed established and then taken away so the ear supplies the harmony, two sections of two lanes and nothing else, a chromatic mediant on a stationary common tone, an Italian sixth resolving outward, and the global peak held back to the last third |
-| Crooked Mile | Asymmetric scherzo, 7/8 | 129 | 2:10 | Gate, walk, stile, broad, walk2, hollow, climb, crest, turn (20 frames of four 7/8 bars — the album's only asymmetric metre) in C major; the bar is 2+2+3 eighths and the tune limps with it, a dotted-eighth cell on VRC6 pulse 1 walking around the bar for three whole frames, a section that re-hears the same 56-row frame as two bars of 7/4, chained secondaries voiced as two inner lines a tritone apart, a chromatic mediant held on a stationary common tone, and a dropped beat that leaves one bar of five eighths |
-| Night Shift | Groove piece, straight | 90 | 2:07 | Clock-in, A, A′, comp, graveyard, lift, A″, turn (24 frames of two bars on a 32nd-note grid) in E dorian; a sawtooth bass on a 16th-level tresillo under a kit that is mostly ghosts, VRC6 stabs on the push, and one section where a single voice lays two ticks behind the beat while the bass and both drums stay dead on; prepared suspensions tied across the barline, a common-tone diminished, and a pivot a minor third up into G dorian |
+| Crooked Mile | Asymmetric scherzo, 7/8 | 129 | 2:11 | Gate, walk, stile, broad, walk2, hollow, climb, crest, turn (20 frames of four 7/8 bars — the album's only asymmetric metre) in C major; the bar is 2+2+3 eighths and the tune limps with it, a dotted-eighth cell on VRC6 pulse 1 walking around the bar for three whole frames, a section that re-hears the same 56-row frame as two bars of 7/4, chained secondaries voiced as two inner lines a tritone apart, a chromatic mediant held on a stationary common tone, and an accelerating snare roll that simply stops, one beat of air before the crest |
+| Night Shift | Groove piece, straight | 90 | 2:08 | Clock-in, A, A′, comp, graveyard, lift, A″, turn (24 frames of two bars on a 32nd-note grid) in E dorian; a sawtooth bass on a 16th-level tresillo under a kit that is mostly ghosts, VRC6 stabs on the push, and one section where a single voice lays two ticks behind the beat while the bass and both drums stay dead on; prepared suspensions tied across the barline, a common-tone diminished, and a pivot a minor third up into G dorian |
 | Headlong | Compound-metre flight | 200 | 2:02 | Launch, flight, flight2, chase, dive, three, hinge, updraft, hush, sprint, stall, return, crest, tail (51 frames of four 6/8 bars — the longest order and the fastest tempo here) in B minor; two beats of three re-heard as three of two for a whole section, a five-row cell carrying its phase across five frames, a six-link chromatic bass descent at two bars a link, an Italian sixth placed mid-flight rather than at a cadence, and a lead that never attacks two consecutive rows |
 
 About twenty-eight minutes of first-pass material. The twelve span every mode the preset
@@ -159,7 +159,9 @@ on 16th rows, 24 frames of four bars, looping past a one-frame intro. Pulse 1 ca
 hook and pulse 2 answers it as an echo canon three rows behind — the same notes, five
 volume steps quieter, on a duty-0 instrument so the copy is thinner as well as softer,
 and copying the lead's cuts so it breathes with the phrase; the sawtooth gallops an eighth
-plus two 16ths while the triangle answers on the off-16ths an octave up, and the two VRC6
+plus two 16ths and **walks** — chord tones on the beats with the root on 1 and 3, scale steps
+on the 16ths between them, and the last two attacks of every bar leaning by step into the
+next bar's bass — while the triangle echoes that line on the off-16ths an octave up, and the two VRC6
 pulses hold the harmony — thirds under A, sixths under the chorus, guide tones at 12:16
 and 12:32 where each lane holds a common tone in turn rather than four bars of parallel
 sixths. The kit is the noise lane over the DPCM pair, and A and both choruses layer the
@@ -174,14 +176,22 @@ B7 → E7 → A → F#7 pivots the last chorus a whole step up into B. There VRC
 doubles the lead an octave above, folding to unison above MIDI 91: at 95 the VRC6 divider
 quantises 11.5 cents flat against the 2A03 pulse's +3.8, and the octave would beat at
 about 17 Hz on the loudest note in the piece. The tag is two bars — the riff in B, a
-unison fall onto E7, then `B01`+`D00` at 23:31 home to frame 1, two bars early.
+unison fall onto E7, then `B01`+`D00` at 23:31 home to frame 1, two bars early. Its
+suspensions are prepared and resolve down by step: a 4–3 over E7 on VRC6 pulse 1 at
+4:32→4:52 and again under A′ at 8:32→8:52, another at the pre-chorus half cadence
+10:0→10:20, and on pulse 2 a 9–8 at the chorus's midpoint 12:60→13:4, its repeat a step
+up at 20:60→21:4, and one at the turn's E7→A, 18:24→18:36.
 
 **Counterweight** (`05-counterweight.mjs`) is the boss theme: D phrygian, speed 3 for 150
 BPM on a 32nd-note grid — eight rows to the beat, 32 to a bar, 64 to a two-bar frame — and
 44 frames, the longest order on the album. Its motif is a two-bar cell on the sawtooth,
 doubled by the triangle an octave up on the same rows, with `0xy` power fifths on the 2A03
 pulses landing a 32nd behind it (2:5 against the riff at 2:4) so the stabs read as a
-mechanism rather than a chord. The lead sings only in the riff's tails, and pulse 2 answers
+mechanism rather than a chord. That octave pair is the only lock left in the texture: the
+two VRC6 pulses do different jobs rather than one stab an octave apart — vrc6p2 strikes the
+fifths while vrc6p1 holds each chord's third or seventh on the beat — and the riff cell,
+which never changes, is heard under three harmonisations: the original at 2:0 and 4:0,
+`D Bb D A7 | Gm F Eb A7` at 6:0 and 36:0, and `Dm Cm Bb A7 | Gm C7 F7 Bb` at 8:0 and 38:0. The lead sings only in the riff's tails, and pulse 2 answers
 every one of its phrases a fourth below. B is the breath between statements: a tonic pedal
 on the saw, a walking triangle, a descending-fifths chain Dm–Gm–C–F–Bb stated twice and a
 Neapolitan close (16:32 Eb → 17:0 A7 → 18:0 Dm), with VRC6 pulse 1 and the sample lane both
@@ -191,8 +201,8 @@ the DPCM kick, a six-row tom cell carried unbroken across all six frames, and VR
 climbing chromatically D3 → C4 onto C, the pivot that is bVII of D phrygian and V of F
 minor. Phase 2 is what the piece is for — the riff inverted by scale degree, a minor third
 up into F minor — and it is measurably the escalation it claims to be: the loudest section
-on both passes (−19.37 and −19.24 dBFS) and by a wide margin the brightest, a zero-crossing
-rate of 4380 against 3351–4053 everywhere else. The piece declares an `rmsRange` floor of
+on both passes (−18.94 and −18.89 dBFS), and the brightest of the six sections between the
+alarm and the turn, a zero-crossing rate of 4219 against 3318–4086. The piece declares an `rmsRange` floor of
 −21 rather than being raised to meet the default, because the alarm, the turn and the
 half-time bridge rest on purpose; the mix is built to that arc. Every `0xy` block ends with
 an explicit `000` one envelope after its last stab, so nothing arpeggiates a note that did
@@ -274,7 +284,9 @@ frames of four bars, and the raised fourth is heard rather than implied. Its spi
 five-row ostinato on VRC6 pulse 2 written straight through the four-row grid, its entry row
 walking 1:0, 2:1, 3:2, 4:3, 5:4, then 6:0, silent through `air`, 8:2, 9:3, 10:4, 11:0, 12:1,
 13:2, 14:3, 15:4 — `(−64k) mod 5`, three complete cycles inside one pass at a strict
-five-row stride, with the last attack at 15:59 so nothing is stranded at the seam. The
+five-row stride. It rests for two bars at 5:32 and three at 9:16, the grid counting on
+through both, so in the middle third it returns rather than merely continues; the last
+attack is 15:59 so nothing is stranded at the seam. The
 harmony is spelled by a fast `0xy` bed through `horizon` and A and then **taken away** at
 3:0, the removal being the event: the ear supplies the chord that is no longer being
 arpeggiated, and the bed returns only at 15:32 to state itself on the loop row. Space is the
@@ -305,8 +317,10 @@ tritone apart in contrary motion, with every raised tone inner so the lead stays
 throughout; and a chromatic mediant at 11:28 that holds E stationary on VRC6 pulse 2 from
 11:0 and quits to F at 12:0, never to A minor, which would have made it a secondary
 dominant instead. Pulse 2 is an independent line for all of `stile`, 28 attacks on its own
-4-row grid under pulse 1's register. `D00` at 15:51 ends a frame four rows early, leaving
-one bar of five eighths. The ghost layer is written through a helper deliberately outside
+4-row grid under pulse 1's register. `climb` ends on an accelerating snare roll that
+simply stops, and one beat of air carries into `crest`; a `D00` there once cut the frame
+four rows early, which is not a whole 7/8 bar and left the loop body 10 rows short of
+closing. The ghost layer is written through a helper deliberately outside
 the piece's mix lift — a uniform correction is the one thing that destroys the layer it
 lifts — and holds 47 cells at volume 4–6 under backbeats at 14–15.
 
@@ -326,7 +340,7 @@ at 13:52, with the same figure at 9:24. A common-tone diminished turns A°7 into
 the piece pivots a minor third up rather than the whole step two others take — Am7 as
 borrowed iv at 16:32, stated bare on two voices at 17:0, D7 confirming at 18:14, G dorian
 landing at 19:0. The tune leaves pulse 1 for the sawtooth in the tenor at 17:16 while the
-triangle takes the bass. At −24.08 dBFS it is the album's quietest render, and that is
+triangle takes the bass. At −24.11 dBFS it is the album's quietest render, and that is
 density rather than mixing: it states 9.4 events a second against the fastest piece's
 thirty, with the second-highest crest factor of the twelve and its sawtooth accents sitting
 above every comparable piece's maximum.
@@ -347,8 +361,9 @@ relative major arrives at 25:0. The wall of notes this tempo invites is designed
 than survived — no melodic lane ever attacks two consecutive rows, the lead has a rest of at
 least 200 ms in all 204 bars, and it is silent for 13.5 % of them. Three lead colours carry
 it: the tune moves to the sawtooth an octave down at 25:0, where the saw has 16 attacks a
-frame to pulse 1's 4, and to a flat 50 % duty for all of `crest`. `D00` at 39:41 drops a
-beat.
+frame to pulse 1's 4, and to a flat 50 % duty for all of `crest`. `stall` stalls for
+real: the brake roll stops and one beat of silence stands before the theme returns, where
+a `D00` once cut half a bar and left the loop body six rows short of closing.
 
 ## Rendering and checks
 
@@ -361,9 +376,9 @@ maximum; its usual 0.72 setting is about 5.7 dB lower).
 | skyline-run | 268.8 s | −18.74 dBFS | 0.647 | 0 |
 | cathedral-of-gears | 275.7 s | −16.62 dBFS | 1.000 | 38 |
 | tide-tables | 327.8 s | −23.67 dBFS | 0.853 | 0 |
-| tailwind | 245.3 s | −18.53 dBFS | 0.882 | 0 |
-| counterweight | 272.0 s | −20.09 dBFS | 0.902 | 0 |
-| sunward-banner | 283.1 s | −17.59 dBFS | 0.909 | 0 |
+| tailwind | 245.3 s | −18.51 dBFS | 0.951 | 0 |
+| counterweight | 272.0 s | −19.89 dBFS | 0.888 | 0 |
+| sunward-banner | 283.1 s | −17.57 dBFS | 0.889 | 0 |
 
 Eight voices are louder than four. Cathedral of Gears gained 2.2 dB of RMS over the
 folded arrangement and its unclamped peak is now 1.16 — 1.3 dB over full scale, which
