@@ -4,9 +4,10 @@
  *  percussion, distinct texture and opening palette) are in `soundtrack.test.ts` and run
  *  over every song. This file pins the composition: the riff and its octave doubling, the
  *  displaced power fifths and the `000` that ends every one of their blocks, the
- *  scale-degree inversion that opens the second phase, the
- *  three metric devices, the single metric surprise, the one global peak, and the
- *  eight-voice headroom discipline. Each is a decision a reader of
+ *  scale-degree inversion that opens the second phase, the breath B takes, the register
+ *  the re-orchestrated riff occupies, the three metric devices, the single metric
+ *  surprise, the pattern-variation quota, the one global peak, and the eight-voice
+ *  headroom discipline. Each is a decision a reader of
  *  `tools/songs/compose/05-counterweight.mjs` can find, and each would break if the music
  *  changed in a way that matters. None of them is an automated claim of quality.
  *
@@ -226,6 +227,69 @@ describe('05 Counterweight — the boss theme', () => {
     }
   })
 
+  it('lets B breathe: the harmony lane and the sample lane both rest through its first phrase', () => {
+    // B is the breath between two riff statements, and it was measuring LOUDER than
+    // riff A. A harmony lane that sustains a third on all fifteen bars is not harmony,
+    // it is a bed; the sample pair is this kit's weight and it ducks the triangle and
+    // the noise while it plays (§1's shared TND index). Both stay out of the first
+    // phrase, so B runs on six lanes where riff A runs on six.
+    expect(inFrames(attacks('vrc6p1'), 11, 14), 'vrc6p1 rests 11:0-14:63').toEqual([])
+    expect(inFrames(attacks('vrc6p1'), 10, 10).length, 'it states the tonic third first').toBeGreaterThan(0)
+    expect(inFrames(attacks('vrc6p1'), 15, 17).length, 'and returns for the second chain').toBeGreaterThan(0)
+    expect(inFrames(attacks('dpcm'), 10, 13), 'the sample lane is out until bar 8').toEqual([])
+    expect(inFrames(attacks('dpcm'), 14, 17).length).toBeGreaterThan(0)
+    // Six lanes sounding in the middle of the first phrase, not eight.
+    const sounding = song.channels.filter((c) => inFrames(attacks(c), 12, 12).length > 0)
+    expect(sounding).toHaveLength(6)
+  })
+
+  it("riff A' puts the re-orchestrated riff on top of everything else", () => {
+    // The section is billed as an escalation. With the riff one octave up it sat at
+    // 45-62, UNDER the stabs answering it at 58-63, and A' measured as the darkest
+    // driving section with the lowest ceiling in the piece. Two octaves up, with the
+    // 2A03 stabs an octave down, the section's own subject is its top voice.
+    const riff = inFrames(attacks('vrc6p1'), 18, 21).map((c) => c.note as number)
+    const stabs = [...inFrames(attacks('pulse1'), 18, 21), ...inFrames(attacks('pulse2'), 18, 21)]
+      .filter((c) => (c.fx ?? []).some((e) => e !== null && e.cmd === '0' && e.param === 7))
+      .map((c) => c.note as number)
+    expect(Math.min(...riff), 'the riff clears the stabs').toBeGreaterThan(Math.max(...stabs))
+    expect([Math.min(...riff), Math.max(...riff)]).toEqual([57, 74])
+    // ...and it is the highest thing in the section, lead included.
+    for (const channel of ['pulse1', 'pulse2', 'triangle', 'vrc6p2', 'vrc6saw'] as const) {
+      const other = inFrames(attacks(channel), 19, 21).map((c) => c.note as number)
+      expect(Math.max(...other), channel).toBeLessThan(Math.max(...riff))
+    }
+  })
+
+  it('phase 2 is not three identical four-bar blocks', () => {
+    // The inverted cell is stated three times unchanged — that is the motif — but the
+    // TAILS vary the way riff A's do: unit 2 takes the octave-leaping pedal. Without
+    // that, frames 28-33 were the most literal repetition in the piece, in the section
+    // that is supposed to be escalating.
+    const shape = (f: number) => inFrames(attacks('vrc6saw'), f, f).map((c) => `${c.r}:${c.note}`).join(' ')
+    expect(shape(30), 'the cell is the motif and does not change').toBe(shape(28))
+    expect(shape(32)).toBe(shape(28))
+    expect(shape(31), "unit 2's tail leaps the octave").not.toBe(shape(29))
+    expect(shape(33), "unit 3's tail returns to the pedal").toBe(shape(29))
+  })
+
+  it('no sounding lane repeats one pattern for more than four frames', () => {
+    // §2.9's quota. A lane that rests carries an empty pattern for as long as the rest
+    // lasts and that is a dynamic, not a repetition; a lane that PLAYS the same bar every
+    // frame is the sound of a generator. The sample lane was the offender: one index for
+    // twelve consecutive frames (28-39) and eight more (2-9).
+    for (let lane = 0; lane < song.channels.length; lane++) {
+      const channel = song.channels[lane]
+      let run = 1
+      for (let f = 1; f < song.order.length; f++) {
+        run = song.order[f][lane] === song.order[f - 1][lane] ? run + 1 : 1
+        const pattern = song.patterns.find((p) => p.channel === channel && p.index === song.order[f][lane])
+        const sounds = (pattern?.rows ?? []).some((c) => c.note !== undefined && c.note >= 0)
+        if (sounds) expect(run, `${channel} at frame ${f}`).toBeLessThanOrEqual(4)
+      }
+    }
+  })
+
   it('the bridge carries a six-row tom cell unbroken across all six of its frames', () => {
     // 6 rows against an 8-row beat is 4:3, and 64 is not a multiple of 6, so the cell
     // enters each frame two rows later until it re-aligns every third frame. The phase
@@ -235,6 +299,21 @@ describe('05 Counterweight — the boss theme', () => {
     expect([22, 23, 24, 25, 26, 27].map((f) => toms.find((c) => c.frame === f)?.r)).toEqual([0, 2, 4, 0, 2, 4])
     const spacing = new Set(toms.slice(1).map((c, i) => c.row - toms[i].row))
     expect([...spacing], 'one unbroken cell, never re-entered').toEqual([6])
+  })
+
+  it('the bridge run lands its peak on a beat and holds it', () => {
+    // The 32nd run up two octaves is the one place the grid is used for what it is for,
+    // and its arrival is the section's peak — so it arrives ON a beat (a beat is eight
+    // rows) and is held, rather than flicking past on the last 32nd before phase 2.
+    const run = inFrames(attacks('vrc6p1'), 27, 27)
+    expect(run).toHaveLength(15)
+    expect(run.map((c) => c.r - (run[0].r as number))).toEqual([...Array(15).keys()])
+    const top = run.at(-1) as Cell
+    expect(`${top.frame}:${top.r}`).toBe('27:56')
+    expect(top.r % 8, 'on a beat').toBe(0)
+    // ...and it rings until the bridge's last row, six rows later.
+    const after = inFrames(timeline('vrc6p1'), 27, 27).filter((c) => c.r > top.r)
+    expect(after.map((c) => `${c.r}:${c.note}`)).toEqual(['63:-1'])
   })
 
   it('the bridge bass and its DPCM kick are a tresillo', () => {

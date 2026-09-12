@@ -24,17 +24,24 @@
  *                                   descending-fifths chain Dm-Gm-C-F-Bb; a Neapolitan
  *                                   close Eb -> A7 -> Dm. The second phrase is SEVEN
  *                                   bars: D00 drops the last bar (the metric surprise)
- *    18-21   riff A'   8     12.8   re-orchestrated: VRC6 pulse 1 takes the riff an
- *                                   octave up, the saw drops to a root pedal in 8ths,
- *                                   the 2A03 pulses take the fifth stabs, hats double
+ *    18-21   riff A'   8     12.8   re-orchestrated: VRC6 pulse 1 takes the riff TWO
+ *                                   octaves up, so the section's subject is its top
+ *                                   voice; the saw drops to a root pedal in 8ths and
+ *                                   the 2A03 pulses take the fifth stabs, an octave
+ *                                   below the register the VRC6 pulses use in riff A;
+ *                                   hats double
  *    22-27   bridge    12    19.2   half time. Saw alone on D1 in a tresillo with the
  *                                   DPCM kick; toms on a six-row cell (3:4, the phase
  *                                   carried across all six frames); VRC6 pulse 2 climbs
  *                                   chromatically D3 -> C4 and lands on the new
  *                                   dominant; the lead states the head in quarters
  *    28-35   phase 2   16    25.6   F minor, a minor third up. The riff INVERTED on saw
- *                                   + VRC6 pulse 2, the lead an octave up, snare rolls
- *                                   every two bars; the global peak (Db6, 35:0) at bar 13
+ *                                   + VRC6 pulse 2; the lead moves up with the key, a
+ *                                   minor third, an octave over B's register but not
+ *                                   over riff A's — the ceiling is the point, and it is
+ *                                   the global peak (Db6, 35:0) at bar 13. Snare rolls
+ *                                   every two bars; unit 2 takes the octave-leaping
+ *                                   tail so the three units are not identical
  *    36-41   riff A''  12    19.2   D phrygian, everything on; the lead's phrases
  *                                   restated a 16th late; the last three bars are a
  *                                   hemiola (accents every 12 rows) on the VRC6 pulses
@@ -53,11 +60,13 @@
  *  fifth stabs displaced a 32nd (2:5); the lead's tail phrase displaced +2 rows (37:2).
  *
  *  HARMONY (§9.3)  Neapolitan bII -> V7 -> i (16:32 Eb -> 17:0 A7 -> 18:0 Dm);
- *  descending fifths Dm Gm C F Bb twice (10:32-12:32, 14:0-16:0); a chromatic inner
- *  ascent D3 -> C4 on VRC6 pulse 2 across the bridge (22:0 -> 27:0); C as pivot — bVII
- *  of D phrygian, V of F minor (27:0 -> 28:0); Eb as the pivot back (35:32).
- *  Contrary-motion cadences, the bass falling as the lead rises: 9:32-9:48 and
- *  35:32-36:0, both saw Eb2 -> D2 under a rising Bb4 C5 D5.
+ *  descending fifths Dm Gm C F Bb twice (10:32-12:32 and 14:0-16:0), spelled by the
+ *  walking triangle and VRC6 pulse 2's comp, with VRC6 pulse 1's sustained thirds joining
+ *  for the second chain's C7 F Bb (15:0-16:0); a chromatic inner ascent D3 -> C4 on
+ *  VRC6 pulse 2 across the bridge (22:0 -> 27:0); C as pivot — bVII of D phrygian, V of
+ *  F minor (27:0 -> 28:0); Eb as the pivot back (35:32). Contrary-motion cadences, the
+ *  bass falling as the lead rises: 9:32-9:48 and 35:32-36:0, both saw Eb2 -> D2 under a
+ *  rising Bb4 C5 D5.
  *
  *  THE SEAM  Every `0xy` block ends with an explicit `000` (see `fifths()`): the
  *  arpeggio is channel state that a trigger does not clear, so an uncancelled block
@@ -65,14 +74,16 @@
  *  With the cancels, no lane enters frame 2 with an effect latched and pass 2 is pass 1.
  *
  *  HEADROOM AND THE ARC  The whole mix is built to one shape, measured two-pass:
- *  alarm -23.7, turn -22.4, bridge -21.2, riff A -20.4, riff A'' -19.8, riff A' -19.6,
- *  B -19.5, phase 2 -19.4 dBFS — and phase 2 is also the brightest section by a wide
- *  margin (zero-crossing rate 4457 against 3739-4078), which is what makes the second
- *  phase read as the fight getting harder rather than merely continuing. B is the
- *  breath between riff statements, so its lead sits at 11-12 and its kit at 13; the
- *  riff's lead is 14. Saw 11-12 on the riff, 13 only on the alarm stab, 6-10 as a
- *  pedal; VRC6 pulses 6-11, never above the 2A03 lead; one VRC6 pulse rests whenever
- *  the lead plays over the riff. Result: peak 0.902, zero clamped samples at gain 2.0.
+ *  alarm -23.7, turn -23.2, bridge -21.1, riff A -20.4, riff A'' -19.8, B -19.8,
+ *  riff A' -19.4, phase 2 -19.4 dBFS — and phase 2 is the loudest section on BOTH
+ *  passes (-19.37 and -19.24) and the brightest by a wide margin (zero-crossing rate
+ *  4380 against 3351-4053), which is what makes the second phase read as the fight
+ *  getting harder rather than merely continuing. B is the breath between riff
+ *  statements, so its lead sits at 11-12 and its kit at 13 while the riff's lead is 14,
+ *  VRC6 pulse 1 rests through its first phrase and the sample lane does not enter until
+ *  bar 8. Saw 11-12 on the riff, 13 only on the alarm stab, 6-10 as a pedal; VRC6
+ *  pulses 6-11, never above the 2A03 lead; one VRC6 pulse rests whenever the lead plays
+ *  over the riff. Result: peak 0.902, zero clamped samples at gain 2.0.
  */
 import { CUT, L, REL, Song, hex, n, nib } from './lib.mjs'
 
@@ -285,6 +296,19 @@ function wipe(sec, bar, from = 16, to = BAR) {
 function dpcm(sec, bar, hits) {
   for (const [row, drum] of hits) sec.put(L.DPCM, sec.at(bar, row), { note: KIT[drum], inst: KIT.inst, vol: 15 })
 }
+/** The driving sections' sample bar — kick on 1 and the "and" of 2, snare on 2 and 4 —
+ *  with a kick pickup on the last 8th of every FOURTH bar.
+ *
+ *  The pickup is there for the ear and for §2.9's quota: a frame is two bars, so a bar
+ *  that is the same every time makes the same pattern index every time, and the sample
+ *  lane was carrying one index for twelve consecutive frames (28-39) and eight more
+ *  (2-9) — past the four-frame limit, and the only lane in the piece that never varied.
+ *  On a four-bar cycle the lane alternates between two patterns instead, and the extra
+ *  kick marks the four-bar unit the riff is built from. */
+function dpcmBar(sec, bar) {
+  dpcm(sec, bar, [[0, 'kick'], [8, 'snare'], [12, 'kick'], [24, 'snare']])
+  if (bar % 4 === 3) dpcm(sec, bar, [[28, 'kick']])
+}
 
 // --- the motif ---------------------------------------------------------------------
 /** ANVIL, the riff: two bars in the saw's octave. Rows are 32nds. The 16th-note
@@ -400,7 +424,7 @@ function riffKit(sec, bar, { push = false, open = false } = {}) {
     [16, HAT, 8], [20, open ? HAT_OPEN : HAT, 8], [24, SNARE, 15], [28, HAT, 8], [30, SNARE, 4],
   ])
   if (push) kit(sec, bar, [[6, KICK, 12], [22, KICK, 12]])
-  dpcm(sec, bar, [[0, 'kick'], [8, 'snare'], [12, 'kick'], [24, 'snare']])
+  dpcmBar(sec, bar)
 }
 /** Four different fills for the last half-bar of a four-bar unit. */
 const FILLS = {
@@ -482,8 +506,17 @@ const B = s.section('B', 16)
   // VRC6 pulse 1: the third of each chord, sustained, released four rows before the
   // change. VRC6 pulse 2: a soft comp on the off-beat 8ths — the harmony lanes share
   // the chords but not a rhythm.
+  //
+  // But pulse 1 states the tonic third and then RESTS, bars 2-9 (11:0 through 14:63),
+  // returning at bar 10 (15:0). B is the breath between two riff statements and it was
+  // measuring LOUDER than riff A; a sustained third on every one of fifteen bars is the
+  // reason, and a harmony lane that never stops is not harmony, it is a bed. While it
+  // rests, the descending-fifths chain is spelled by the walking triangle and VRC6
+  // pulse 2's comp; it comes back for the chain's second statement as it turns towards the
+  // Neapolitan, which is where a sustained third is worth hearing.
+  const V1_RESTS = (bar) => bar >= 2 && bar < 10
   B_CHORDS.forEach((chord, bar) => {
-    play(B, L.V1, bar, HARM, bar < 8 ? 6 : 8, [[0, B_THIRD[chord]], [28, '===']])
+    if (!V1_RESTS(bar)) play(B, L.V1, bar, HARM, bar < 8 ? 6 : 8, [[0, B_THIRD[chord]], [28, '===']])
     play(B, L.V2, bar, FIFTH, bar < 8 ? 6 : 8, [4, 12, 20, 28].map((r) => [r, B_COMP[chord]]))
   })
 
@@ -548,9 +581,17 @@ const B = s.section('B', 16)
   // low-high), and the double macro roll into A'.
   //
   // The first two bars are the drop the riff earns: kick on 1, a softer backbeat, no
-  // ghosts, and the DPCM lane resting — which also lifts the ducking off the triangle
-  // and the noise (§1's shared TND index), so the walking bass arrives brighter as the
-  // arrangement thins. Everything else enters in bar 2.
+  // ghosts, and the noise kit thinned. Everything but the sample lane enters in bar 2.
+  //
+  // The DPCM pair stays out for the whole of B's FIRST PHRASE and lands with the second,
+  // at bar 8 (14:0). It is the weight of this kit — the bank's kick and snare doubling
+  // the noise ones — and while it rests, its ducking of the triangle and the noise lifts
+  // too (§1's shared TND index), so the walking bass and the hats arrive brighter as the
+  // arrangement thins. With vrc6p1 resting as well, B's first phrase runs on SIX lanes,
+  // the same count riff A runs on. Measured, that buys 0.25 dB: B still reads 0.65 dB
+  // over riff A (-19.75 against -20.40) because a lead that sings without stopping is
+  // the loudest single thing here, but it is now under phase 2 on both passes, which is
+  // the ordering that matters — the climax is the climax.
   for (let bar = 0; bar < 15; bar++) {
     // The backbeat is the high snare (41) but it is not hammered: 13 here against the
     // riff sections' 15, because a singing section that keeps the riff's kit is just
@@ -559,7 +600,7 @@ const B = s.section('B', 16)
     kit(B, bar, [[0, KICK, open ? 12 : 13], [4, HAT, 7], [8, SNARE, open ? 11 : 13, 41], [20, HAT, 7], [24, SNARE, open ? 11 : 13, 41], [28, HAT, 7]])
     if (!open) kit(B, bar, [[12, KICK, 12], [14, SNARE, 3, 41], [30, SNARE, 3, 41]])
     if (bar >= 8) kit(B, bar, [[6, KICK, 11]])
-    if (!open) dpcm(B, bar, [[0, 'kick'], [8, 'snare'], [12, 'kick'], [24, 'snare']])
+    if (bar >= 8) dpcmBar(B, bar)
   }
   wipe(B, 7)
   kit(B, 7, [[16, TOM_LO, 12], [18, TOM_LO, 10], [20, TOM_HI, 12], [22, TOM_HI, 10], [24, SNARE, 14, 41], [26, TOM_LO, 12], [28, TOM_HI, 12], [30, SNARE, 12, 41]])
@@ -579,28 +620,37 @@ const riffA2 = s.section("riff-A'", 8)
   // the tune must not also give up the weight — the change the ear is meant to hear is
   // the riff moving an octave up onto a VRC6 pulse, not the bass getting quieter.
   for (const b of [0, 2, 4, 6]) play(riffA2, L.SAW, b, SAW_RIFF, 12, TAIL_PEDAL)
-  // VRC6 pulse 1 takes ANVIL an octave up at vol 10: three cells, then the octave-
-  // leaping tail. Pulse 2 holds a high A (the fifth) under slow vibrato for four bars,
-  // then doubles the riff an octave above pulse 1 for the lift into the bridge.
-  for (const b of [0, 2, 4]) play(riffA2, L.V1, b, V_RIFF, 11, ANVIL, 12, V_MAP)
-  play(riffA2, L.V1, 6, V_RIFF, 11, TAIL_OCTAVE, 12, V_MAP)
+  // VRC6 pulse 1 takes ANVIL at vol 11: three cells, then the octave-leaping tail.
+  // Pulse 2 holds A4 (the fifth) under slow vibrato for four bars, then doubles the riff
+  // an octave BELOW pulse 1 — the octave pulse 1 has just vacated — so the last two bars
+  // are the riff in octaves on both VRC6 pulses, the thickening into the bridge.
+  //
+  // TWO octaves over the saw's riff, not one (MIDI 57-74). A' is billed as the
+  // escalation and it was the darkest driving section in the piece and the lowest in
+  // ceiling, because the re-orchestrated riff sat at 45-62 UNDER the 50 %-duty stabs
+  // that were answering it. Put it on top and the section's own subject is its top
+  // voice, which is what re-orchestration is for.
+  for (const b of [0, 2, 4]) play(riffA2, L.V1, b, V_RIFF, 11, ANVIL, 24, V_MAP)
+  play(riffA2, L.V1, 6, V_RIFF, 11, TAIL_OCTAVE, 24, V_MAP)
   play(riffA2, L.V2, 0, HARM, 8, [[0, 'a4', '4', hex('42')], [3 * BAR + 28, '===', '4', 0]])
-  play(riffA2, L.V2, 4, V_RIFF, 9, ANVIL, 24, V_MAP)
-  play(riffA2, L.V2, 6, V_RIFF, 9, TAIL_OCTAVE, 24, V_MAP)
-  // Triangle: the pedal an octave above the saw for four bars, then in unison with
-  // pulse 1's riff — the bass thins first and thickens into the bridge.
+  play(riffA2, L.V2, 4, V_RIFF, 9, ANVIL, 12, V_MAP)
+  play(riffA2, L.V2, 6, V_RIFF, 9, TAIL_OCTAVE, 12, V_MAP)
+  // Triangle: the pedal an octave above the saw for four bars, then the riff in unison
+  // with VRC6 pulse 2, an octave under pulse 1 — the bass thins first, then thickens.
   for (const b of [0, 2]) play(riffA2, L.TRI, b, TRI_8TH, 15, [0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60].map((r) => [r, 'd3']))
   play(riffA2, L.TRI, 4, TRI_RIFF, 15, ANVIL, 12, TRI_MAP)
   play(riffA2, L.TRI, 6, TRI_RIFF, 15, TAIL_OCTAVE, 12, TRI_MAP)
   // The 2A03 pulses take the fifth stabs (50 % duty), a 32nd late as before; pulse 1
-  // first lands the D5 that resolves B's E5, and hands over.
+  // first lands the D5 that resolves B's E5, and hands over. Both drop an octave from
+  // the register the VRC6 pulses use in riff A — 46-51 and 34-39 — to leave the top to
+  // the riff: they are the section's harmony, not its ceiling.
   play(riffA2, L.P1, 0, LEAD, 12, [[0, 'd5']])
   for (const b of [0, 2, 4]) {
-    fifths(riffA2, L.P1, STAB2, 11, b, CELL_STABS)
-    fifths(riffA2, L.P2, STAB2, 10, b, CELL_STABS, -12)
+    fifths(riffA2, L.P1, STAB2, 11, b, CELL_STABS, -12)
+    fifths(riffA2, L.P2, STAB2, 10, b, CELL_STABS, -24)
   }
-  fifths(riffA2, L.P1, STAB2, 11, 6, TAIL_STABS)
-  fifths(riffA2, L.P2, STAB2, 10, 6, TAIL_STABS, -12)
+  fifths(riffA2, L.P1, STAB2, 11, 6, TAIL_STABS, -12)
+  fifths(riffA2, L.P2, STAB2, 10, 6, TAIL_STABS, -24)
   // Kit: double-time hats (16ths, accents on the 8ths), snare back on 39, ghosts on
   // the last 16th of beats 2 and 4. A tom climb in 32nds at bar 4; a snare figure and
   // the macro roll into the bridge.
@@ -609,7 +659,7 @@ const riffA2 = s.section("riff-A'", 8)
       [0, KICK, 15], [2, HAT, 6], [4, HAT, 8], [6, HAT, 6], [8, SNARE, 15], [10, HAT, 6], [12, KICK, 13], [14, SNARE, 4],
       [16, HAT, 8], [18, HAT, 6], [20, HAT, 8], [22, HAT, 6], [24, SNARE, 15], [26, HAT, 6], [28, HAT, 8], [30, SNARE, 4],
     ])
-    dpcm(riffA2, bar, [[0, 'kick'], [8, 'snare'], [12, 'kick'], [24, 'snare']])
+    dpcmBar(riffA2, bar)
   }
   wipe(riffA2, 3, 24)
   kit(riffA2, 3, [[24, TOM_LO, 13], [25, TOM_LO, 11], [26, TOM_LO, 12], [27, TOM_LO, 10], [28, TOM_HI, 13], [29, TOM_HI, 11], [30, TOM_HI, 12], [31, TOM_HI, 10]])
@@ -628,6 +678,10 @@ const bridge = s.section('bridge', 12)
     const root = bar < 8 ? 'd1' : bar < 10 ? 'bb1' : 'c2'
     play(bridge, L.SAW, bar, SAW_PEDAL, 12, TRESILLO.map((r) => [r, root]))
     dpcm(bridge, bar, [[0, 'kick'], [12, 'kick'], [16, 'snare'], [24, 'kick']])
+    // From bar 9 the bass leaves D for bVI and bVII, and the sample lane marks it with a
+    // snare on the last 8th — the second pattern this lane needs to bring its six bridge
+    // frames inside §2.9's four-frame quota, put where the harmony is already moving.
+    if (bar >= 8) dpcm(bridge, bar, [[28, 'snare']])
   }
   // Toms on a six-row cell for the whole section: 64 attacks, low/high alternating,
   // louder where a cell lands on a beat. 384 rows is six frames; the cell enters each
@@ -652,7 +706,10 @@ const bridge = s.section('bridge', 12)
   // VRC6 pulse 1: silent until a 32nd-note F-minor run up two octaves in the last
   // half-bar, straight into phase 2's downbeat (the fast run the grid is for).
   const RUN_NOTES = ['c4', 'db4', 'eb4', 'f4', 'g4', 'ab4', 'bb4', 'c5', 'db5', 'eb5', 'f5', 'g5', 'ab5', 'bb5', 'c6']
-  play(bridge, L.V1, 11, RUN, 9, RUN_NOTES.map((note, i) => [16 + i, note]))
+  // It LANDS on a beat and is held there. Fifteen 32nds from row 10 put the C6 on row 24
+  // — 27:56, the last beat of the bridge — and it rings through 27:62 before the cut, so
+  // the section's peak arrives on a beat instead of on the last 32nd before phase 2.
+  play(bridge, L.V1, 11, RUN, 9, [...RUN_NOTES.map((note, i) => [10 + i, note]), [31, '---']])
   // The toms give way to three macro rolls under the run.
   wipe(bridge, 11, 12)
   kit(bridge, 11, [[12, ROLL, 11], [18, ROLL, 13], [24, ROLL, 15]])
@@ -679,6 +736,20 @@ const ANVIL_INV = [
 /** The inverted tail: an F pedal in 8ths, the approach FALLING into it (Bb Ab G Gb). */
 const APPROACH_INV = [[56, 'bb2'], [58, 'ab2'], [60, 'g2', undefined, undefined, SAW_PLAIN], [62, 'gb2', undefined, undefined, SAW_PLAIN]]
 const TAIL_PEDAL_INV = [...pedal8ths([0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52], 'f2'), ...APPROACH_INV]
+/** Unit 2's tail: the octave-leaping pedal, in F minor. Riff A gives its second unit that
+ *  tail, so the second phase gives its own second unit the same variation — without it,
+ *  phase 2's first three units were three byte-identical four-bar blocks, the most
+ *  literal repetition in the piece, in the section that is supposed to be escalating.
+ *
+ *  It leaps UP, F2 -> F3, and not down into F1 the way the cell's leap is mirrored. The
+ *  mirrored version was written and measured first: F1 is 43.65 Hz, under the console's
+ *  high-pass, so the saw simply stops carrying on every second 8th — phase 2 lost 0.27 dB
+ *  and handed "the loudest section" to riff A'. A variation that quietens the climax is
+ *  the wrong variation, whatever its symmetry. */
+const TAIL_OCTAVE_INV = [
+  ...[0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52].map((r, i) => [r, i % 2 ? 'f3' : 'f2', undefined, undefined, i % 2 ? SAW_PLAIN : SAW_RIFF]),
+  ...APPROACH_INV,
+]
 /** The pivot back: a bar of F pedal, then Eb — bVII of F minor, bII of D phrygian —
  *  held into the D that opens riff A''. */
 const TAIL_PIVOT = [
@@ -707,7 +778,7 @@ const CADENCE_VOICE_P2 = [[32, 'g4'], [62, '---']]
 
 const phase2 = s.section('phase-2', 16)
 {
-  const TAILS = [TAIL_PEDAL_INV, TAIL_PEDAL_INV, TAIL_PEDAL_INV, TAIL_PIVOT]
+  const TAILS = [TAIL_PEDAL_INV, TAIL_OCTAVE_INV, TAIL_PEDAL_INV, TAIL_PIVOT]
   const LEADS = [PHRASE_1, PHRASE_P2_FALL, PHRASE_P2_RISE, PHRASE_P2_PEAK]
   const SEMIS = [3, 0, 0, 0]
   const ANSWERS = [ANSWER_1, ANSWER_P2_FALL, ANSWER_P2_RISE, CADENCE_VOICE_P2]
@@ -734,7 +805,7 @@ const phase2 = s.section('phase-2', 16)
       [0, KICK, 15], [2, HAT, 6], [4, HAT_OPEN, 7], [6, KICK, 12], [8, SNARE, 15, 41], [10, HAT, 6], [12, KICK, 13], [14, SNARE, 4, 41],
       [16, HAT, 8], [18, HAT, 6], [20, HAT_OPEN, 7], [22, KICK, 12], [24, SNARE, 15, 41], [26, HAT, 6], [28, HAT_OPEN, 7], [30, SNARE, 4, 41],
     ])
-    dpcm(phase2, bar, [[0, 'kick'], [8, 'snare'], [12, 'kick'], [24, 'snare']])
+    dpcmBar(phase2, bar)
     if (bar % 2 === 1) {
       wipe(phase2, bar, 26)
       kit(phase2, bar, [[26, ROLL, 13]])
@@ -826,12 +897,17 @@ s.qa({
     'dominants; the riff itself carries one C# per chromatic approach; the bridge vrc6p2 line ' +
     'climbs chromatically. Non-diatonic devices: Neapolitan bII -> V7 -> i closing B (16:32 Eb, ' +
     '17:0 A7, resolving 18:0 Dm); a descending-fifths chain Dm Gm C F Bb twice (10:32-12:32 and ' +
-    '14:0-16:0, read off the thirds on vrc6p1); a chromatic inner ascent D3 -> C4 on vrc6p2 ' +
+    '14:0-16:0), spelled by the walking triangle and the vrc6p2 comp, with the sustained thirds ' +
+    "on vrc6p1 joining for the second chain's C7 F Bb (15:0-16:0) after resting through B's " +
+    'first phrase; a chromatic inner ascent D3 -> C4 on vrc6p2 ' +
     'across the bridge (22:0 through 27:0, a step every bar), landing on C — the pivot, bVII of ' +
     'D phrygian and V of F minor — into phase 2 at 28:0; Eb as the pivot back (35:32, bVII of F ' +
-    'minor = bII of D phrygian). Suspensions on pulse 2: D4 11:20 -> C4 11:40 (9-8 over the C7 ' +
-    'whose third enters 11:32), D4 13:4 -> C#4 13:40 (the cadential 4-3 over A7), Eb4 16:52 -> ' +
-    'C#4 17:8 (the Neapolitan b2 to the leading tone); appoggiatura Bb4 13:32 -> A4 13:36 in the ' +
+    'minor = bII of D phrygian). Two suspensions on pulse 2, both held across the bar line and ' +
+    'both resolving by step: D4 11:20 -> C4 11:40 (9-8 over the C7 whose third enters 11:32) and ' +
+    'D4 13:4 -> C#4 13:40 (the cadential 4-3 over A7). The third held note, Eb4 16:52 -> C#4 ' +
+    '17:8, is NOT a suspension resolution: it falls a diminished third, the Neapolitan b2 ' +
+    'stepping across to the leading tone of the dominant it hangs over. Appoggiatura Bb4 13:32 ' +
+    '-> A4 13:36 in the ' +
     'lead. Contrary motion at three cadences, all of them the phrygian bII -> i with the bass ' +
     'falling as the lead rises: riff A closes 9:32-9:48, saw Eb2 -> D2 under the lead Bb4 C5 D5; ' +
     "phase 2 closes 35:32 -> 36:0, saw Eb2 -> D2 under the lead Bb4 -> C5 -> riff A''s D5; and at " +
@@ -844,9 +920,10 @@ s.qa({
     'stabs sit a 32nd behind the riff (first at 2:5 against the riff at 2:4); the lead\'s first ' +
     "tail phrase is restated two rows late in A'' (37:2 against 5:0). The global peak is Db6, " +
     'pulse 1 at 35:0, the only note above C6 and 80 % of the way through a pass. percussionGap 16 ' +
-    'with coverage 94 %: the report tool measures three gaps over 16 rows, and all three are ' +
-    'composed. 0:1-0:63 and 42:1-42:63 are the alarm and the turn, where the saw stab answers ' +
-    'itself over a crash and nothing else plays; 17:25-17:63 is an artifact of counting document ' +
+    'with coverage 94.14 %: the report tool measures three gaps over 16 rows, and all three are ' +
+    'composed. The two longest are 63 rows each — 0:1-0:63 and 42:1-42:63, the alarm and the ' +
+    'turn, where the saw stab answers itself over a crash and nothing else plays. The third, ' +
+    '17:25-17:63, is an artifact of counting document ' +
     'rows — D00 at 17:31 ends that frame, so the gap actually played is seven rows. The bridge ' +
     'is covered by its tom cell every six rows. 0xy param 7 = 007, a fifth; 4x42 = 442; Rf1/Qf1 = ' +
     'a one-semitone fall/scoop at speed 15; R24 = a four-semitone fall at speed 2. Every 0xy ' +
@@ -854,14 +931,15 @@ s.qa({
     "9:49, 21:49 and the rest): the driver's arpParam is channel state that a trigger does not " +
     'reset, so a block without one arpeggiates every later note on that lane and runs across the ' +
     'loop seam, which §2.9 rule 3 forbids. rmsRange floor ' +
-    '-21: the two-pass mix measures -20.05 dBFS with an unclamped peak of 0.902 and zero clamped ' +
-    'samples, because the alarm, the turn and the half-time bridge rest on purpose (-23.7, -22.4, ' +
-    '-21.2) while the driving sections run -20.4 to -19.4. The arrangement is mixed to that arc ' +
-    'rather than raised to meet -20: phase 2 is both the loudest section (-19.42) and by far the ' +
-    'brightest (zero-crossing rate 4457 against 3739-4078 everywhere else), which is what makes ' +
-    'the second phase read as an escalation. The sawtooth stays at 12 for the riff and 13 only ' +
-    'for the alarm stab, and the VRC6 pulses at 8-11, per the eight-voice headroom rule in §12.2.',
-  renderChecksum: 908641785,
+    '-21: the two-pass mix measures -20.09 dBFS with an unclamped peak of 0.902 and zero clamped ' +
+    'samples, because the alarm, the turn and the half-time bridge rest on purpose (-23.7, -23.2, ' +
+    '-21.1) while the driving sections run -20.4 to -19.4. The arrangement is mixed to that arc ' +
+    'rather than raised to meet -20: phase 2 is the loudest section on both passes (-19.37 and ' +
+    '-19.24) and by far the brightest (zero-crossing rate 4380 against 3351-4053 everywhere ' +
+    'else), which is what makes the second phase read as an escalation. The sawtooth stays at 12 ' +
+    'for the riff and 13 only for the alarm stab, and the VRC6 pulses at 8-11, per the ' +
+    'eight-voice headroom rule in §12.2.',
+  renderChecksum: 3707879510,
 })
 s.check()
 s.write('src/assets/songs/05-counterweight.json')
