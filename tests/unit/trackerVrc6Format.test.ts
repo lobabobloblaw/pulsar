@@ -145,6 +145,9 @@ describe('no existing fixture changed its diagnostics', () => {
     'bad-percussion.json': ['warn:instruments[7]'],
     'bad-row-order.json': ['error:patterns[pulse1:1].rows[2].r'],
     'bad-sample-length.json': ['error:samples[0].data'],
+    // gate B2's fixture (preset-suite §12.5): a clean five-lane document whose only
+    // fault is musical — three channel modes latched across its own Bxx.
+    'bad-sticky-seam.json': [],
     'tiny.json': [],
   }
 

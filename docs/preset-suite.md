@@ -2183,3 +2183,99 @@ eight voices; §3's frozen bank, appended-to and never rewritten; §5's `extra.q
 §6 and §9.5's rubric; and §7.1's gates, unchanged and unwaived. `Cxx` still never appears
 in an album piece. The lint's effect set for these pieces is
 `0 1 2 3 4 7 A B D F G P Q R S V`.
+
+### 12.5 gate B2 — the channel modes a note trigger does not clear
+
+A critic caught what every gate here passed: a piece with 132 `0xy` cells and no `000`
+anywhere, so three lanes reached the `Bxx` with the arpeggio still latched and the second
+pass of the song did not sound like the first. `tests/unit/presets.test.ts`'s `stickyLint`
+is the gate that would have caught it.
+
+**Why a note does not clear these.** `trackerDriver.ts`'s `trigger()` resets the PHASES —
+`arpStep`, `slideAccum`, `pitchAccum`, `portaTarget`, `portaNote`, `vibAcc`, `tremAcc` —
+and nothing else. The MODE each of those phases is stepping lives in a separate per-channel
+field that only `applyRowEffect` writes and only `resetChannels()` — a stop, never a loop —
+clears. So a mode outlives the note that was sounding when it was set, outlives the note
+after it, outlives the pattern, outlives the order frame, and outlives the loop. `cut()`
+does not clear them either: `---` silences the lane and leaves every mode standing.
+
+| effect | field | what actually cancels it |
+| --- | --- | --- |
+| `0xy` arpeggio | `arpParam` | `000`, or any of `1xx` `2xx` `3xx` `Qxy` `Rxy` |
+| `1xx` / `2xx` pitch slide | `slideRate` | `100` / `200`, or `3xx` `Qxy` `Rxy` |
+| `3xx` portamento | `portaEnabled` | `1xx` `2xx` `Qxy` `Rxy` — **`300` freezes it, it does not cancel** |
+| `4xy` vibrato | `vibDepth` | `4x0`: the depth nibble is the off switch |
+| `7xy` tremolo | `tremDepth` | `7x0` with x > 0 — **`700` replays the effect memory** |
+| `Axy` volume slide | `volSlide` | `A00` |
+| `Pxx` fine pitch | `finePitch` | `P80` (0x80 is in tune) |
+| `Vxx` duty override | `dutyOverride` | **nothing.** `V00` is duty 0, a real duty |
+
+The two bolded rows are the traps. `300` leaves `portaEnabled` at 1, and a latched
+`portaEnabled` makes the next note a glide target instead of an attack — the lane loses its
+transient without a note changing. `7` is in `MEMORY_COMMANDS` and is NOT in
+`OFF_ON_ZERO_COMMANDS`, so `resolveParam` turns a bare `700` into the last tremolo
+parameter. `Sxx` also survives its row in `cutTick`, but the tick it names consumes it, so
+it can only latch when `xx` is past the row's tick count — a cut that never fires, which is
+a different defect and not this gate's business.
+
+**What the gate does.** It walks the order from frame 0 the way the driver does — normal
+advance plus `Bxx` and `Dxx`, the flow `reachableFrames` already follows — from the
+document, never from the driver, so a driver bug cannot make it pass. It carries all eight
+fields per lane, resolves `§3.5` effect memory the way `resolveParam` does, and models the
+one note rule that matters here: a note sharing its row with `3xx`/`Qxy`/`Rxy` retargets a
+sounding note instead of triggering it. It reports, as a `problems` list with the lane, the
+value and the frame:row that set it:
+
+1. **`seam:`** — a lane that reaches the loop row (`extra.qa.loopFrame`, row 0) with a mode
+   still latched that the loop row itself does not state. This is the seam defect: pass 2
+   sounds that lane under an effect pass 1 did not have. Restating the effect ON the loop
+   row counts as clean — a loop row that describes its own state is the cheapest fix.
+2. **`drift:`** — the loop row is reached in a different state on the looping pass than on
+   the first. The mirror image of (1): an intro that leaks a mode into pass 1 only.
+3. **`inherited:`** — a note triggers under a mode it never asked for, last stated more
+   than ONE ORDER FRAME of played rows earlier. The frame is the unit the composer divides
+   the piece into, so a mode still inside the frame that wrote it is a sustained gesture
+   and a legitimate way to write a phrase; a mode still standing a whole frame later has
+   outlived its section. Measured against the album: skyline-run carries `0xy` at most 30
+   rows on pulse2 (under its 64-row frame), tide-tables carries `4xy` 320 rows — four whole
+   frames.
+4. **the summary** — `pulse2: 0xy set 6, cleared 10` per lane, set against cancel at a
+   glance. Only modes the lane actually asks for are listed; `1xx` clearing `arpParam` as a
+   side effect is not an arpeggio the composer typed.
+
+**The rule for a composer.** *Every channel mode you turn on, turn off in the same section
+that turned it on — and on the loop row, own every mode you want by stating it there.*
+
+**Anti-vacuity.** `tests/fixtures/songs/bad-sticky-seam.json` latches one mode per lane
+across its `Bxx` — `047` with no `000`, a `3xx` that `300` only freezes, a `7A4` that `700`
+replays — and every branch is exercised by mutating it back to health: adding `000`, `100`
+and `7A0` clears each finding, adding `V02`/`V00` proves `Vxx` has no off switch, and a
+`4A4`/`400` pair proves the `drift:` branch. Skyline-run passes the gate with its twelve
+`000` cells and fails it with those twelve cells deleted and nothing else changed.
+
+**ESCALATE, 2026-09-11 — `03-tide-tables.json` fails this gate.** It is the one shipped
+piece that does, and the gate was not weakened to accommodate it; the findings are pinned
+in `KNOWN_STICKY` so the suite is green on a known defect, the list cannot grow, and fixing
+the song fails the pin until the entry is deleted in the same commit.
+
+| lane | latched at frame 0 row 0 | last stated |
+| --- | --- | --- |
+| `vrc6p1` | `4xy` vibrato, depth 3 | frame 9 row 0 |
+| `vrc6p2` | `4xy` vibrato, depth 4 | frame 9 row 8 |
+| `vrc6saw` | `3xx` portamento, on | frame 12 row 40 |
+| `vrc6saw` | `7xy` tremolo, depth 2 | frame 11 row 12 |
+
+The two vibratos also reach 17 and 16 notes that never asked for them, 320 rows after the
+cell that set them — from "flood" through "building", "high water", "running out" and
+"releasing", four named sections on.
+
+**What that actually costs, measured rather than asserted.** Walking pass 1 against pass 2
+event by event, ONE of the 234 note events differs: `vrc6saw` at frame 2 row 0, the
+entrance of the bass line, which sounds under `7xy` tremolo depth 2 on pass 2 and dry on
+pass 1. The latched `3xx` costs nothing audible — the loop row cuts the lane, so
+`baseNote` is `NOTE_NONE` and the note triggers anyway — and the two vibratos cost nothing
+either, because `vrc6p1` and `vrc6p2` have no notes at all in frames 0-5, which is as far
+as the latch reaches before frame 6 restates it. So the seam finding is one wobbling bass
+note, and the `inherited:` findings are the larger half of it: 33 notes carrying a vibrato
+written five sections earlier. Both are real, neither is an emergency, and fixing either
+changes what the album sounds like — the composer's call, not a test's.
