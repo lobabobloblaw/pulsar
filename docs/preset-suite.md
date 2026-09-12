@@ -2253,10 +2253,18 @@ and `7A0` clears each finding, adding `V02`/`V00` proves `Vxx` has no off switch
 `4A4`/`400` pair proves the `drift:` branch. Skyline-run passes the gate with its twelve
 `000` cells and fails it with those twelve cells deleted and nothing else changed.
 
-**ESCALATE, 2026-09-11 — `03-tide-tables.json` fails this gate.** It is the one shipped
-piece that does, and the gate was not weakened to accommodate it; the findings are pinned
-in `KNOWN_STICKY` so the suite is green on a known defect, the list cannot grow, and fixing
-the song fails the pin until the entry is deleted in the same commit.
+**RESOLVED, 2026-09-11 — `03-tide-tables.json` reports six findings here, and they are the
+composition, not a defect.** It is the one shipped piece the gate flags. The gate was not
+weakened to accommodate it: the findings are pinned in `KNOWN_STICKY`, the list cannot
+grow, and cancelling one of them fails the pin, so the pin now guards the music in both
+directions. The port was audited against the source project's own engine before this
+conclusion was drawn — both engines set vibrato and tremolo as channel state that a note
+trigger does not clear and that only a zero depth nibble cancels, both carry it across the
+loop, and driving the source engine over the original document reproduces the identical
+single audible difference. Every effect cell crossed the port one for one, so there is
+nothing for `applyEngineDifferences` to correct; extending it would have been
+re-composition. The `3xx` divergence between the two engines is real and was already
+compensated at port time. Details below stand as the description of what the piece does.
 
 | lane | latched at frame 0 row 0 | last stated |
 | --- | --- | --- |
