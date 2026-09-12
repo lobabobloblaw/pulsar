@@ -3,7 +3,8 @@
  *  The album-wide rules (canonical bytes, loop entry, hardware registers, self-ending
  *  percussion, distinct texture and opening palette) are in `soundtrack.test.ts` and run
  *  over every song. This file pins the composition: the riff and its octave doubling, the
- *  displaced power fifths, the scale-degree inversion that opens the second phase, the
+ *  displaced power fifths and the `000` that ends every one of their blocks, the
+ *  scale-degree inversion that opens the second phase, the
  *  three metric devices, the single metric surprise, the one global peak, and the
  *  eight-voice headroom discipline. Each is a decision a reader of
  *  `tools/songs/compose/05-counterweight.mjs` can find, and each would break if the music
@@ -137,6 +138,53 @@ describe('05 Counterweight — the boss theme', () => {
     expect(cellFrames.filter((f) => f >= 18 && f <= 21)).toEqual([])
     const reorchestrated = [18, 19, 20].filter((f) => inFrames(attacks('vrc6p1'), f, f).length >= CELL_ROWS.length - 1)
     expect(reorchestrated.length, "riff A' moves the riff onto VRC6 pulse 1").toBeGreaterThanOrEqual(3)
+  })
+
+  it('cancels every 0xy block, so no lane arpeggiates a note that did not ask to', () => {
+    // `0xy` is CHANNEL state. `trackerDriver`'s `applyRowEffect` latches `arpParam[ch]`
+    // and only `000`, `1xx`, `2xx`, `3xx`, `Qxy` and `Rxy` clear it; `trigger()` resets
+    // `arpStep` and leaves `arpParam` alone. So an uncancelled block keeps arpeggiating
+    // every LATER note on its lane — and across the loop, where §2.9 rule 3 forbids an
+    // effect running through the seam and pass 2 stops sounding like pass 1.
+    const CLEARS = ['1', '2', '3', 'Q', 'R']
+    let blocks = 0
+    let cancels = 0
+    for (const channel of song.channels) {
+      let arp = 0
+      let atLoopRow: number | null = null
+      const leaked: string[] = []
+      for (const cell of timeline(channel)) {
+        const frame = cell.frame
+        if (frame === qa().loopFrame && cell.r === 0 && atLoopRow === null) atLoopRow = arp
+        const fx = (cell.fx ?? []).filter((e) => e !== null)
+        const own = fx.find((e) => e.cmd === '0')
+        if (cell.note !== undefined && cell.note >= 0 && own === undefined && arp !== 0) {
+          leaked.push(`${frame}:${cell.r}`)
+        }
+        for (const e of fx) {
+          if (e.cmd === '0') {
+            if (e.param === 0) {
+              if (arp !== 0) cancels++
+              arp = 0
+            } else {
+              if (arp === 0) blocks++
+              arp = e.param
+            }
+          } else if (CLEARS.includes(e.cmd)) arp = 0
+        }
+      }
+      // No note inherits an arpeggio from an earlier block...
+      expect(leaked, `${channel} arpeggiates ${leaked.length} note(s) that carry no 0xy`).toEqual([])
+      // ...the loop row is entered clean on the first pass...
+      expect(atLoopRow, `${channel} at the loop row`).toBe(0)
+      // ...and, the part that only bites on pass 2, nothing is still latched when the
+      // last frame's Bxx jumps back to it.
+      expect(arp, `${channel} carries an arpeggio across the loop seam`).toBe(0)
+    }
+    // Every block is a block because a `000` ended the one before it, so the two counts
+    // agree exactly: 0xy is written in this piece only by `fifths()`, which cancels.
+    expect(blocks).toBeGreaterThanOrEqual(20)
+    expect(cancels).toBe(blocks)
   })
 
   it('the power fifths are 0xy sevenths sitting a 32nd behind the riff', () => {

@@ -59,6 +59,11 @@
  *  Contrary-motion cadences, the bass falling as the lead rises: 9:32-9:48 and
  *  35:32-36:0, both saw Eb2 -> D2 under a rising Bb4 C5 D5.
  *
+ *  THE SEAM  Every `0xy` block ends with an explicit `000` (see `fifths()`): the
+ *  arpeggio is channel state that a trigger does not clear, so an uncancelled block
+ *  arpeggiates every later note on its lane and runs across the loop (§2.9 rule 3).
+ *  With the cancels, no lane enters frame 2 with an effect latched and pass 2 is pass 1.
+ *
  *  HEADROOM AND THE ARC  The whole mix is built to one shape, measured two-pass:
  *  alarm -23.7, turn -22.4, bridge -21.2, riff A -20.4, riff A'' -19.8, riff A' -19.6,
  *  B -19.5, phase 2 -19.4 dBFS — and phase 2 is also the brightest section by a wide
@@ -223,14 +228,47 @@ function play(sec, lane, bar0, inst, vol, events, semis = 0, map = null) {
   if (pending.size > 0) throw new Error(`${sec.name}: a sticky effect is still latched at the end of a phrase — end it`)
 }
 
+/** Where each lane's last `fifths()` block parked its trailing `000`, so a block that
+ *  starts before one can take it back. Keyed by section and lane. */
+const arpCancel = new Map()
+
 /** Power fifths as `0xy` with param 7 (`007`: root, root, fifth on a three-tick cycle
  *  — one row here, so it reads as a buzzing fifth). `list` is `[row, root]` from
- *  `bar0`; `semis` transposes. */
+ *  `bar0`; `semis` transposes.
+ *
+ *  EVERY BLOCK ENDS WITH `000`. `0xy` is CHANNEL state, not note state: the driver's
+ *  `applyRowEffect` latches `arpParam[ch]` and only `000`, `1xx`, `2xx`, `3xx`, `Qxy`
+ *  and `Rxy` clear it, while `trigger()` resets `arpStep` and leaves `arpParam` alone.
+ *  So without a cancel the stabs keep arpeggiating every LATER note on the lane — B's
+ *  sustained thirds, the bridge's lead, and on across the loop seam, where §2.9 rule 3
+ *  forbids it outright and pass 2 stops sounding like pass 1. `play()` already cancels
+ *  its own sticky effects on the next event that carries none; this is the same rule for
+ *  a lane whose next event may be a whole section away.
+ *
+ *  The cancel lands one envelope after the block's last stab — the first row on which
+ *  that stab is silent — so it clears the lane without shortening a note. */
 function fifths(sec, lane, inst, vol, bar0, list, semis = 0) {
+  if (list.length === 0) throw new Error(`${sec.name}: fifths() with no stabs`)
+  const key = `${sec.name}:${lane}`
+  const first = sec.at(bar0) + list[0][0]
+  const pending = arpCancel.get(key)
+  // A block that starts at or before the previous block's cancel re-arms the same 007
+  // on its first row anyway, so that cancel would only shorten this block's first stab.
+  if (pending !== undefined && pending >= first) {
+    const cell = sec.lanes[lane][pending]
+    if (cell !== null && cell.note === undefined) sec.lanes[lane][pending] = null
+    arpCancel.delete(key)
+  }
   for (const [row, root] of list) {
     const abs = sec.at(bar0) + row
     sec.put(lane, abs, { note: n(root) + semis, inst, vol, fx: [['0', nib(0, 7)]] })
   }
+  const rows = Math.ceil(s.instruments[inst].macros.volume.values.length / s.meta.speed)
+  const at = sec.at(bar0) + list.at(-1)[0] + rows
+  if (at >= sec.len) throw new Error(`${sec.name}: the 0xy block from bar ${bar0} has no room for its 000`)
+  if (sec.lanes[lane][at] !== null) throw new Error(`${sec.where(lane, at)}: the 000 that ends this 0xy block would overwrite a cell`)
+  sec.put(lane, at, { fx: [['0', 0]] })
+  arpCancel.set(key, at)
 }
 
 /** Drum hits inside one bar: `[row, inst, vol, note?]`. */
@@ -811,7 +849,11 @@ s.qa({
     'itself over a crash and nothing else plays; 17:25-17:63 is an artifact of counting document ' +
     'rows — D00 at 17:31 ends that frame, so the gap actually played is seven rows. The bridge ' +
     'is covered by its tom cell every six rows. 0xy param 7 = 007, a fifth; 4x42 = 442; Rf1/Qf1 = ' +
-    'a one-semitone fall/scoop at speed 15; R24 = a four-semitone fall at speed 2. rmsRange floor ' +
+    'a one-semitone fall/scoop at speed 15; R24 = a four-semitone fall at speed 2. Every 0xy ' +
+    'block ends with an explicit 000 one envelope after its last stab (3:1, 3:49, 5:1, 7:1, 9:1, ' +
+    "9:49, 21:49 and the rest): the driver's arpParam is channel state that a trigger does not " +
+    'reset, so a block without one arpeggiates every later note on that lane and runs across the ' +
+    'loop seam, which §2.9 rule 3 forbids. rmsRange floor ' +
     '-21: the two-pass mix measures -20.05 dBFS with an unclamped peak of 0.902 and zero clamped ' +
     'samples, because the alarm, the turn and the half-time bridge rest on purpose (-23.7, -22.4, ' +
     '-21.2) while the driving sections run -20.4 to -19.4. The arrangement is mixed to that arc ' +
@@ -819,7 +861,7 @@ s.qa({
     'brightest (zero-crossing rate 4457 against 3739-4078 everywhere else), which is what makes ' +
     'the second phase read as an escalation. The sawtooth stays at 12 for the riff and 13 only ' +
     'for the alarm stab, and the VRC6 pulses at 8-11, per the eight-voice headroom rule in §12.2.',
-  renderChecksum: 1598448341,
+  renderChecksum: 908641785,
 })
 s.check()
 s.write('src/assets/songs/05-counterweight.json')

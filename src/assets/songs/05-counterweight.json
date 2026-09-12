@@ -91,7 +91,7 @@
       4,
       5,
       2,
-      0,
+      5,
       3,
       5
     ],
@@ -111,7 +111,7 @@
       3,
       7,
       2,
-      0,
+      5,
       3,
       6
     ],
@@ -131,7 +131,7 @@
       5,
       8,
       2,
-      0,
+      5,
       3,
       7
     ],
@@ -141,7 +141,7 @@
       6,
       9,
       3,
-      5,
+      6,
       5,
       8
     ],
@@ -151,7 +151,7 @@
       7,
       10,
       2,
-      6,
+      7,
       6,
       8
     ],
@@ -161,7 +161,7 @@
       8,
       10,
       2,
-      7,
+      8,
       7,
       8
     ],
@@ -171,7 +171,7 @@
       9,
       11,
       2,
-      8,
+      9,
       8,
       9
     ],
@@ -181,7 +181,7 @@
       10,
       12,
       2,
-      9,
+      10,
       9,
       10
     ],
@@ -191,7 +191,7 @@
       11,
       12,
       2,
-      10,
+      11,
       10,
       10
     ],
@@ -201,7 +201,7 @@
       12,
       12,
       2,
-      11,
+      12,
       11,
       11
     ],
@@ -211,7 +211,7 @@
       13,
       13,
       4,
-      12,
+      13,
       12,
       12
     ],
@@ -221,37 +221,37 @@
       14,
       14,
       2,
-      13,
+      14,
       13,
       6
     ],
     [
       15,
-      14,
+      15,
       14,
       15,
       2,
-      13,
+      14,
       14,
       6
     ],
     [
       15,
-      14,
+      15,
       2,
       14,
       2,
-      13,
+      14,
       15,
       6
     ],
     [
       16,
-      15,
+      16,
       4,
       16,
       2,
-      14,
+      15,
       16,
       6
     ],
@@ -311,7 +311,7 @@
       0,
       20,
       5,
-      15,
+      16,
       22,
       15
     ],
@@ -321,17 +321,17 @@
       15,
       21,
       2,
-      16,
+      17,
       23,
       16
     ],
     [
       19,
-      16,
+      17,
       16,
       22,
       2,
-      0,
+      5,
       24,
       17
     ],
@@ -341,17 +341,17 @@
       15,
       22,
       2,
-      16,
+      17,
       23,
       16
     ],
     [
       20,
-      17,
+      18,
       16,
       23,
       2,
-      0,
+      5,
       24,
       17
     ],
@@ -361,17 +361,17 @@
       15,
       22,
       2,
-      16,
+      17,
       23,
       16
     ],
     [
       21,
-      18,
+      19,
       16,
       22,
       2,
-      0,
+      5,
       24,
       17
     ],
@@ -381,17 +381,17 @@
       15,
       22,
       2,
-      16,
+      17,
       23,
       16
     ],
     [
       22,
-      19,
+      20,
       17,
       24,
       2,
-      0,
+      5,
       25,
       18
     ],
@@ -401,7 +401,7 @@
       2,
       6,
       2,
-      17,
+      18,
       26,
       4
     ],
@@ -411,7 +411,7 @@
       3,
       25,
       2,
-      0,
+      5,
       27,
       6
     ],
@@ -421,7 +421,7 @@
       2,
       6,
       2,
-      17,
+      18,
       26,
       4
     ],
@@ -431,27 +431,27 @@
       4,
       26,
       2,
-      0,
+      5,
       27,
       5
     ],
     [
       25,
-      20,
+      21,
       2,
       27,
       6,
-      18,
+      19,
       28,
       4
     ],
     [
       26,
-      21,
+      22,
       18,
       28,
       7,
-      19,
+      20,
       29,
       19
     ],
@@ -1209,6 +1209,15 @@
       "index": 15,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
           "r": 5,
           "note": 62,
           "inst": 18,
@@ -1311,6 +1320,15 @@
       "index": 16,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
           "r": 5,
           "note": 62,
           "inst": 18,
@@ -1355,6 +1373,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 49,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -2494,6 +2521,126 @@
       "index": 15,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
+          "r": 5,
+          "note": 50,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 13,
+          "note": 51,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 21,
+          "note": 50,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 29,
+          "note": 48,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 37,
+          "note": 50,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 45,
+          "note": 50,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 53,
+          "note": 51,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        },
+        {
+          "r": 61,
+          "note": 46,
+          "inst": 18,
+          "vol": 10,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 7
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "channel": "pulse2",
+      "index": 16,
+      "rows": [
+        {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
           "r": 5,
           "note": 50,
           "inst": 18,
@@ -2540,12 +2687,21 @@
               "param": 7
             }
           ]
+        },
+        {
+          "r": 49,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
         }
       ]
     },
     {
       "channel": "pulse2",
-      "index": 16,
+      "index": 17,
       "rows": [
         {
           "r": 32,
@@ -2591,7 +2747,7 @@
     },
     {
       "channel": "pulse2",
-      "index": 17,
+      "index": 18,
       "rows": [
         {
           "r": 32,
@@ -2637,7 +2793,7 @@
     },
     {
       "channel": "pulse2",
-      "index": 18,
+      "index": 19,
       "rows": [
         {
           "r": 32,
@@ -2683,7 +2839,7 @@
     },
     {
       "channel": "pulse2",
-      "index": 19,
+      "index": 20,
       "rows": [
         {
           "r": 32,
@@ -2699,7 +2855,7 @@
     },
     {
       "channel": "pulse2",
-      "index": 20,
+      "index": 21,
       "rows": [
         {
           "r": 32,
@@ -2741,7 +2897,7 @@
     },
     {
       "channel": "pulse2",
-      "index": 21,
+      "index": 22,
       "rows": [
         {
           "r": 4,
@@ -2800,6 +2956,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 56,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -8692,6 +8857,15 @@
       "index": 3,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
           "r": 5,
           "note": 62,
           "inst": 17,
@@ -8736,6 +8910,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 49,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -8848,6 +9031,21 @@
       "index": 5,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "channel": "vrc6p1",
+      "index": 6,
+      "rows": [
+        {
           "r": 0,
           "note": 53,
           "inst": 20,
@@ -8871,7 +9069,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 6,
+      "index": 7,
       "rows": [
         {
           "r": 0,
@@ -8897,7 +9095,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 7,
+      "index": 8,
       "rows": [
         {
           "r": 0,
@@ -8923,7 +9121,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 8,
+      "index": 9,
       "rows": [
         {
           "r": 0,
@@ -8949,7 +9147,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 9,
+      "index": 10,
       "rows": [
         {
           "r": 0,
@@ -8975,7 +9173,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 10,
+      "index": 11,
       "rows": [
         {
           "r": 0,
@@ -9001,7 +9199,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 11,
+      "index": 12,
       "rows": [
         {
           "r": 0,
@@ -9027,7 +9225,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 12,
+      "index": 13,
       "rows": [
         {
           "r": 0,
@@ -9043,7 +9241,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 13,
+      "index": 14,
       "rows": [
         {
           "r": 0,
@@ -9177,7 +9375,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 14,
+      "index": 15,
       "rows": [
         {
           "r": 0,
@@ -9291,7 +9489,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 15,
+      "index": 16,
       "rows": [
         {
           "r": 48,
@@ -9387,7 +9585,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 16,
+      "index": 17,
       "rows": [
         {
           "r": 5,
@@ -9489,7 +9687,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 17,
+      "index": 18,
       "rows": [
         {
           "r": 5,
@@ -9591,7 +9789,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 18,
+      "index": 19,
       "rows": [
         {
           "r": 5,
@@ -9681,7 +9879,7 @@
     },
     {
       "channel": "vrc6p1",
-      "index": 19,
+      "index": 20,
       "rows": [
         {
           "r": 4,
@@ -9740,6 +9938,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 58,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -9907,6 +10114,15 @@
       "index": 3,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
           "r": 5,
           "note": 50,
           "inst": 17,
@@ -9951,6 +10167,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 49,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -11333,6 +11558,15 @@
       "index": 27,
       "rows": [
         {
+          "r": 1,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
+            }
+          ]
+        },
+        {
           "r": 5,
           "note": 50,
           "inst": 17,
@@ -11377,6 +11611,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 49,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -11533,6 +11776,15 @@
             {
               "cmd": "0",
               "param": 7
+            }
+          ]
+        },
+        {
+          "r": 58,
+          "fx": [
+            {
+              "cmd": "0",
+              "param": 0
             }
           ]
         }
@@ -14040,8 +14292,8 @@
         ],
         "rev": 2
       },
-      "notes": "D phrygian, 150 BPM on a 32nd grid (speed 3, 8 rows a beat, 32 a bar, 64 a frame = 2 bars). Accidentals: phase 2 (frames 28-35) is in F minor, a minor third up, the riff inverted — its Ab, Db and Gb are outside D phrygian; B (10-17) is D minor with E naturals and C# at both dominants; the riff itself carries one C# per chromatic approach; the bridge vrc6p2 line climbs chromatically. Non-diatonic devices: Neapolitan bII -> V7 -> i closing B (16:32 Eb, 17:0 A7, resolving 18:0 Dm); a descending-fifths chain Dm Gm C F Bb twice (10:32-12:32 and 14:0-16:0, read off the thirds on vrc6p1); a chromatic inner ascent D3 -> C4 on vrc6p2 across the bridge (22:0 through 27:0, a step every bar), landing on C — the pivot, bVII of D phrygian and V of F minor — into phase 2 at 28:0; Eb as the pivot back (35:32, bVII of F minor = bII of D phrygian). Suspensions on pulse 2: D4 11:20 -> C4 11:40 (9-8 over the C7 whose third enters 11:32), D4 13:4 -> C#4 13:40 (the cadential 4-3 over A7), Eb4 16:52 -> C#4 17:8 (the Neapolitan b2 to the leading tone); appoggiatura Bb4 13:32 -> A4 13:36 in the lead. Contrary motion at three cadences, all of them the phrygian bII -> i with the bass falling as the lead rises: riff A closes 9:32-9:48, saw Eb2 -> D2 under the lead Bb4 C5 D5; phase 2 closes 35:32 -> 36:0, saw Eb2 -> D2 under the lead Bb4 -> C5 -> riff A''s D5; and at B's Neapolitan the saw falls Eb2 -> A1 (16:32 -> 17:0) while the lead rises C5 -> E5 (16:56 -> 17:0). Metric: a 6-row tom cell carried unbroken through all six bridge frames, entering at 22:0, 23:2, 24:4, 25:0, 26:2, 27:4; a tresillo on the saw and the DPCM kick, rows 0/12/24 of every bridge bar (22:0 on); hemiola accents every 12 rows, eight of them from 40:32 to 41:52, closing exactly on 42:0; the metric surprise is the dropped bar, D00 at 17:31, which makes B 8 + 7 bars; the fifth stabs sit a 32nd behind the riff (first at 2:5 against the riff at 2:4); the lead's first tail phrase is restated two rows late in A'' (37:2 against 5:0). The global peak is Db6, pulse 1 at 35:0, the only note above C6 and 80 % of the way through a pass. percussionGap 16 with coverage 94 %: the report tool measures three gaps over 16 rows, and all three are composed. 0:1-0:63 and 42:1-42:63 are the alarm and the turn, where the saw stab answers itself over a crash and nothing else plays; 17:25-17:63 is an artifact of counting document rows — D00 at 17:31 ends that frame, so the gap actually played is seven rows. The bridge is covered by its tom cell every six rows. 0xy param 7 = 007, a fifth; 4x42 = 442; Rf1/Qf1 = a one-semitone fall/scoop at speed 15; R24 = a four-semitone fall at speed 2. rmsRange floor -21: the two-pass mix measures -20.05 dBFS with an unclamped peak of 0.902 and zero clamped samples, because the alarm, the turn and the half-time bridge rest on purpose (-23.7, -22.4, -21.2) while the driving sections run -20.4 to -19.4. The arrangement is mixed to that arc rather than raised to meet -20: phase 2 is both the loudest section (-19.42) and by far the brightest (zero-crossing rate 4457 against 3739-4078 everywhere else), which is what makes the second phase read as an escalation. The sawtooth stays at 12 for the riff and 13 only for the alarm stab, and the VRC6 pulses at 8-11, per the eight-voice headroom rule in §12.2.",
-      "renderChecksum": 1598448341
+      "notes": "D phrygian, 150 BPM on a 32nd grid (speed 3, 8 rows a beat, 32 a bar, 64 a frame = 2 bars). Accidentals: phase 2 (frames 28-35) is in F minor, a minor third up, the riff inverted — its Ab, Db and Gb are outside D phrygian; B (10-17) is D minor with E naturals and C# at both dominants; the riff itself carries one C# per chromatic approach; the bridge vrc6p2 line climbs chromatically. Non-diatonic devices: Neapolitan bII -> V7 -> i closing B (16:32 Eb, 17:0 A7, resolving 18:0 Dm); a descending-fifths chain Dm Gm C F Bb twice (10:32-12:32 and 14:0-16:0, read off the thirds on vrc6p1); a chromatic inner ascent D3 -> C4 on vrc6p2 across the bridge (22:0 through 27:0, a step every bar), landing on C — the pivot, bVII of D phrygian and V of F minor — into phase 2 at 28:0; Eb as the pivot back (35:32, bVII of F minor = bII of D phrygian). Suspensions on pulse 2: D4 11:20 -> C4 11:40 (9-8 over the C7 whose third enters 11:32), D4 13:4 -> C#4 13:40 (the cadential 4-3 over A7), Eb4 16:52 -> C#4 17:8 (the Neapolitan b2 to the leading tone); appoggiatura Bb4 13:32 -> A4 13:36 in the lead. Contrary motion at three cadences, all of them the phrygian bII -> i with the bass falling as the lead rises: riff A closes 9:32-9:48, saw Eb2 -> D2 under the lead Bb4 C5 D5; phase 2 closes 35:32 -> 36:0, saw Eb2 -> D2 under the lead Bb4 -> C5 -> riff A''s D5; and at B's Neapolitan the saw falls Eb2 -> A1 (16:32 -> 17:0) while the lead rises C5 -> E5 (16:56 -> 17:0). Metric: a 6-row tom cell carried unbroken through all six bridge frames, entering at 22:0, 23:2, 24:4, 25:0, 26:2, 27:4; a tresillo on the saw and the DPCM kick, rows 0/12/24 of every bridge bar (22:0 on); hemiola accents every 12 rows, eight of them from 40:32 to 41:52, closing exactly on 42:0; the metric surprise is the dropped bar, D00 at 17:31, which makes B 8 + 7 bars; the fifth stabs sit a 32nd behind the riff (first at 2:5 against the riff at 2:4); the lead's first tail phrase is restated two rows late in A'' (37:2 against 5:0). The global peak is Db6, pulse 1 at 35:0, the only note above C6 and 80 % of the way through a pass. percussionGap 16 with coverage 94 %: the report tool measures three gaps over 16 rows, and all three are composed. 0:1-0:63 and 42:1-42:63 are the alarm and the turn, where the saw stab answers itself over a crash and nothing else plays; 17:25-17:63 is an artifact of counting document rows — D00 at 17:31 ends that frame, so the gap actually played is seven rows. The bridge is covered by its tom cell every six rows. 0xy param 7 = 007, a fifth; 4x42 = 442; Rf1/Qf1 = a one-semitone fall/scoop at speed 15; R24 = a four-semitone fall at speed 2. Every 0xy block ends with an explicit 000 one envelope after its last stab (3:1, 3:49, 5:1, 7:1, 9:1, 9:49, 21:49 and the rest): the driver's arpParam is channel state that a trigger does not reset, so a block without one arpeggiates every later note on that lane and runs across the loop seam, which §2.9 rule 3 forbids. rmsRange floor -21: the two-pass mix measures -20.05 dBFS with an unclamped peak of 0.902 and zero clamped samples, because the alarm, the turn and the half-time bridge rest on purpose (-23.7, -22.4, -21.2) while the driving sections run -20.4 to -19.4. The arrangement is mixed to that arc rather than raised to meet -20: phase 2 is both the loudest section (-19.42) and by far the brightest (zero-crossing rate 4457 against 3739-4078 everywhere else), which is what makes the second phase read as an escalation. The sawtooth stays at 12 for the riff and 13 only for the alarm stab, and the VRC6 pulses at 8-11, per the eight-voice headroom rule in §12.2.",
+      "renderChecksum": 908641785
     }
   }
 }
