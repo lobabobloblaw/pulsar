@@ -31,13 +31,15 @@
  *  | 5-6   | bridge  | 8    | saw takes the lead. E7-A7-D7-G7 (frame 5), then ii-V     |
  *  |       |         |      | pairs TWO TO A BAR (frame 6): the harmonic-rhythm change  |
  *  | 7-8   | trade   | 8    | pulse 1 and pulse 2 trade two bars each over a rising     |
- *  |       |         |      | diatonic sequence; §9.2's independent-line section        |
+ *  |       |         |      | diatonic sequence, the first hand-off overlapping by one  |
+ *  |       |         |      | beat; §9.2's independent-line section                     |
  *  | 9-10  | comp    | 8    | the 4-row cell, 3:2 against the 6-row beat, unbroken on   |
  *  |       |         |      | V2; the kit stops for a whole bar at 10:0                 |
  *  | 11    | hush    | 4    | two lanes: walking triangle + ride. A chromatic descent   |
  *  |       |         |      | c2 -> f1, then the walk back up through the ii-V          |
- *  | 12-13 | A''     | 8    | the head returns; pulse 2 an independent counter-line;    |
- *  |       |         |      | the tritone substitution Ab7 -> G7 at the cadence         |
+ *  | 12-13 | A''     | 8    | the head returns RE-VOICED, not replayed (12:34, 13:34);  |
+ *  |       |         |      | pulse 2 an independent counter-line; the tritone          |
+ *  |       |         |      | substitution Ab7 -> G7 at the cadence                     |
  *  | 14-15 | out     | 8    | M in augmentation, the global peak b5, then a turnaround  |
  *  |       |         |      | that walks home — no fill at the seam                      |
  *
@@ -46,9 +48,14 @@
  *        on the swung "and" of 1, a leap of a minor sixth up to the peak, a stepwise
  *        fall through the b7, and a note held across the bar line that becomes the #11
  *        of the bVII. The second bar lands on the tonic and leaves a beat of air.
- *        Stated four times: 1:0 (A), 3:4 (A', displaced +4 rows), 12:0 (A'', its cadence
- *        rewritten over the tritone substitution) and 14:0 (out, in augmentation — every
- *        duration doubled, so two bars become four).
+ *        Stated four times. 1:0 is the statement. 3:4 is a METRIC DISPLACEMENT — the same
+ *        notes a swung eighth late, which is evidence for §9.1 and not a development of
+ *        the subject. The two developments are 12:0, where the second bar keeps M's
+ *        rhythm and re-voices it (d5 at 12:34 where M had a4, b4 at 12:36 where M landed
+ *        on g4, so the return ends open on the third instead of closed on the tonic),
+ *        and 14:0, the augmentation — every duration doubled, two bars becoming four.
+ *        Together with N that is three genuine variations: transposition with
+ *        re-harmonisation, re-voicing, and augmentation.
  *    N   the answer (2 bars): M's contour two scale steps down, re-harmonised over
  *        Em7 | Am7 — the same shape, a different function. Stated at 2:0 and 13:0.
  *    W   the walk. Four quarter notes a bar on the triangle, states a pitch on every
@@ -58,16 +65,26 @@
  *  DEVICES (all cited frame:row)
  *    §9.1  (a) the 4-row cell against the 6-row beat: three attacks in the time of two
  *              beats, a clean 3:2 realigning every 12 rows, unbroken on vrc6p2 from
- *              9:0 to 10:92 — 48 attacks, the whole of `comp`.
+ *              9:0 to 10:92 — 48 attacks, the whole of `comp`. The rhythm never moves and
+ *              the ACCENT does: two of the six cells in a bar are struck at 11 and the
+ *              pair advances one cell a bar, so the stress walks from the beat (9:0) to
+ *              the middle of the triplet (9:32) to the swung "and" (9:52) over three bars
+ *              and no bar accents the pair the bar before it did.
  *          (b) the 20-row punch cell on vrc6p1, phase-carried across three frames:
  *              entry rows 3:0, 4:4, 5:8, computed as (-96k) mod 20, not guessed.
  *          (c) the metric surprise: at 10:0 the kit stops for a whole bar and only the
  *              3:2 cell continues (§9.4 allows exactly one).
- *          (d) M displaced a swung eighth (+4 rows) at 3:4 against its 1:0 statement.
+ *          (d) M displaced a swung eighth (+4 rows) at 3:4 against its 1:0 statement —
+ *              a metric device, counted here and not as motif development.
  *    §9.2  `trade` (frames 7-8) is pulse 2's section: it answers two bars at a time with
  *          its own contour and its own rhythm, and 100 % of its attacks there land on
- *          rows pulse 1 leaves empty (54 % across the whole piece). In A'' and `out` it
- *          runs a continuous counter-line under the head.
+ *          rows pulse 1 leaves empty (54 % across the whole piece) — and they are not
+ *          complementary merely by never coinciding: at the first hand-off pulse 1
+ *          re-articulates its last note at 7:48 three steps down and rings through
+ *          pulse 2's entry at 7:52 for exactly one beat, so the two lanes sound together
+ *          while the attacks stay disjoint. The return hand-off at 8:48 is clean, which
+ *          is the difference between a gesture and a habit. In A'' and `out` pulse 2 runs
+ *          a continuous counter-line under the head.
  *          Appoggiatura: the 11th over Cmaj7, f5 on the beat at 1:48, resolved down to
  *          e5 at 1:50 — and the same two rows again at 12:48 in A''.
  *          Suspension: pulse 2 takes c4, the SEVENTH of the Dm7, at 2:66 and holds it
@@ -424,6 +441,19 @@ const M = [
   [Q, 'g4', 12], //          beat 3: the landing, low
   [Q, '-'], //               beat 4: the hole
 ]
+/** M_RETURN — what A'' states instead of M. The first bar is M's, note for note; the
+ *  second bar keeps M's rhythm exactly (rows 30, 34, 36) and re-voices it: where M fell
+ *  c5 - a4 - g4 and closed on the tonic, the return turns UP to d5 and settles on b4, the
+ *  third. Same shape, same holes, a different destination — so the head comes back open
+ *  where it first came back closed, and the piece still has somewhere to go. */
+const M_RETURN = [
+  ...M.slice(0, 7), //     bar 0 and the note held across the bar line, unchanged
+  [LONG, 'c5', 11], //     row 30, as before
+  [SHORT, 'd5', 11], //    row 34: UP a step, where M went down a minor third
+  [Q, 'b4', 12], //        row 36: lands on the third, not the tonic
+  [Q, '-'], //             and keeps M's hole
+]
+
 /** N — the answer, two bars over Em7 | Am7: M's contour two scale steps down, so the
  *  same shape now begins on the third of vi and ends on the fifth of ii. A variation by
  *  transposition and re-harmonisation, not a repeat. */
@@ -440,6 +470,11 @@ const N = [
   [Q, 'e4', 11],
   [Q, '-'],
 ]
+/** N_RETURN — A'''s answer. Same rhythm again; the tail rises to b4 and settles on g4,
+ *  the seventh of the ii chord, where N dropped to its fifth. With M_RETURN this makes
+ *  three of A'''s four phrases different from A's — the fourth being the cadence, which
+ *  A'' had already rewritten over the tritone substitution. */
+const N_RETURN = [...N.slice(0, 7), [LONG, 'a4', 10], [SHORT, 'b4', 11], [Q, 'g4', 11], [Q, '-']]
 
 // =====================================================================================
 // head-in — frame 0: the room before the tune
@@ -519,10 +554,14 @@ const A = s.section('A', 8)
   phrase(A, L.P2, VOICE, A.at(1, at(3)), [[LONG, 'd4', 8], [SHORT, 'e4', 9], [Q, 'g4', 11], [Q, '-']])
   phrase(A, L.P2, VOICE, A.at(3, at(3)), [[LONG, 'g4', 9], [SHORT, 'bb4', 9], [Q, 'b4', 10], [Q, '-']]) // bb -> b: the blue third, resolved up by step
   phrase(A, L.P2, VOICE, A.at(5, at(3)), [[LONG, 'e4', 8], [SHORT, 'f4', 9], [Q, 'a4', 11], [Q, '-']])
-  // the cadential suspension: c4 is the SEVENTH of the Dm7 in bar 6, held across the
-  // change into bar 7 where it is G7's fourth, and resolved down by step to the third on
-  // beat 2. Two beats of dissonance on a pulse channel, and it costs one row placement.
-  phrase(A, L.P2, VOICE, A.at(6, at(3)), [[HALF, 'c4', 10], [HALF, 'b3', 11], [Q, '-']], { vib: VIB, vibMin: 12, vibAfter: 6 })
+  // THE CADENTIAL SUSPENSION. c4 is the SEVENTH of the Dm7 in bar 6; it is attacked at
+  // 2:66, sustains (the voice's volume macro loops, so nothing releases it) across the
+  // change at 2:72 where the same pitch is G7's fourth, and resolves down by step to b3
+  // at 2:78. MEASURED, soloed: -26.4 dBFS over the Dm7, -26.3 over the G7, -26.5 on the
+  // resolution, silence from 2:90. The vibrato blooms at 2:70 rather than 2:72 so that no
+  // cell of any kind sits on the bar line — a `4xy` cell carries no note and cuts
+  // nothing, but a reader scanning the chord change should not have to know that.
+  phrase(A, L.P2, VOICE, A.at(6, at(3)), [[HALF, 'c4', 10], [HALF, 'b3', 11], [Q, '-']], { vib: VIB, vibMin: 12, vibAfter: 4 })
   // TRI  the walk: a pitch on every beat, chromatic approaches into bars 2, 5 and 6.
   walk(A, 0, [
     ['g1', 'b1', 'd2', 'e2'],
@@ -775,7 +814,13 @@ const trade = s.section('trade', 8)
     [Q, 'd5', 11], [LONG, 'e5', 11], [SHORT, 'g5', 12],
     [LONG, 'f5', 12], [SHORT, 'e5', 11], [Q, 'd5', 11],
     [LONG, 'c5', 10], [SHORT, 'e5', 11], [DOT, 'g5', 12], [SHORT, 'f5', 11],
-    [Q, 'e5', 11], [Q, '-'],
+    [Q, 'e5', 11],
+    // the hand-off OVERLAPS. Pulse 1 re-articulates its last note at 7:48, three volume
+    // steps down, and lets it ring for one beat under pulse 2's entry at 7:52 — the
+    // outgoing horn not quite willing to stop. It is a tail, not a phrase: pulse 2 still
+    // attacks on rows pulse 1 has none, and now the two lanes are audibly in the room
+    // together. Only the first hand-off does this; the return at 8:48 is clean.
+    [DOT, 'e5', 8],
   ], { vib: VIB })
   phrase(trade, L.P1, LEAD, trade.at(4), [
     [LONG, '-'], [SHORT, 'f5', 11], //         bar 4
@@ -862,11 +907,19 @@ const comp = s.section('comp', 8)
   // happens to fall on a beat.
   const FIFTH = { Cmaj7: 'g4', Bm7b5: 'f4', Am7: 'e4', G7: 'd4', Fmaj7: 'c4', Em7: 'b3', D7: 'a3' }
   for (let row = 0; row < comp.len; row += 4) {
-    const name = ['Cmaj7', 'Bm7b5', 'Am7', 'G7', 'Fmaj7', 'Em7', 'Am7', 'D7'][Math.floor(row / BARROWS)]
+    const bar = Math.floor(row / BARROWS)
+    const name = ['Cmaj7', 'Bm7b5', 'Am7', 'G7', 'Fmaj7', 'Em7', 'Am7', 'D7'][bar]
     const c = CH[name]
     const step = (row / 4) % 3
     const pitch = step === 0 ? c.lo : step === 1 ? c.hi : FIFTH[name]
-    comp.put(L.V2, row, { note: note(pitch), inst: COMP, vol: row % BEAT === 0 ? 11 : 8 })
+    // THE ACCENT WALKS. The rhythm never moves — that is the point of an unbroken cell —
+    // but which of the three cells is struck hardest advances one place a bar, so over
+    // three bars the stress passes from the beat to the middle of the triplet to the
+    // swung "and" and back. The 3:2 stops being a texture and becomes audible as a
+    // shifting downbeat, which is the whole argument of the section, and it costs one
+    // volume column. Two of the six cells in a bar are accented, and no bar accents the
+    // same pair as the bar before it.
+    comp.put(L.V2, row, { note: note(pitch), inst: COMP, vol: [11, 9, 7][(step + bar) % 3] })
   }
   // V1  one long guide tone a bar, entering on the beat: the harmony held still so the
   // cell has something to be measured against.
@@ -956,11 +1009,14 @@ const CHANGES_A3 = [
 ]
 const A3 = s.section("A''", 8)
 {
-  // P1  the head, on the grid again, with its cadence rewritten over the substitution:
-  // the tune's gb5 at bar 6 is the sub's own seventh and it resolves down to f5.
-  phrase(A3, L.P1, LEAD, 0, M, { vib: VIB })
+  // P1  the head, on the grid again, and NOT the same head: M_RETURN turns its second
+  // bar up to d5 and lands on the third instead of the tonic (12:34, 12:36), N_RETURN
+  // settles on the seventh of the ii instead of its fifth (13:34, 13:36), and the cadence
+  // is rewritten over the substitution — the tune's gb5 at bar 6 is the sub's own seventh
+  // and it resolves down to f5. Three of the four phrases differ from A's.
+  phrase(A3, L.P1, LEAD, 0, M_RETURN, { vib: VIB })
   phrase(A3, L.P1, LEAD, A3.at(2), A_ANSWER, { vib: VIB })
-  phrase(A3, L.P1, LEAD, A3.at(4), N, { vib: VIB })
+  phrase(A3, L.P1, LEAD, A3.at(4), N_RETURN, { vib: VIB })
   phrase(A3, L.P1, LEAD, A3.at(6), [
     [LONG, '-'], [SHORT, 'eb5', 11], //      bar 6 beat 1, over Ab7: the sub's flat ninth region
     [LONG, 'gb5', 12], [SHORT, 'f5', 12], // the sub's seventh, resolved down by step
@@ -1125,7 +1181,10 @@ const out = s.section('out', 8)
   // V1 / V2  back to A's placement — the "and" of 2 and the pushed "and" of 4 — so the
   // piece ends where its comping began. The last bar comps the D7 twice and stops.
   stabs(out, CHANGES_OUT, 0, 8, [[at(1, 4), L.V2, 9]], { arp: true })
-  stabs(out, CHANGES_OUT, 0, 8, [[at(3, 4), L.V1, 8, true]], { drag: 2 })
+  // bar 7's anticipation is dropped: it would push the head's G7 at 15:94 and vrc6p1
+  // states a CUT two rows later on the loop row, so the push had nowhere to land. The
+  // turnaround's last comped chord is the D7 at 15:70 and the seam belongs to the bass.
+  stabs(out, CHANGES_OUT, 0, 8, [[at(3, 4), L.V1, 8, true]], { drag: 2, skip: (b) => b === 7 })
   stabs(out, CHANGES_OUT, 0, 8, [[at(2, 4), L.V1, 7]], { skip: (b) => b % 2 === 1, drag: 2 })
   // NOISE / DPCM  the fullest kit in the piece for six bars, then it thins: bar 7 is ride
   // and one ghost, no kick on the last beat, and NO FILL. The loop arrives on a walking
@@ -1178,7 +1237,9 @@ s.qa({
     'the default 8 as well; the report shows one 25-row gap, from 9:94 to 10:24, which is the ' +
     'metric surprise (the kit stops for the whole bar at 10:0 and only the 3:2 cell plays ' +
     'on), and coverage still measures 92 %. Devices: the 4-row cell against the 6-row ' +
-    'beat, 3:2, unbroken on vrc6p2 for all 48 attacks from 9:0 to 10:92; the 20-row punch ' +
+    'beat, 3:2, unbroken on vrc6p2 for all 48 attacks from 9:0 to 10:92, with the accented ' +
+    'pair of cells advancing one place a bar so the stress walks from the beat (9:0) to the ' +
+    'triplet (9:32) to the swung "and" (9:52) and back over three bars; the 20-row punch ' +
     'cell on vrc6p1, phase-carried with entry rows 3:0, 4:4 and 5:8, computed as ' +
     '(-96k) mod 20; the head displaced a swung eighth at 3:4 against 1:0; the head ' +
     'augmented at 14:0. Harmony: three links of descending fifths as secondary dominants, ' +
@@ -1191,7 +1252,13 @@ s.qa({
     'Counterpoint: the cadential 4-3 on pulse 2, c4 taken at 2:66 as the seventh of Dm7 ' +
     'and resolved to b3 at 2:78; the second cadential 4-3 on vrc6p1, c4 at 13:70 (the ' +
     "third of the substitution) resolved to b3 at 13:78; an appoggiatura, Cmaj7's 11th, at " +
-    '1:48 resolving at 1:50 and again at 12:48. Contrary motion at both cadences: the ' +
+    '1:48 resolving at 1:50 and again at 12:48. The first trade hand-off overlaps by one ' +
+    'beat: pulse 1 re-articulates its last note at 7:48 three volume steps down and it rings ' +
+    "under pulse 2's entry at 7:52 until 7:58, so the two lanes are complementary in their " +
+    'ATTACKS rather than merely never coinciding; the return hand-off at 8:48 is clean. The ' +
+    'head RETURNS re-voiced and is not replayed: 12:34 rises to d5 where 1:34 fell to a4 and ' +
+    '12:36 lands on the third where 1:36 closed on the tonic, and 13:34 and 13:36 settle on ' +
+    "the seventh of the ii chord where 2:34 and 2:36 dropped to its fifth. Contrary motion at both cadences: the " +
     'tune rises f5 to a5 at 2:66-2:72 while the bass falls ab2 to g2, and falls c5 to b4 ' +
     'at 13:66-13:72 while the bass rises c2 to g2. Effect params are DECIMAL: 4xy vibrato ' +
     '442 = 66 on the lead and 431 = 49 on the saw, always written a beat after the note it ' +
@@ -1201,7 +1268,7 @@ s.qa({
     'the ride, which is under the two-tick humanisation limit and never on a section ' +
     'downbeat. The noise lane carries no kick at all: the DPCM pair plays every kick and ' +
     'every accented snare, so the noise lane is nothing but ride, brushes and fills.',
-  renderChecksum: 2583797571,
+  renderChecksum: 3987753936,
 })
 s.check()
 s.write('src/assets/songs/08-blue-hour.json')

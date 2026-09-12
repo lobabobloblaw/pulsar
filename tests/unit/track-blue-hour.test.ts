@@ -123,9 +123,30 @@ describe('Blue Hour — the after-hours room', () => {
     expect(M[2].note! - M[1].note!).toBe(-2)
   })
 
+  it("A'' RETURNS the head re-voiced — it is not frame 1 replayed", () => {
+    // The first bar is M's, note for note. The second keeps M's rhythm — rows 30, 34, 36 —
+    // and changes where it goes: up to d5 where M fell to a4, landing on the third
+    // instead of the tonic, so the return ends open where the first statement closed.
+    const M = attacks('pulse1', [1]).filter((c) => c.r < 48)
+    const ret = attacks('pulse1', [12]).filter((c) => c.r < 48)
+    expect(ret.map((c) => c.r)).toEqual(M.map((c) => c.r)) // same rhythm …
+    expect(ret.slice(0, 6).map((c) => c.note)).toEqual(M.slice(0, 6).map((c) => c.note))
+    expect([ret[7].note, ret[8].note]).toEqual([74, 71]) // … different destination
+    expect([M[7].note, M[8].note]).toEqual([69, 67])
+    // and the answer is re-voiced too: three of A'''s four phrases differ from A's
+    expect(attacks('pulse1', [13]).filter((c) => c.r >= 30 && c.r < 48).map((c) => c.note))
+      .toEqual([69, 71, 67])
+    expect(attacks('pulse1', [2]).filter((c) => c.r >= 30 && c.r < 48).map((c) => c.note))
+      .toEqual([69, 67, 64])
+    // no pulse-1 pattern of A'' is the pattern A played: the de-duplicator proves it
+    const ix = (f: number) => song.order[f][song.channels.indexOf('pulse1')]
+    expect([ix(12), ix(13)]).not.toEqual([ix(1), ix(2)])
+  })
+
   it("M displaced a swung eighth in A', and augmented in `out`", () => {
     const M = attacks('pulse1', [1]).filter((c) => c.r < 48)
-    // A' states the same nine pitches four rows late — an eighth, on this grid
+    // A' states the same nine pitches four rows late — an eighth, on this grid. A metric
+    // device (§9.1), not a development of the subject.
     const displaced = attacks('pulse1', [3]).filter((c) => c.r < 52)
     expect(displaced.map((c) => [c.r - 4, c.note])).toEqual(M.map((c) => [c.r, c.note]))
     expect(displaced[0].r).toBe(8)
@@ -145,11 +166,25 @@ describe('Blue Hour — the after-hours room', () => {
     const rows = cell.map((c) => c.row)
     expect(rows.every((r, i) => i === 0 || r - rows[i - 1] === 4)).toBe(true)
     // the pitch figure is three notes long, so the 12-row 3:2 cycle and the pitch cycle
-    // agree instead of fighting, and the column accents whichever lands on the beat
-    expect(cell.slice(0, 6).map((c) => [c.r, c.note, c.vol])).toEqual([
-      [0, 59, 11], [4, 64, 8], [8, 67, 8], [12, 59, 11], [16, 64, 8], [20, 67, 8],
+    // agree instead of fighting
+    expect(cell.slice(0, 6).map((c) => [c.r, c.note])).toEqual([
+      [0, 59], [4, 64], [8, 67], [12, 59], [16, 64], [20, 67],
     ])
-    expect(cell.filter((c) => c.r % BEAT === 0).every((c) => c.vol === 11)).toBe(true)
+    // and THE ACCENT WALKS: two of the six cells in a bar are struck at 11, and the pair
+    // advances one cell a bar, so the stress passes from the beat to the middle of the
+    // triplet to the swung "and" over three bars. A fixed contour here is the fatigue the
+    // section is most exposed to, and this is the pin that would catch it coming back.
+    const accents = (bar: number) =>
+      cell.filter((c) => Math.floor((c.row - co[0] * ROWS) / BAR) === bar && c.vol === 11)
+        .map((c) => c.r % BAR)
+    expect(accents(0)).toEqual([0, 12])
+    expect(accents(1)).toEqual([8, 20])
+    expect(accents(2)).toEqual([4, 16])
+    expect(accents(3)).toEqual([0, 12]) // the three-bar cycle, and then it repeats
+    for (let bar = 1; bar < 8; bar++) {
+      expect(accents(bar), `bar ${bar} accents what bar ${bar - 1} did`).not.toEqual(accents(bar - 1))
+    }
+    expect(new Set(cell.map((c) => c.vol))).toEqual(new Set([11, 9, 7]))
   })
 
   it('§9.1 (b): the 20-row punch cell carries its phase across three frames', () => {
@@ -214,8 +249,18 @@ describe('Blue Hour — the after-hours room', () => {
     expect(p2.every((c) => !p1.has(c.row)), 'pulse 2 answers where pulse 1 is silent').toBe(true)
     // two bars each, in turn: pulse 1 owns bars 0-1 and 4-5, pulse 2 bars 2-3 and 6-7
     const barsOf = (cs: Cell[]) => new Set(cs.map((c) => Math.floor((c.row - tr[0] * ROWS) / BAR)))
-    expect([...barsOf(attacks('pulse1', tr))].sort((a, b) => a - b)).toEqual([0, 1, 4, 5])
+    // pulse 1 reaches into bar 2 for exactly one cell: the tail of its own phrase, three
+    // volume steps down, ringing through pulse 2's entry for one beat. The lanes are
+    // complementary in their ATTACKS, not merely because they never share a room.
+    expect([...barsOf(attacks('pulse1', tr))].sort((a, b) => a - b)).toEqual([0, 1, 2, 4, 5])
     expect([...barsOf(p2)].sort((a, b) => a - b)).toEqual([2, 3, 6, 7])
+    const tail = attacks('pulse1', [7]).filter((c) => c.r >= BAR * 2)
+    expect(tail.map((c) => [c.r, c.note, c.vol])).toEqual([[48, 76, 8]])
+    expect(attacks('pulse1', [7]).filter((c) => c.r === 42)[0].vol).toBe(11) // it is a tail
+    expect(p2[0].r).toBe(52) //   pulse 2 enters a beat after the tail is struck …
+    expect(cellAt('pulse1', 7, 58)?.note).toBe(-1) // … and the tail is cut a beat later
+    // the second hand-off is clean: nothing of pulse 1 reaches bar 6
+    expect(attacks('pulse1', [8]).every((c) => c.r < BAR * 2)).toBe(true)
     // and its two answers are two answers, not one answer twice
     expect(attacks('pulse2', [7]).map((c) => c.r)).not.toEqual(attacks('pulse2', [8]).map((c) => c.r))
     // the other cadential suspension: c4, the seventh of Dm7, held into G7 and resolved
@@ -267,6 +312,10 @@ describe('Blue Hour — the after-hours room', () => {
     expect(new Set(lastBar.map((c) => song.instruments[c.inst!].name))).toEqual(new Set(['hat-closed', 'snare']))
     // and the loop row itself is not a cymbal: the head arrives on a ride tick
     expect(song.instruments[cellAt('noise', 1, 0)!.inst!].name).toBe('hat-closed')
+    // nor is anything comped into it: vrc6p1's last stab is the D7 at 15:70, because a
+    // push at 15:94 would be cut by that lane's own CUT on the loop row two rows later
+    expect(cellAt('vrc6p1', 15, 94)).toBeUndefined()
+    expect(Math.max(...attacks('vrc6p1', [15]).map((c) => c.r))).toBe(70)
   })
 
   it('states every lane at the loop row, and nothing arpeggiates or wobbles across it', () => {
