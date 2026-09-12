@@ -25,7 +25,7 @@ const ROOT = join(import.meta.dirname, '..', '..')
 const PRESET_DIR = join(ROOT, 'src', 'assets', 'songs')
 const TINY = join(ROOT, 'tests', 'fixtures', 'songs', 'tiny.json')
 
-/** The soundtrack: the three OCTET ports and the six pieces composed for pulsar must
+/** The soundtrack: the three OCTET ports and the nine pieces composed for pulsar must
  *  ship, and no retired preset may leak back into the picker. See docs/soundtrack.md,
  *  tools/songs/octet/README.md and tools/songs/compose/README.md. */
 const EXPECTED_PRESETS = [
@@ -38,6 +38,9 @@ const EXPECTED_PRESETS = [
   'winding-stair',
   'blue-hour',
   'long-light',
+  'crooked-mile',
+  'night-shift',
+  'headlong',
 ]
 
 function presetFiles(): string[] {
@@ -57,7 +60,7 @@ describe('shipped presets — structural gate', () => {
     // per-file suites below — a loop over an empty file list registers nothing and
     // the run stays green. The pin on EXPECTED_PRESETS itself keeps the list from
     // being edited down to match a thinning directory.
-    expect(EXPECTED_PRESETS).toHaveLength(9)
+    expect(EXPECTED_PRESETS).toHaveLength(12)
     expect(files).toHaveLength(EXPECTED_PRESETS.length)
     // Nothing outside the design's list, and never twice.
     expect(new Set(present).size).toBe(present.length)

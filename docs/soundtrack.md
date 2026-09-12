@@ -1,6 +1,6 @@
-# Pulsar — nine pieces, two chips
+# Pulsar — twelve pieces, two chips
 
-September 2026. The eight-genre set is replaced by an album of nine original pieces for
+September 2026. The eight-genre set is replaced by an album of twelve original pieces for
 the eight-voice machine — the 2A03's five lanes and the VRC6 expansion's two pulses and
 sawtooth. They arrive by two different routes, and that is the interesting fact about
 this repertoire.
@@ -14,9 +14,10 @@ lanes, so the port carries the notes over exactly and re-voices nothing: every l
 on its own lane. The converter and the per-song modules live in `tools/songs/octet/` (see
 its README); song JSON remains the shipped source.
 
-**Six were composed here.** Tailwind, Counterweight and Sunward Banner came first;
-Winding Stair, Blue Hour and Long Light followed. Each was written for
-pulsar as a committed generator script under `tools/songs/compose/` that imports
+**Nine were composed here.** Tailwind, Counterweight and Sunward Banner came first;
+Winding Stair, Blue Hour and Long Light followed them, and Crooked Mile, Night Shift and
+Headlong followed those. Each was written for pulsar as a committed generator script
+under `tools/songs/compose/` that imports
 `lib.mjs` and writes its own `src/assets/songs/NN-<id>.json`. `docs/preset-suite.md` §12.3
 sanctions that arrangement, amending §7.3 step 3's "write the JSON directly": the JSON is
 still the shipped artifact and is never hand-edited, gate A's byte-identical round trip
@@ -46,19 +47,26 @@ The first three rows are the ports, the last three the pieces composed here.
 | Winding Stair | Descent in triple metre, eight voices | 150 | 2:14 | Entries, A, B, stretto, landing, A′, spiral, coda, turn (28 frames of four 3/4 bars — the album's only piece in three) in G minor; a real three-voice imitative exposition, each entry answered a fifth below while the voice before it hands over to a countersubject on rows the entry never uses; four stretto entries a bar apart down the circle, the subject inverted in close canon over two voices alone, then in augmentation in the triangle; a six-link chromatic bass descent, hemiola cadences, a Neapolitan in both positions, and the lowest statement of all on the sawtooth two octaves down, glided rather than struck |
 | Blue Hour | Shuffle, eight voices | 120 | 2:08 | Head, A, A′, bridge, trade, comp, hush, A″, out (16 frames of four bars on a six-rows-to-the-beat grid) in G mixolydian — the album's only swung piece, and the ratio is exact rather than a tempo trick: every one of 1,349 attacks across all eight lanes lands on row 0, 2 or 4 of the beat and none on 1, 3 or 5. A walking triangle bass with chromatic approaches into every change, VRC6 pulses comping guide tones on the "and" and the push, the two 2A03 pulses trading phrases, a kit that is mostly ghosts, a chain of descending fifths and a tritone substitution at the last cadence |
 | Long Light | Open mid-tempo, eight voices | 100 | 2:34 | Horizon, A, A′, B, air, answer, build, light, descent (16 frames of four bars) in F lydian, the raised fourth heard rather than implied; a five-row ostinato phasing against the four-row beat for three full cycles, an arpeggio bed established and then taken away so the ear supplies the harmony, two sections of two lanes and nothing else, a chromatic mediant on a stationary common tone, an Italian sixth resolving outward, and the global peak held back to the last third |
+| Crooked Mile | Asymmetric scherzo, 7/8 | 129 | 2:10 | Gate, walk, stile, broad, walk2, hollow, climb, crest, turn (20 frames of four 7/8 bars — the album's only asymmetric metre) in C major; the bar is 2+2+3 eighths and the tune limps with it, a dotted-eighth cell on VRC6 pulse 1 walking around the bar for three whole frames, a section that re-hears the same 56-row frame as two bars of 7/4, chained secondaries voiced as two inner lines a tritone apart, a chromatic mediant held on a stationary common tone, and a dropped beat that leaves one bar of five eighths |
+| Night Shift | Groove piece, straight | 90 | 2:07 | Clock-in, A, A′, comp, graveyard, lift, A″, turn (24 frames of two bars on a 32nd-note grid) in E dorian; a sawtooth bass on a 16th-level tresillo under a kit that is mostly ghosts, VRC6 stabs on the push, and one section where a single voice lays two ticks behind the beat while the bass and both drums stay dead on; prepared suspensions tied across the barline, a common-tone diminished, and a pivot a minor third up into G dorian |
+| Headlong | Compound-metre flight | 200 | 2:02 | Launch, flight, flight2, chase, dive, three, hinge, updraft, hush, sprint, stall, return, crest, tail (51 frames of four 6/8 bars — the longest order and the fastest tempo here) in B minor; two beats of three re-heard as three of two for a whole section, a five-row cell carrying its phase across five frames, a six-link chromatic bass descent at two bars a link, an Italian sixth placed mid-flight rather than at a cadence, and a lead that never attacks two consecutive rows |
 
-About twenty-one minutes of first-pass material. The nine span every mode the preset
-lint knows — major, minor, dorian, phrygian, lydian, mixolydian — on four different roots,
-at 56, 100, 120, 150 and 180 BPM, and on grids from three rows to the bar-beat up to
-ninety-six rows to the frame. For a quick contrast test, audition **Blue Hour → Winding
-Stair → Long Light**: a shuffle in four, a gallop in three and an open piece that will not
-stay in step with its own bar, differing at once in grid, register, density and
-articulation. Heard end to end, **Tailwind → Counterweight → Long Light → Skyline Run →
-Winding Stair → Tide Tables → Blue Hour → Cathedral of Gears → Sunward Banner** alternates
-bright against dark and fast against slow, puts the two slowest pieces where the dense
-mixes on either side make their restraint audible, separates the two triple-feel pieces,
-and ends on the anthem. No order groups the ports together: the two routes are a fact
-about how these pieces were written, not a category the ear sorts them into.
+About twenty-eight minutes of first-pass material. The twelve span every mode the preset
+lint knows — major, minor, dorian, phrygian, lydian, mixolydian — on **all seven natural
+roots**, at 56, 90, 100, 120, 129, 150, 180 and 200 BPM, and on grids of four, six or eight
+rows to the beat, twelve to forty rows to the bar, and forty-eight to ninety-six rows to
+the frame. For a quick contrast test, audition **Night Shift → Crooked Mile → Headlong**:
+a straight groove at ninety where one voice drags two ticks behind the beat, a limp in
+seven, and a compound-metre flight at two hundred that keeps re-hearing its own bar —
+differing at once in grid, register, density and articulation. Heard end to end,
+**Headlong → Tailwind → Night Shift → Crooked Mile → Counterweight → Long Light → Winding
+Stair → Blue Hour → Skyline Run → Tide Tables → Cathedral of Gears → Sunward Banner**
+alternates bright against dark, puts each of the three slowest pieces — Night Shift at 90,
+Long Light at 100 and Tide Tables at 56 — between two dense ones so that its restraint is
+what you hear, places the four pieces that are not in four exactly three apart (Headlong's
+6/8 first, then Crooked Mile's 7/8, Winding Stair's 3/4 and Tide Tables' 5/4), opens on the
+fastest piece and ends on the anthem. No order groups the ports together: the two routes
+are a fact about how these pieces were written, not a category the ear sorts them into.
 
 ## The three ports — what the conversion corrects
 
@@ -122,7 +130,7 @@ no VRC6 yet. Commit `006f837` holds that arrangement and the fold modules that p
 it. It is history, not a fallback: the chip is in the core now and the pieces play as
 composed.
 
-## The six composed for pulsar
+## The nine composed for pulsar
 
 Each of these is a generator script under `tools/songs/compose/`: it runs with `node`,
 imports `lib.mjs`, and writes the JSON the app ships. `check()` runs before every write
@@ -137,11 +145,11 @@ de-duplication, the instrument table, `qa.channels`, `qa.effects`, `qa.form`,
 Each piece then pins the devices that make it itself in its own
 `tests/unit/track-<id>.test.ts`, at `frame:row`, against the bytes that shipped.
 
-All six carry all eight lanes and sound every one of them, including the sample lane
+All nine carry all eight lanes and sound every one of them, including the sample lane
 that both eight-voice ports declare and leave empty. §3.1's cap of three piece-specific
-instruments is retired by §12.6 — these carry 12, 23, 9, 11, 8 and 11 of their own
-against the ports' 12, 17 and 23 — and what the shared bank is still for is the kit, which
-all nine take by name and byte-identical. Sunward Banner's `extra.qa.notes`
+instruments is retired by §12.6 — these carry 12, 23, 9, 11, 8, 11, 14, 15 and 18 of their
+own against the ports' 12, 17 and 23 — and what the shared bank is still for is the kit,
+which all twelve take by name and byte-identical. Sunward Banner's `extra.qa.notes`
 still declares its nine as a deviation and refers the cap to the director; it was written
 four minutes before §12.6 answered the question, and the note is left standing as the
 record of why the cap moved.
@@ -278,7 +286,69 @@ different lead duties. Its two non-diatonic colours sit in different sections: a
 mediant at 5:8, where the bass falls f2 to a♭2 while VRC6 pulse 1 restrikes c4 without
 moving and pulse 2's suspended a4 resolves to a♭4, and an Italian sixth at 10:48 resolving
 outward to c3 and c6 at 10:56. Both `rmsRange` and `percussionGap` are declared with their
-justifications: this is the album's quietest render, and `air` has no kit at all.
+justifications: two of its sections are two lanes and nothing else, and `air` has no kit
+at all.
+
+**Crooked Mile** (`10-crooked-mile.mjs`) is the album's only asymmetric metre: C major,
+speed 7 for 128.6 BPM on 16th rows, 20 frames of four 7/8 bars. The bar is 14 rows grouped
+2+2+3 eighths, so its three group heads fall on rows 0, 4 and 8 and `rowHighlight: 4`'s
+fourth mark lands *inside* the long group — the crookedness is visible in the grid before
+it is audible. The motif at 1:0 is a foot, a rising fifth and the walk down, six attacks
+closing on the crooked row 12; it returns augmented at 6:0, on the sawtooth an octave down
+at 8:0, sequenced up the scale at 13:0, 13:14 and 13:28, and in octaves at 16:0. A
+dotted-eighth cell on VRC6 pulse 1 runs three whole frames at entry rows 0, 1, 2 —
+`(−56k) mod 3`, the cycle closing after `lcm(3,56)/56` frames — and resolves onto the
+downbeat at 4:0, while `broad` (6:0–7:55) re-hears the *same* 56-row frame as two bars of
+7/4 with the kit on all seven quarters. Its two colours sit in different sections: chained
+secondaries E7→A7→D7→G7→C at 4:36–5:8, voiced as the two lines a dominant seventh has, a
+tritone apart in contrary motion, with every raised tone inner so the lead stays diatonic
+throughout; and a chromatic mediant at 11:28 that holds E stationary on VRC6 pulse 2 from
+11:0 and quits to F at 12:0, never to A minor, which would have made it a secondary
+dominant instead. Pulse 2 is an independent line for all of `stile`, 28 attacks on its own
+4-row grid under pulse 1's register. `D00` at 15:51 ends a frame four rows early, leaving
+one bar of five eighths. The ghost layer is written through a helper deliberately outside
+the piece's mix lift — a uniform correction is the one thing that destroys the layer it
+lifts — and holds 47 cells at volume 4–6 under backbeats at 14–15.
+
+**Night Shift** (`11-night-shift.mjs`) is the groove piece: E dorian, speed 5 for 90 BPM on
+a 32nd-note grid — 8 rows to the beat, 32 to a bar, 64 to a two-bar frame — 24 frames, and
+straight from end to end. The sawtooth bass carries a 16th-level tresillo (6+6+4 rows, 171
+of its 188 attacks on tresillo rows) under a kit that is mostly ghosts and VRC6 sevenths
+and ninths on the push. What is its own is that the delay is *sectional*: 76 `Gxx` cells as
+played, 64 of them inside `comp` (frames 10–13), where VRC6 pulse 2 sits two ticks — 33 ms
+— behind while the sawtooth bass, both DPCM drums, the hats and VRC6 pulse 1 stay dead on.
+The album's other delayed piece spreads 186 cells across four lanes and all sixteen of its
+frames; this one puts the drag in one voice for one section and then takes it away. Both
+its suspensions are prepared rather than struck: e4 enters as a consonant sixth over Gmaj7
+at 13:24, ties across the barline where Bm7 makes it an eleventh, and resolves down by step
+at 13:52, with the same figure at 9:24. A common-tone diminished turns A°7 into A7 at
+6:62→7:0 on one held tone and three semitone rises, restated transposed at 19:62→20:0; and
+the piece pivots a minor third up rather than the whole step two others take — Am7 as
+borrowed iv at 16:32, stated bare on two voices at 17:0, D7 confirming at 18:14, G dorian
+landing at 19:0. The tune leaves pulse 1 for the sawtooth in the tenor at 17:16 while the
+triangle takes the bass. At −24.08 dBFS it is the album's quietest render, and that is
+density rather than mixing: it states 9.4 events a second against the fastest piece's
+thirty, with the second-highest crest factor of the twelve and its sawtooth accents sitting
+above every comparable piece's maximum.
+
+**Headlong** (`12-headlong.mjs`) is the fastest piece here and the only one in compound
+metre: B minor, speed 3 for 200 BPM on 16th rows, 51 frames of four 6/8 bars — the longest
+order on the album, because a bar is 600 ms and a frame 2.4 s. Two beats of three, and the
+piece is built on re-hearing them as three of two: `three` (18:0–22:47) is a whole section
+where VRC6 pulse 2 takes rows 0, 4 and 8 and VRC6 pulse 1 rows 2, 6 and 10 against a kick
+on the bar and a snare on 4 and 8 with nothing on 6, and there are cadential hemiolas at
+5:24 and 48:24. A five-row cell on VRC6 pulse 2 carries its phase across five frames at
+entry rows 0, 2, 4, 1, 3 — `(−48k) mod 5` — 48 attacks from 33:0 to 37:43. The bass falls
+b1–a♯1–a1–g♯1–g1–f♯1 from 14:0, two bars a link, under oscillating upper voices and no kick
+for eight bars. An Italian sixth at 23:36 — triangle g1, pulse 2 b4, pulse 1 e♯5 — resolves
+outward at 24:0, and unlike the album's two other augmented sixths it is not a cadence: it
+is a hinge at full speed, and the f♯ it resolves to is heard as the third of D when the
+relative major arrives at 25:0. The wall of notes this tempo invites is designed out rather
+than survived — no melodic lane ever attacks two consecutive rows, the lead has a rest of at
+least 200 ms in all 204 bars, and it is silent for 13.5 % of them. Three lead colours carry
+it: the tune moves to the sawtooth an octave down at 25:0, where the saw has 16 attacks a
+frame to pulse 1's 4, and to a flat 50 % duty for all of `crest`. `D00` at 39:41 drops a
+beat.
 
 ## Rendering and checks
 
@@ -377,7 +447,7 @@ approval belongs to an audition — now of eight voices rather than four.
 
 ## Scope
 
-No engine or visual redesign was needed. The song picker lists all six by name, and
+No engine or visual redesign was needed. The song picker lists all twelve by name, and
 `tests/unit/presetFormat.test.ts` pins that list so the album cannot thin quietly and no
 retired preset can leak back into it; user-saved browser drafts and local-storage
 snapshots are preserved. Deployment follows the existing homepage integration workflow.
