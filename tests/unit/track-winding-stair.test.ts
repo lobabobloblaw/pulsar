@@ -75,26 +75,62 @@ describe('Winding Stair — a descent in triple metre', () => {
     for (const i of song.instruments) expect(i.name).toMatch(/^(x-winding-stair-|[a-z-]+$)/)
   })
 
-  it('the exposition: three entries, a real fifth and two bars apart, three rhythms', () => {
+  it('the exposition: three entries a fifth apart, and three rhythms, not three lanes', () => {
+    const HEAD = SUBJECT.slice(0, 7) // the subject's first link, two bars
     // entry 1 — pulse 1 alone at 0:0
-    expect(shape(attacks('pulse1', [0]))).toEqual(SUBJECT)
-    // entry 2 — VRC6 pulse 1 at 0:24, a real fifth below, while pulse 1 is still speaking
-    const answer = attacks('vrc6p1', [0, 1]).filter((c) => c.row < 24 + 48)
-    expect(shape(answer, 24)).toEqual(SUBJECT.map(([r, note]) => [r, note - 7]))
+    expect(shape(attacks('pulse1', [0])).slice(0, 7)).toEqual(HEAD)
+    // entry 2 — VRC6 pulse 1 at 0:24, a real fifth below, while pulse 1 is still sounding
+    const answer = attacks('vrc6p1', [0])
+    expect(shape(answer, 24)).toEqual(HEAD.map(([r, note]) => [r, note - 7]))
     expect(answer[0].row).toBe(24) // two bars after the subject, not a beat behind it
-    // entry 3 — the sawtooth at 1:0, a fifth below THAT, with the two tonal adjustments a
-    // fugal answer makes: only the LONG notes move (d flat -> d, a flat -> a), and the
-    // short a-flats are left to make their seventh chords
+    // THE THING THAT MAKES IT AN EXPOSITION: pulse 1 does NOT carry on with the subject's
+    // second link, because that link is the first link one step lower and would lock to
+    // the answer at a constant fifth on every shared row. It hands over to a
+    // countersubject whose attacks share NO row with the answer, and the b-flat of 0:20 is
+    // tied through the answer's head so the entry is the only thing that moves.
+    const answerRows = new Set(answer.map((c) => c.r))
+    const cs1 = attacks('pulse1', [0]).filter((c) => c.r >= 24)
+    expect(cs1.length).toBeGreaterThanOrEqual(4)
+    expect(cs1.filter((c) => answerRows.has(c.r))).toHaveLength(0)
+    expect(cellAt('pulse1', 0, 24)).toBeUndefined() // the tie across 0:24
+    expect(cellAt('pulse1', 0, 20)?.note).toBe(70)
+    // entry 3 — the sawtooth at 1:0, a fifth below THAT, and the only voice that states
+    // the whole four-bar stair in this section. Two tonal adjustments, long notes only.
     const third = attacks('vrc6saw', [1, 2]).filter((c) => c.row < 48 + 48)
     const tonal: Record<number, number> = { 8: 62, 20: 57 }
     expect(shape(third, 48)).toEqual(SUBJECT.map(([r, note]) => [r, tonal[r] ?? note - 14]))
     expect(third[9].note).toBe(61) // the short d flat at 1:30 stays: a chromatic passing eighth
     expect(third[12].note).toBe(56) // and the short a flat at 1:42 makes B flat 7 -> E flat
-    // three lanes, three different attack-row sets, and pulse 2 is not one of them
+    // …and VRC6 pulse 1 makes the same handover at 1:0, for the same reason
+    const sawRows = new Set(attacks('vrc6saw', [1]).filter((c) => c.r < 24).map((c) => c.r))
+    const cs2 = attacks('vrc6p1', [1]).filter((c) => c.r < 24)
+    expect(cs2.length).toBeGreaterThanOrEqual(4)
+    expect(cs2.filter((c) => sawRows.has(c.r))).toHaveLength(0)
+    // three lanes, three attack-row sets, and pulse 2 is not one of them
     const rowsOf = (ch: Channel, f: number[]) => attacks(ch, f).map((c) => c.row).join()
     expect(rowsOf('pulse1', [1])).not.toBe(rowsOf('vrc6p1', [1]))
     expect(rowsOf('pulse1', [1])).not.toBe(rowsOf('vrc6saw', [1]))
     expect(attacks('pulse2', [0, 1, 2])).toHaveLength(0)
+  })
+
+  it('the lead has two colours, and the bare sections get the second one', () => {
+    const duty = (inst: number) => {
+      const i = song.instruments[inst].macros.duty
+      return i < 0 ? [] : [...song.sequences.duty[i].values]
+    }
+    const wide = song.instruments.findIndex((i) => i.name === 'x-winding-stair-upper')
+    const thin = song.instruments.findIndex((i) => i.name === 'x-winding-stair-upper-thin')
+    expect(wide).toBe(0) // the album gate compares instrument 0's macros across every song
+    expect(duty(wide)).toEqual([2, 1, 1]) // 50 % narrowing to 25 %
+    expect(duty(thin)).toEqual([1, 1, 0]) // 25 % narrowing to 12.5 % — a different singer
+    // `landing` (two voices and nothing else) and the coda's two answers over the flat II
+    for (const f of [13, 14, 23, 25]) {
+      const cs = attacks('pulse1', [f])
+      expect(cs.length, `pulse1 in frame ${f}`).toBeGreaterThan(0)
+      for (const c of cs) expect(c.inst, `pulse1 ${c.frame}:${c.r}`).toBe(thin)
+    }
+    // and the sections that carry the subject keep the first colour
+    for (const c of attacks('pulse1', [0, 3, 9, 15, 26])) expect(c.inst).toBe(wide)
   })
 
   it('A: pulse 2 is an independent suspension chain for the whole section', () => {

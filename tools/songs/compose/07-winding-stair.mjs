@@ -10,14 +10,19 @@
  *  GRID  tempo 150 · speed 6 · rowHighlight 4 (a beat) · rowHighlight2 12 (a 3/4 bar) ·
  *        rowsPerPattern 48 (a frame = 4 bars = 4.8 s) = 150 BPM in 3/4 on 16th rows.
  *  KEY   G minor, declared `g-minor` (the lint's scale is natural minor). Every cadential
- *        D major costs an f#, which is why `accidentalFractionMax` is 0.20.
+ *        D major costs an f#, and so do the flat II, the chromatic descent and the four
+ *        short a-flats — 6.7 % of the melodic notes in all, under the lint's 12 % default,
+ *        so NO `accidentalFractionMax` is declared. The brief allowed 0.20; the piece did
+ *        not need it, and an allowance a piece does not use is a raised bound.
  *
  *  FORM (28 frames, 112 bars; one pass 134.4 s = 2:14)
  *  | frame | section  | bars | what happens                                              |
  *  |-------|----------|------|-----------------------------------------------------------|
  *  | 0–2   | entries  | 12   | the exposition: S alone on pulse 1, answered at the fifth  |
  *  |       |          |      | below by VRC6 p1 two bars later, the saw entering under    |
- *  |       |          |      | both two bars after that — three lines, three rhythms.     |
+ *  |       |          |      | both two bars after that. Each voice hands over to a       |
+ *  |       |          |      | COUNTERSUBJECT as the next enters, so it is three rhythms  |
+ *  |       |          |      | and not three lanes; the saw states the whole stair.       |
  *  |       |          |      | Harmony: one chord per TWO bars, a chain of falling fifths |
  *  | 3–6   | A        | 16   | the stair with the band: S as the tune, harmonic rhythm    |
  *  |       |          |      | doubled to one chord per bar, pulse 2 a suspension chain   |
@@ -43,11 +48,16 @@
  *        the piece's whole form is that figure at larger and larger scale.
  *    CS  the countersubject (2 bars): rises where S falls, in even eighths and quarters
  *        where S is quarters and a dotted quarter.
+ *    CS1 / CS2  the exposition's two handovers ([8][4][2][6][2] — one long note, an
+ *        appoggiatura and a fall): what a voice plays once the next voice has the subject.
+ *        They exist because S is its own sequence, so a voice that simply carried on
+ *        would move in parallel fifths with the answer instead of against it.
  *    SUS the suspension chain: pulse 2's line in A, struck on beat 3, held across the
  *        bar, resolved down by step on beat 2 — eight suspensions in eight bars.
  *
  *  ALLOCATION (the lead is one voice at a time; every lane rests audibly somewhere)
- *    entries  P1 subject · V1 answer · SAW third entry · TRI+V2 from bar 8 · hats bar 4
+ *    entries  P1 link 1 then CS1 · V1 answer then CS2 · SAW the whole subject ·
+ *             TRI+V2 from bar 8 · hats from bar 4
  *    A        P1 tune · P2 suspension chain · V1 rising inner line · V2 off-beat stabs ·
  *             SAW running eighths · TRI detached roots an octave under it · full kit
  *    B        TRI chromatic walk · V1/V2 hold · P1 a slow descant · hats only · no saw
@@ -65,8 +75,9 @@
  *          holding) and a different one at 12:24 (saw and snare take the 8-row groups
  *          while the kit's backbeat drops out). METRIC SURPRISE: 21:0, a whole bar where
  *          the kit stops and only the 5-row cell keeps time.
- *    §9.2  three independent lines for the whole of `entries` (0:0–2:47); pulse 2 is an
- *          independent suspension chain for the whole of A (3:0–6:47).
+ *    §9.2  three independent lines for the whole of `entries` (0:0–2:47), each voice handing
+ *          over to a countersubject as the next enters (0:24, 1:0) — see `entries`; pulse 2
+ *          is an independent suspension chain for the whole of A (3:0–6:47).
  *    §9.3  chromatic bass descent g–f#–f–e–eb–d at 7:0–8:12; Neapolitan bII (A flat) at
  *          23:0 and 25:0. Sequence: falling fifths, seven links, 3:0–3:47.
  *    §9.4  seven kits, eleven fills, no two of either alike; ghosts at vol 4–6; the one
@@ -77,7 +88,7 @@
  *            column step everywhere (`LIFT`) plus the instrument bodies, and the loud
  *            sections were raised further, which widened the section range as well as the
  *            mean: -17.7 dBFS at the stretto and the turn against -21.0 at `landing`.
- *            Whole file -18.70 dBFS, peak 0.900, zero clamped samples.
+ *            Whole file -18.86 dBFS, peak 0.900 (at 19:0, six lanes), zero clamped.
  */
 import { CUT, L, Song, n, nib } from './lib.mjs'
 
@@ -140,6 +151,18 @@ const range = (a, b, step = 1) => Array.from({ length: Math.max(0, Math.ceil((b 
 const UPPER = s.instrument('upper', {
   volume: { values: [13, 15, 15, 14, 14, 14, 14], loop: 6 },
   duty: { values: [2, 1, 1], loop: 2 },
+  pitch: { values: [4, -2, -1, -1, 0] },
+})
+/** The lead's SECOND colour. UPPER opens at 50 % and settles to 25 %; this one opens at
+ *  25 % and settles to 12.5 %, over a quieter, slower front — a thinner, more distant
+ *  singer of the same tune. One instrument for 310 notes over ten passes of a loop is the
+ *  master reference's static-instrumentation failure, and a duty change between statements
+ *  of the same material is the cheapest thing this hardware has against it. It takes the
+ *  two places the lead is barest: `landing` (13:0–14:47), where there is nothing else but
+ *  one VRC6 pulse, and the coda's two answers over the Neapolitan (23:0 and 25:0). */
+const UPPER_THIN = s.instrument('upper-thin', {
+  volume: { values: [9, 13, 14, 13, 13, 12, 12], loop: 6 },
+  duty: { values: [1, 1, 0], loop: 2 },
   pitch: { values: [4, -2, -1, -1, 0] },
 })
 /** Pulse 2's suspension chain: it must SUSTAIN across a barline without fading, so the
@@ -326,9 +349,24 @@ const CS = [
 // =====================================================================================
 const entries = s.section('entries', 12)
 {
-  // P1  the subject alone (bars 0–3), then the countersubject and its next link down
-  // (4–7), then the climb to the section's peak and a half cadence with a rest on it.
-  phrase(entries, L.P1, UPPER, 0, SUBJECT, { volShift: -2, cutAtEnd: false })
+  // P1  the subject's first link alone (bars 0–1), then — the moment the answer arrives —
+  // A COUNTERSUBJECT. This is the one thing the exposition cannot get wrong. S's second
+  // link IS its first link one step lower, so a voice that keeps going while the answer
+  // states link 1 a fifth under it is not a second line: the two lock at 5–6 semitones on
+  // every one of seven shared rows, which is a harmoniser (§9.2), not counterpoint.
+  // Displacing link 2 does not fix it — the two lines are the same SHAPE a fifth apart, so
+  // a two-row shift leaves three shared rows at a constant seven. The fix is different
+  // pitches: CS1 holds where the answer moves, attacks on rows the answer never uses
+  // (0:26, 0:34, 0:38, 0:40, 0:46 against its 0:24, 28, 30, 32, 36, 42, 44 — ZERO shared),
+  // and the b-flat of 0:20 is tied THROUGH the answer's head so the entry is what moves.
+  // The stair's whole four-bar shape is heard in this section on the sawtooth at 1:0,
+  // where it is the only voice carrying it.
+  const HEAD_TIED = HEAD.map((e, i) => (i === HEAD.length - 1 ? [6, e[1], e[2]] : e))
+  /** CS1 — pulse 1's countersubject over the answer, two bars over C minor: one long
+   *  note, an appoggiatura, and a fall. Its rhythm is [8][4][2][6][2]; the subject's is
+   *  [4][2][2][4][6][2][4]; the answer's is the subject's. Three rhythms, three lines. */
+  const CS1 = [[8, 'eb5', 12], [4, 'd5', 12], [2, 'c5', 11], [6, 'bb4', 12], [2, 'c5', 11]]
+  phrase(entries, L.P1, UPPER, 0, [...HEAD_TIED, ...CS1], { volShift: -2, cutAtEnd: false })
   phrase(entries, L.P1, UPPER, entries.at(4), CS, { volShift: -2, cutAtEnd: false })
   phrase(entries, L.P1, UPPER, entries.at(6), climb(CS, -1), { volShift: -1, cutAtEnd: false })
   phrase(entries, L.P1, UPPER, entries.at(8), [
@@ -337,10 +375,16 @@ const entries = s.section('entries', 12)
     [4, 'eb5', 13], [4, 'c5', 12], [4, 'a4', 12], // the A dim triad, spelled downward
     [4, 'd5', 13], [4, 'c5', 12], [4, '-'],       // the breath: five lanes rest on 2:44
   ])
-  // V1  the ANSWER, two bars in and a fifth below, while pulse 1 is still speaking; then
-  // a countersubject of LONG notes (bars 6–7) so the three lines never share a rhythm;
-  // then the inner harmony, ending on the leading tone the lead does not sing.
-  phrase(entries, L.V1, ANSWER_V, entries.at(2), ANSWER, { volShift: -2, cutAtEnd: false })
+  // V1  the ANSWER, two bars in and a real fifth below, while pulse 1 is still speaking —
+  // and then the same handover pulse 1 just made, for the same reason: the sawtooth enters
+  // at 1:0 with link 1 another fifth down, so V1's e-flat is tied through that entry and
+  // V1 goes to CS2. Its attacks (1:2, 1:10, 1:14, 1:16, 1:22) share no row with the
+  // sawtooth's (1:0, 4, 6, 8, 12, 18, 20).
+  const ANSWER_HEAD = shift(HEAD, -7).map((e, i) => (i === HEAD.length - 1 ? [6, e[1], e[2]] : e))
+  /** CS2 — V1's countersubject over the third entry, two bars over F: the same shape as
+   *  CS1 a register down, so the two counter-lines are recognisably one idea. */
+  const CS2 = [[8, 'g4', 10], [4, 'eb4', 10], [2, 'd4', 10], [6, 'f4', 10], [2, 'eb4', 10]]
+  phrase(entries, L.V1, ANSWER_V, entries.at(2), [...ANSWER_HEAD, ...CS2], { volShift: -2, cutAtEnd: false })
   phrase(entries, L.V1, ANSWER_V, entries.at(6), [
     [8, 'f4', 10], [4, 'eb4', 10],
     [8, 'd4', 10], [4, 'eb4', 10],
@@ -743,8 +787,8 @@ const landing = s.section('landing', 8)
 {
   // P1  the subject upside down: every fourth-leap falls, every walk rises, and the
   // second link is a step HIGHER than the first instead of a step lower.
-  phrase(landing, L.P1, UPPER, 0, INVERSION, { vib: VIB, vibMin: 6, vibAfter: 3, volShift: -2, cutAtEnd: false })
-  phrase(landing, L.P1, UPPER, landing.at(4), [
+  phrase(landing, L.P1, UPPER_THIN, 0, INVERSION, { vib: VIB, vibMin: 6, vibAfter: 3, volShift: -2, cutAtEnd: false })
+  phrase(landing, L.P1, UPPER_THIN, landing.at(4), [
     [4, 'f5', 12], [4, 'eb5', 12], [4, 'd5', 12],
     [4, 'c5', 12], [4, 'bb4', 12], [4, 'a4', 11],
     [6, 'bb4', 11], [2, 'a4', 11], [4, 'g4', 11],
@@ -1038,13 +1082,13 @@ const coda = s.section('coda', 16)
   // lead is away — and answering only over the Neapolitan, where its a-flat is the
   // chord's own root falling by step to g.
   coda.put(L.P1, 0, { note: CUT })
-  phrase(coda, L.P1, UPPER, coda.at(4), [
+  phrase(coda, L.P1, UPPER_THIN, coda.at(4), [
     [4, 'eb5', 12], [4, 'c5', 12], [4, 'ab4', 12],
     [6, 'ab4', 12], [2, 'g4', 12], [4, 'eb4', 11],
     [4, 'a4', 12], [2, 'c5', 12], [2, 'bb4', 12], [4, 'f#4', 12],
     [6, 'a4', 12], [2, 'g4', 11], [4, 'f#4', 12],
   ], { vib: VIB, vibMin: 6, vibAfter: 3 })
-  phrase(coda, L.P1, UPPER, coda.at(12), [
+  phrase(coda, L.P1, UPPER_THIN, coda.at(12), [
     [4, 'c5', 12], [4, 'eb5', 12], [4, 'ab4', 13],
     [6, 'ab4', 13], [2, 'g4', 12], [4, 'eb4', 12],
     [4, 'a4', 12], [4, 'g4', 12], [4, 'f#4', 12],
@@ -1211,7 +1255,14 @@ s.qa({
     'holds one note across all 24 rows). METRIC SURPRISE - 21:0, one whole bar where the kit ' +
     'stops and only the 5-row cell keeps time. The one asymmetry is B phrased 6 + 2 rather than 4 ' +
     '+ 4 (7:0-8:23, then 8:24-8:47). COUNTERPOINT (9.2): three independent lines for the whole ' +
-    'exposition; pulse 2 is an independent voice for the whole of A - it attacks only on beats 2 ' +
+    'exposition, and independent by construction rather than by claim - because S\'s second link ' +
+    'is its first link one step lower, a voice that simply carried on under the answer would lock ' +
+    'to it at a constant fifth, so each voice hands over to a COUNTERSUBJECT the moment the next ' +
+    'enters: pulse 1 ties its b-flat through the answer\'s head at 0:24 and takes CS1 on rows the ' +
+    'answer never uses (0:26, 0:34, 0:38, 0:40, 0:46 against 0:24, 28, 30, 32, 36, 42, 44 - zero ' +
+    'shared), and VRC6 pulse 1 does the same at 1:0 (1:2, 1:10, 1:14, 1:16, 1:22 against the ' +
+    'sawtooth\'s 1:0, 4, 6, 8, 12, 18, 20). The sawtooth at 1:0 is the one voice that states the ' +
+    'whole four-bar stair here. Pulse 2 is an independent voice for the whole of A - it attacks only on beats 2 ' +
     'and 3, never on a downbeat, and every beat-3 note is held across the barline and resolved ' +
     'down by step, twelve suspensions from 3:10. Cadential 4-3 suspensions at ' +
     '4:32-4:40 (c4 over the tonic to bb3) and 18:34-18:38 (g4 over D7 to f#4). Contrary-motion ' +
@@ -1232,12 +1283,13 @@ s.qa({
     'instrument here carries a duty macro, which overrides Vxx from the next tick, so a Vxx cell ' +
     'would be a write nothing reads. No raised accidental bound: the piece needs 6.8 % of its ' +
     'melodic notes outside natural G minor, under the 12 % default, so nothing is declared. ' +
-    'percussionGap 32 is declared for `landing` (13:0-14:47), eight bars of two voices with no ' +
-    'kit at all - the report\'s longest gap, 99 rows, is that section plus the unaccompanied ' +
-    'opening of the exposition; coverage is 89 %. There is deliberately no fill on the seam into ' +
+    'percussionGap 32 is a declared BOUND for the coverage arithmetic, not a claim about the ' +
+    'longest gap: the actual longest is 99 rows, which is `landing` (13:0-14:47) - eight bars of ' +
+    'two voices with no kit at all - plus the rows either side of it. 89 % of played rows sit ' +
+    'inside a gap of 32 or less, over the lint\'s 80 % floor. There is deliberately no fill on the seam into ' +
     '`landing` or on the loop seam (2.9 rule 5): the turn thins to pulse 1 and the triangle over ' +
     'a bare dominant and the loop frame\'s crash is the arrival. ',
-  renderChecksum: 1253412819,
+  renderChecksum: 3184295206,
 })
 s.check()
 s.write('src/assets/songs/07-winding-stair.json')
