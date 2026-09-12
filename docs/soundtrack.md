@@ -1,30 +1,58 @@
-# Pulsar — three tracks, two chips
+# Pulsar — six pieces, two chips
 
-September 2026. The eight-genre set is replaced by the three demo compositions of
-OCTET, a sibling NES/Famicom sequencer project for the 2A03 and the VRC6 expansion.
-Each piece was authored there as a generator script that writes every melody, bass
-line, chord, drum pattern and form as code; they are that project's own original
-music, not transcriptions or imitations of any published work. Pulsar now has the
-same eight lanes, so the port carries the notes over exactly and re-voices nothing:
-every lane lands on its own lane. The converter and the per-song modules live in
-`tools/songs/octet/` (see its README); song JSON remains the shipped source.
+September 2026. The eight-genre set is replaced by an album of six original pieces for
+the eight-voice machine — the 2A03's five lanes and the VRC6 expansion's two pulses and
+sawtooth. They arrive by two different routes, and that is the interesting fact about
+this repertoire.
+
+**Three are ports.** Skyline Run, Cathedral of Gears and Tide Tables are the demo
+compositions of OCTET, a sibling NES/Famicom sequencer project for the 2A03 and the VRC6
+expansion. Each piece was authored there as a generator script that writes every melody,
+bass line, chord, drum pattern and form as code; they are that project's own original
+music, not transcriptions or imitations of any published work. Pulsar has the same eight
+lanes, so the port carries the notes over exactly and re-voices nothing: every lane lands
+on its own lane. The converter and the per-song modules live in `tools/songs/octet/` (see
+its README); song JSON remains the shipped source.
+
+**Three were composed here.** Tailwind, Counterweight and Sunward Banner were written for
+pulsar, each as a committed generator script under `tools/songs/compose/` that imports
+`lib.mjs` and writes its own `src/assets/songs/NN-<id>.json`. `docs/preset-suite.md` §12.3
+sanctions that arrangement, amending §7.3 step 3's "write the JSON directly": the JSON is
+still the shipped artifact and is never hand-edited, gate A's byte-identical round trip
+still holds on the committed bytes, and `extra.qa.renderChecksum` pins the render, so the
+generator, the file and the music move in one commit or a gate fails.
+
+Same machine, same gates, same style bible for both routes. What differs is what the
+script is *for*: a port module states the corrections the target driver needs and nothing
+else, because a module that moved a voice would be changing the music; a composer's
+generator **is** the composition, written to be read — named sections in the order they
+are heard, named motifs, and a comment on each lane in each section.
 
 ## Catalog and audition map
 
 One-pass times are measured from the order walk (the loop skips an intro where there
 is one). The WAVs from `pnpm preview:songs` hold two passes including the loop seam.
+The first three rows are the ports, the last three the pieces composed here.
 
 | Track | Character | BPM | One pass | Form and defining sound |
 | --- | --- | ---: | ---: | --- |
 | Skyline Run | Action-stage theme | 150 | 2:18 | Intro, A, chorus, A2, bridge, A3 (42 frames on a 32nd-note grid); hook on pulse 1 with a two-row echo canon on pulse 2, diatonic thirds and `0xy` chord stabs, walking triangle bass with a pitch-dive thump, noise kit over DPCM kick and snare, a half-time breakdown in the bridge |
 | Cathedral of Gears | Gothic theme, eight voices | 150 | 2:24 | Intro, A, A repeat, B, A′ (a minor third up), coda (22 frames); a driving-sixteenth bass gallop on the VRC6 sawtooth with the triangle doubling it an octave up, the melody on VRC6 pulse 1 under a duty macro that opens at 50 % and narrows to 3/16, reedy 25 % inner harmony on VRC6 pulse 2, counter-melody and `0xy` chord stabs on 2A03 pulse 1, a three-row echo of the leading line on 2A03 pulse 2, the sawtooth taking the solo lead through the B section, an `Fxx` ritardando into the loop |
 | Tide Tables | Slow ambient, 5/4, eight voices | 56 | 2:44 | Fifteen named patterns of two 5/4 bars (80 rows, speed 8) in D Dorian; triangle drones joined by `3xx` glides, struck bell chords on fixed-mode arpeggio instruments answered two beats later by quieter echoes, two slow VRC6 voices trading beats (duty 1 above, duty 0 below), a soft sawtooth pad at volume 3 gliding between chord tones, wind and surf on the noise lane, a tempo dip to 110 in the slack-water pattern |
+| Tailwind | Bright stage theme, eight voices | 180 | 2:05 | Intro, A, A′, pre-chorus, chorus, break, A″, chorus′, tag (24 frames of four bars on a 16th-note grid, the fastest on the album); the hook on 2A03 pulse 1 with a three-row echo canon at pitch on a duty-0 pulse 2, five volume steps quieter and copying the lead's cuts, a sawtooth gallop answered by the triangle on the off-16ths an octave up, VRC6 thirds in A and sixths in the chorus, the DPCM pair under the noise kit's high snare; A′ moves the hook onto the sawtooth at pitch with the counter-hook an octave below it, and the last chorus is the tune a whole step up in B |
+| Counterweight | Boss theme, eight voices | 150 | 2:19 | Alarm, riff A, B, riff A′, bridge, phase 2, riff A″, turn (44 frames of two bars on a 32nd-note grid, the longest order here) in D phrygian; the riff on the VRC6 sawtooth doubled by the triangle an octave up, `0xy` power fifths a 32nd behind it on the 2A03 pulses, the lead answering only in the riff's tails with pulse 2 a fourth under every phrase, a half-time bridge on a six-row tom cell over a tresillo kick, and a second phase that inverts the riff by scale degree a minor third up into F minor |
+| Sunward Banner | Anthem, eight voices | 150 | 2:28 | Fanfare, theme, theme′, lift, chorus, bridge, build, chorus′, coda (23 frames of four bars on a 16th-note grid); an opening three-voice VRC6 chorale with the whole 2A03 silent, then the tune on pulse 1 with an echo three rows behind, a sawtooth eighth-note bass with octave leaps under a triangle an octave up, a chorus on a 6+6+4 tresillo with pulse 2 as an independent counter-melody, an Italian sixth at its cadence, a pivot modulation into a final chorus a whole step up in E, and an `Fxx` ritardando into the loop |
 
-About seven and a half minutes of first-pass material. For a quick contrast test,
-audition **Skyline Run → Tide Tables → Cathedral of Gears**: they differ at once in
-grid, register, density and articulation.
+About fourteen and a quarter minutes of first-pass material. For a quick contrast test,
+audition **Tailwind → Tide Tables → Counterweight**: they differ at once in grid,
+register, density and articulation. Heard end to end, **Tailwind → Counterweight → Tide
+Tables → Skyline Run → Cathedral of Gears → Sunward Banner** alternates bright against
+dark and fast against slow, keeps the one five-lane 2A03 piece in the middle where the
+eight-voice mixes on either side make its restraint audible, and ends on the anthem.
+Neither order groups the ports together: the two routes are a fact about how these pieces
+were written, not a category the ear sorts them into.
 
-## What the port corrects
+## The three ports — what the conversion corrects
 
 Nothing in these pieces is re-voiced: `tools/songs/octet/audit.mjs` counts the note
 attacks, cuts and releases on every lane of the source document against the shipped
@@ -57,6 +85,24 @@ drone that is held across the seam and cuts the five lanes that are silent there
 bells, their echoes and the three VRC6 voices, which release in the penultimate pattern.
 Skyline Run keeps its own loop-entry cells and its DPCM restart gates.
 
+**Channel modes across the loop — checked, and deliberately NOT corrected.** Gate B2
+reports six findings on Tide Tables: `4xy` vibrato latched on both VRC6 pulses at the loop
+row, `3xx` and `7xy` latched on the sawtooth, and 33 notes triggering under a vibrato
+stated 320 rows earlier. That looked like the port, and it is not. OCTET's `core/engine.js`
+latches the same modes the same way — `applyCell` writes `vibDepth`/`tremDepth` and only a
+zero depth nibble clears them, `triggerNote` resets the phases and not the modes, and
+`nextOrder()` wraps the order without resetting a channel — so the source engine carries
+them across its own loop too. Driven over its own document for two passes it reproduces the
+finding note for note: one audible difference, the sawtooth's entrance at frame 2 row 0
+sounding under tremolo depth 2 on pass 2 and dry on pass 1. `convert.mjs` carries every
+`3xx`, `4xy` and `7xy` cell over one for one, so there is nothing to compensate;
+`applyEngineDifferences` is untouched and the song is what OCTET plays. The finding is
+therefore resolved rather than open: the six entries are pinned in `presets.test.ts`'s
+`KNOWN_STICKY`, so gate B2 still fails on a seventh or on any of the six disappearing,
+and `docs/preset-suite.md` §12.5 records what the latch actually costs — one of 234 note
+events differs between the passes. Tide Tables is the only piece in the album with an
+entry there; the other five reach the loop row with nothing latched.
+
 Both eight-voice songs claim seven lanes and declare a silent `dpcm` as well, because
 `channels` is a prefix of the canonical eight and reaching `vrc6p1` means carrying every
 lane before it. That lane gets an empty pattern and a `0` in each order frame.
@@ -67,6 +113,96 @@ as `0xy` triads in the counter-melody's rests, the echo lane dropped — because
 no VRC6 yet. Commit `006f837` holds that arrangement and the fold modules that produced
 it. It is history, not a fallback: the chip is in the core now and the pieces play as
 composed.
+
+## The three composed for pulsar
+
+Each of these is a generator script under `tools/songs/compose/`: it runs with `node`,
+imports `lib.mjs`, and writes the JSON the app ships. `check()` runs before every write
+and refuses the file on a hardware floor (the 2A03 pulse's MIDI 33, the triangle's and
+VRC6 pulses' 21, the sawtooth's 24), a noise note outside 32–47, an unsupported effect, a
+pitch macro that does not sum back to zero, a looping noise envelope, a lane that sounds
+but states nothing at the loop row, or a channel mode still latched at the seam. What the
+library derives — the channel prefix, the effect columns, pattern and sequence
+de-duplication, the instrument table, `qa.channels`, `qa.effects`, `qa.form`,
+`qa.loopFrame`, `qa.bank` — the composer never types; what only a composer knows, the
+`extra.qa` block declares, and every raised bound carries its sentence of justification.
+Each piece then pins the devices that make it itself in its own
+`tests/unit/track-<id>.test.ts`, at `frame:row`, against the bytes that shipped.
+
+All three carry all eight lanes and sound every one of them, including the sample lane
+that both eight-voice ports declare and leave empty. §3.1's cap of three piece-specific
+instruments is retired by §12.6 — these carry 12, 23 and 9 of their own against the ports'
+12, 17 and 23 — and what the shared bank is still for is the kit, which all six take by
+name and byte-identical. Sunward Banner's `extra.qa.notes`
+still declares its nine as a deviation and refers the cap to the director; it was written
+four minutes before §12.6 answered the question, and the note is left standing as the
+record of why the cap moved.
+
+**Tailwind** (`04-tailwind.mjs`) is the bright stage theme: A major, speed 5 for 180 BPM
+on 16th rows, 24 frames of four bars, looping past a one-frame intro. Pulse 1 carries the
+hook and pulse 2 answers it as an echo canon three rows behind — the same notes, five
+volume steps quieter, on a duty-0 instrument so the copy is thinner as well as softer,
+and copying the lead's cuts so it breathes with the phrase; the sawtooth gallops an eighth
+plus two 16ths while the triangle answers on the off-16ths an octave up, and the two VRC6
+pulses hold the harmony — thirds under A, sixths under the chorus, guide tones at 12:16
+and 12:32 where each lane holds a common tone in turn rather than four bars of parallel
+sixths. The kit is the noise lane over the DPCM pair, and A and both choruses layer the
+backbeat the same way: the monophonic sample lane plays kick on 1 and 3 and its own snare
+on 2 and 4, under the noise kit's high snare (41). What makes the piece itself is the
+re-orchestration: A′ states the hook on the sawtooth **at pitch** (MIDI 68–81) and drops
+the counter-hook an octave below it, so the section's subject is its top voice, and the
+saw sits at volume 10 there because moving the line above the APU's high-pass measurably
+raised the section. The form then earns two surprises — the hook displaced two rows late
+at 16:2, and a six-row hemiola in the saw and VRC6 pulse 2 from 18:16 to 18:58 — before
+B7 → E7 → A → F#7 pivots the last chorus a whole step up into B. There VRC6 pulse 1
+doubles the lead an octave above, folding to unison above MIDI 91: at 95 the VRC6 divider
+quantises 11.5 cents flat against the 2A03 pulse's +3.8, and the octave would beat at
+about 17 Hz on the loudest note in the piece. The tag is two bars — the riff in B, a
+unison fall onto E7, then `B01`+`D00` at 23:31 home to frame 1, two bars early.
+
+**Counterweight** (`05-counterweight.mjs`) is the boss theme: D phrygian, speed 3 for 150
+BPM on a 32nd-note grid — eight rows to the beat, 32 to a bar, 64 to a two-bar frame — and
+44 frames, the longest order on the album. Its motif is a two-bar cell on the sawtooth,
+doubled by the triangle an octave up on the same rows, with `0xy` power fifths on the 2A03
+pulses landing a 32nd behind it (2:5 against the riff at 2:4) so the stabs read as a
+mechanism rather than a chord. The lead sings only in the riff's tails, and pulse 2 answers
+every one of its phrases a fourth below. B is the breath between statements: a tonic pedal
+on the saw, a walking triangle, a descending-fifths chain Dm–Gm–C–F–Bb stated twice and a
+Neapolitan close (16:32 Eb → 17:0 A7 → 18:0 Dm), with VRC6 pulse 1 and the sample lane both
+resting through its first phrase — and its second phrase is seven bars, because `D00` at
+17:31 drops the last one. The bridge goes half time: the saw alone on D1 in a tresillo with
+the DPCM kick, a six-row tom cell carried unbroken across all six frames, and VRC6 pulse 2
+climbing chromatically D3 → C4 onto C, the pivot that is bVII of D phrygian and V of F
+minor. Phase 2 is what the piece is for — the riff inverted by scale degree, a minor third
+up into F minor — and it is measurably the escalation it claims to be: the loudest section
+on both passes (−19.37 and −19.24 dBFS) and by a wide margin the brightest, a zero-crossing
+rate of 4380 against 3351–4053 everywhere else. The piece declares an `rmsRange` floor of
+−21 rather than being raised to meet the default, because the alarm, the turn and the
+half-time bridge rest on purpose; the mix is built to that arc. Every `0xy` block ends with
+an explicit `000` one envelope after its last stab, so nothing arpeggiates a note that did
+not ask to and pass 2 is pass 1.
+
+**Sunward Banner** (`06-sunward-banner.mjs`) is the anthem: D major, speed 6 for 150 BPM on
+16th rows, 23 frames of four bars. It opens on a three-voice VRC6 chorale — both expansion
+pulses and the sawtooth, with every 2A03 pulse and the triangle silent — so the tune's
+entrance at frame 2 is the first thing the 2A03 does, and frame 2 is also the loop frame,
+which means the returning pass opens on the tune and not on the chorale. From there
+pulse 1 has the head, pulse 2 echoes three rows behind, the sawtooth walks eighths with
+octave leaps and the triangle doubles it an octave up, while the VRC6 thirds wait until
+bar 8 so the tune arrives on bare pulses; theme′ hands the second phrase to the saw with a
+bend-in attack and gives pulse 1 a descant a sixth above it. The head is then treated four
+ways: inverted and re-rhythmed as a 6+6+4 tresillo for the chorus, displaced two rows late
+at 12:0, sequenced up a step a bar through the build, and transposed whole for the last
+chorus. The harmony pays for its raised allowance in four different sections — chained
+secondaries with the dominant quitted to IV in the theme, borrowed bVI and bVII across the
+lift's 3+3 six-bar phrase, an Italian sixth at 13:32 resolving outward by a semitone, and a
+true pivot modulation on the A of 17:0, V in D and IV in E, into a final chorus a whole
+step up. That chorus doubles the lead in **unison** on VRC6 pulse 1 rather than the octave
+the sketch asked for, for the same divider reason Tailwind meets at the top of its own
+chorus, and the piece's test measures both. Its single metric surprise is 15:48, one bar
+where the kit stops dead and only the saw's six-row cell and the VRC6 stabs continue; the
+coda's `Fxx` ritardando then slows speed 6 → 7 → 9 → 12 across 22:48–22:63, and the loop
+row restores speed 6 at 2:0, because a tempo survives the seam the way any effect does.
 
 ## Rendering and checks
 
@@ -79,6 +215,9 @@ maximum; its usual 0.72 setting is about 5.7 dB lower).
 | skyline-run | 268.8 s | −18.74 dBFS | 0.647 | 0 |
 | cathedral-of-gears | 275.7 s | −16.62 dBFS | 1.000 | 38 |
 | tide-tables | 327.8 s | −23.67 dBFS | 0.853 | 0 |
+| tailwind | 245.3 s | −18.53 dBFS | 0.882 | 0 |
+| counterweight | 272.0 s | −20.09 dBFS | 0.902 | 0 |
+| sunward-banner | 283.1 s | −17.59 dBFS | 0.909 | 0 |
 
 Eight voices are louder than four. Cathedral of Gears gained 2.2 dB of RMS over the
 folded arrangement and its unclamped peak is now 1.16 — 1.3 dB over full scale, which
@@ -95,8 +234,20 @@ the declaration cannot creep onto a song that does not need it. The alternative,
 render/master gain (about 1.6 would put this peak at 0.93), would quieten every song and
 live play by 2 dB and re-pin every checksum; it stays open as a product choice.
 
-Against the source project's own renders of the originals (`tools/render-cli.mjs`, one
-pass, no fade; both sides analysed with its `tools/analyze-wav.mjs`):
+Cathedral of Gears is also the only piece in the album that clips, and the three composed
+here are the control: they were written against §12.2's headroom rule, and their volume
+columns show it. The sawtooth's highest attack is 12 in Tailwind, 13 in Counterweight —
+the alarm stab, where the only other lanes sounding are a crash and the sample kick — and
+11 in Sunward Banner, and their VRC6 pulses top out at 10, 11 and 12 (Sunward Banner's
+single 12 is in the fanfare, where the 2A03 is silent). That is against 15 on both the
+sawtooth and VRC6 pulse 1 in Cathedral of Gears, whose
+columns are the source composition's and were carried over rather than chosen against
+this render gain. All three land between 0.88 and 0.91 with nothing clamped.
+
+The three ports have a second rendering to be checked against; the three composed here
+have none, and their `renderChecksum` pins serve that purpose instead. Against the source
+project's own renders of the originals (`tools/render-cli.mjs`, one pass, no fade; both
+sides analysed with its `tools/analyze-wav.mjs`):
 
 | piece | duration (source → Pulsar) | RMS | peak |
 | --- | --- | --- | --- |
@@ -112,18 +263,34 @@ lowest drones sit under the target's 90 Hz post-DAC high-pass.
 Tests keep the per-song rules that hold for any album piece: explicit state on every
 lane at the loop row (a lane that never sounds has none to declare), hardware pitch
 ranges including the VRC6's 12-bit floors derived from `pitch.ts`, self-ending noise
-envelopes, non-drifting pitch macros, the four preset gates (structure, musicality lint,
-render, anti-vacuity) and a byte-identical round trip of the committed files through
-`serializeSong`. The key lint reads all six pitched lanes, and each VRC6 lane is proved
-to move its accidental count. Piece-specific tests pin what makes each one itself:
-Skyline Run's speed 3 with eight rows to the beat, DPCM on the kit slots and the two-row
+envelopes, non-drifting pitch macros, the preset gates (structure, musicality lint,
+channel modes at the seam, render, anti-vacuity) and a byte-identical round trip of the
+committed files through `serializeSong`. The key lint reads all six pitched lanes, and
+each VRC6 lane is proved to move its accidental count. All six are held to that same set,
+whichever route they came in by. Piece-specific tests then pin what makes each one itself.
+For the ports, in `tests/unit/soundtrack.test.ts`: Skyline Run's speed 3 with eight rows
+to the beat, DPCM on the kit slots and the two-row
 echo; Cathedral of Gears's sawtooth bass with the triangle an octave above it, the lead's
 7 → 2 duty macro, every pulse-2 note proved to be a lead note three rows earlier, and the
 declared accidental allowance (the raised leading tone and the F-minor restatement); Tide
 Tables's 80-row patterns with a 40-row bar, `3xx` on the triangle, fixed-mode arpeggio
 bells with their echoes two beats behind, and two VRC6 voices that never share a row.
-Texture signatures ignore labels, transposition and tempo; a renamed, transposed copy is
-shown not to count as a new piece.
+Each composed piece has a file of its own — `tests/unit/track-tailwind.test.ts`,
+`track-counterweight.test.ts`, `track-sunward-banner.test.ts` — which pins its devices at
+`frame:row`: Tailwind's echo canon three rows behind, five steps quieter, on a duty-0
+instrument, its saw-at-pitch re-orchestration, the unbroken six-row stab cell, the
+displaced hook and the
+transposed final chorus with its unison fold; Counterweight's riff cell counted across
+four sections, the fifths a 32nd behind it, every `0xy` block proved to be cancelled, the
+scale-degree inversion into F minor, the dropped bar and the hemiola that lands exactly on
+the turn; Sunward Banner's silent-2A03 opening, the head's four treatments, the Italian
+sixth resolving outward, the six-row cell entering on the rows §9.1 derives rather than
+typed ones, the one-bar kit stop and the ritardando that the loop row undoes. Anti-vacuity
+is in these files too: Tailwind's last test damages its own piece — an undisplaced A″, an
+untransposed chorus′ — and shows the pins catch it, and Sunward Banner derives the
+phase-carry rows from §9.1's formula and checks against `pitch.ts` that the octave its
+unison replaced really would have beaten. Texture signatures ignore labels, transposition
+and tempo; a renamed, transposed copy is shown not to count as a new piece.
 
 Two driver-facing corrections came out of the port and are covered by tests: `Qxy`
 and `Rxy` are one-shot in the preset walk as they are in the driver, and a cut now
@@ -134,6 +301,7 @@ approval belongs to an audition — now of eight voices rather than four.
 
 ## Scope
 
-No engine or visual redesign was needed. The song picker keeps its labels; user-saved
-browser drafts and local-storage snapshots are preserved. Deployment follows the
-existing homepage integration workflow.
+No engine or visual redesign was needed. The song picker lists all six by name, and
+`tests/unit/presetFormat.test.ts` pins that list so the album cannot thin quietly and no
+retired preset can leak back into it; user-saved browser drafts and local-storage
+snapshots are preserved. Deployment follows the existing homepage integration workflow.

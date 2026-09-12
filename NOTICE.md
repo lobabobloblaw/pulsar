@@ -14,13 +14,21 @@ implementations written against publicly documented behavior:
 
 The three preset songs in `src/assets/songs/` are original compositions: the demo
 pieces of OCTET, a sibling NES/Famicom sequencer project by the same author, each
-written as a generator script that authors every note, and rebuilt for pulsar's five
-2A03 lanes in September 2026 by the converter and arrangement modules in
+written as a generator script that authors every note, and ported to pulsar's eight
+lanes (the 2A03 and the VRC6 expansion) in September 2026 by the converter modules in
 `tools/songs/octet/`. No existing game melodies, ROM audio, recordings, or hosted
 music-generation services were used. Skyline Run's two DPCM samples are that project's
 own synthesized kick and snare, carried over byte for byte. The previous presets are
 retired from the app; their source history remains in Git. Composition notes:
 `docs/soundtrack.md`.
+
+Further preset songs are composed for pulsar the same way: as committed generator
+scripts under `tools/songs/compose/`, whose JSON output is the shipped artifact
+(`docs/preset-suite.md` §12). Every note, bass line, chord and drum pattern in them is
+invented for this project — no melody, riff, progression or recording from any existing
+work is quoted, transcribed or paraphrased, and no hosted music-generation service is
+used. The instrument bank they share is this project's own, and its two DPCM samples are
+computed from arithmetic by `tools/songs/makeDpcm.mjs`, never sampled.
 
 Generated image assets are documented per-file in `ASSETS.md`, including the exact
 model checkpoint, license, seed, prompt, and post-processing chain for each.

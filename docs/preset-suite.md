@@ -49,6 +49,7 @@ brief is wrong — report it, do not extend the format.
 
 **0.4 Five voices, maximum, forever.** pulse1, pulse2, triangle, noise, dpcm. There is no
 sixth. Every arrangement decision in §2 is downstream of that number.
+*Superseded 2026-09-11: the VRC6's two pulses and sawtooth are lanes six to eight — see §12.*
 
 ---
 
@@ -530,6 +531,7 @@ reference and we are not adding one. So:
 - **Values are frozen.** An instrument named `lead-bright` must resolve to exactly the
   macro values in §3.2–3.4. The critic (§6) checks this by resolving each instrument's
   macro indices to values and comparing against the canonical table.
+*Cap superseded 2026-09-11 — see §12.6.*
 - **Piece-specific additions are allowed**: up to **3** extra instruments per piece, named
   `x-<piece>-<what>` (e.g. `x-tidepool-glass`), appended after the shared ones, plus any
   sequences they need. Anything an agent finds itself wanting twice belongs in the bank —
@@ -2052,3 +2054,257 @@ dissonances, and at least two separated non-diatonic devices. Measured preview R
 −21.98, −22.17, −22.67, and −21.85 dBFS respectively, with zero clipped samples. Registration
 is file-driven through `import.meta.glob`; `tests/unit/presetFormat.test.ts` pins the widened
 18-title set, while the ordinary Gates A–D cover every new file without a per-song test list.
+
+---
+
+## 12. the expansion annex — eight voices, and the composer's script
+
+*Added 2026-09-11, when the VRC6 landed in the core and three original pieces were
+commissioned for it. This section amends §0.4 and §7.3 step 3; everything else in this
+document stands unchanged.*
+
+### 12.1 §0.4 is superseded: eight voices, not five
+
+§0.4 said **"Five voices, maximum, forever. There is no sixth."** That was true of the
+machine this document was written against. It is no longer true of this one: `src/audio/
+core/vrc6/` implements the cartridge expansion's two pulses and its sawtooth, the tracker
+carries eight lanes, and `docs/register-timeline.md` "VRC6 lanes" is the authority on how
+they are written. The sentence is retired, not softened — the arrangement doctrine in §2
+was derived from the number five and has to be re-derived from eight, which is what the
+technique sheet below does.
+
+The rest of §0 is untouched, and §0.1 in particular applies to the expansion lanes exactly
+as it applies to the 2A03. **ORIGINAL MUSIC ONLY.** The benchmark for these pieces is
+stated as a level of craft — the fidelity and charge of the best late-1980s action-game
+house styles, and of modern expansion-chip tracker work — never as a source. Describe
+idioms by era and technique. This project's documents, commit messages, instrument names
+and song titles name no game, no composer and no published piece.
+
+`channels` is a PREFIX of the canonical eight, so a piece that reaches `vrc6p1` also
+declares `dpcm` — an empty pattern and a `0` in every order frame — and the lint accepts
+that lane because it claims nothing and carries no events.
+
+### 12.2 what the eight voices are for
+
+- **2A03 pulse 1 / pulse 2** — as §2.1: lead and counter-voice or echo. Duty 0–3
+  (12.5 / 25 / 50 / 25 inverted); volume 0–15; the hardware sweep is not used. Pulse
+  floor MIDI 33.
+- **triangle** — bass and doubling. No volume, only a gate (§1); floor MIDI 21; a soft
+  attack, so it can never define the transient.
+- **noise** — the kit (§2.6, §9.4). Notes 32–47 are period index 15..0; drum pitch sweeps
+  come from the PITCH macro, never the arpeggio macro.
+- **dpcm** — the bank's synthesized kick (36) and snare (39) through `dpcm-kit` (§3.5).
+  It ducks the triangle and the noise through the shared TND index, which is a mix tool
+  (§2.8) and a cost.
+- **VRC6 pulse 1 / pulse 2** (`vrc6p1`, `vrc6p2`) — a 16-step duty, 0–7, high for
+  `(d+1)/16` of the period: **7** is the fat 50 % square, **3** the classic bright 25 %,
+  **1** the thin 12.5 %, **0** the buzz. Values 8–15 set the mode bit — constant output,
+  a click and then silence — and are **never written**. Duty macros animate timbre the way
+  the 2A03's do; a macro stepping 7 → 5 → 3 → 2 over the first ticks is the chip's own
+  attack. Volume 0–15 into a linear DAC; no length counter, no sweep. Floor MIDI 21: the
+  12-bit divider reaches an octave below a 2A03 pulse, and those low notes are dark and
+  useful as a second bass. These are the harmony lanes — parallel thirds and sixths,
+  sustained chord tones, a second lead in octaves or canon, wide `0xy` chords.
+- **VRC6 sawtooth** (`vrc6saw`) — the expansion's signature. The volume column becomes an
+  accumulator rate, `min(42, round(v · 42 / 15))`, and the output reaches 31 against a
+  pulse's 15: **volume 15 on the saw is roughly twice as loud as a pulse at 15.** Floor
+  MIDI 24 (it divides by 14, not 16). It is the bass that cuts — a sixteenth gallop with
+  the triangle an octave away — or a brass-like lead at 10–13 with a slow pitch-bend
+  attack. No duty. Pitch effects behave as on the pulses. **Mix it down before anything
+  else.**
+- **Headroom is part of the craft.** Render gain 2.0 puts a full 2A03 mix at full scale
+  and the VRC6 adds linearly on top (`VRC6_GAIN` = 0.0099 per unit; two pulses at 12 plus
+  a saw at rate 34 add ≈ 0.49). Gate C allows ≤ 8 clamped samples in a two-pass render
+  unless the piece declares `clippedSamplesMax` with a justification and the default
+  really would fail. If the preview table shows clipping, **lower the arrangement** —
+  saw ≤ 12 on sustained bass, VRC6 pulses ≤ 11 under a loud 2A03 mix, stagger the
+  accents — rather than re-gaining it. `tools/songs/compose/report.mjs` prints the
+  unclamped-peak estimate per five seconds so the offending bar is findable.
+- **Allocation doctrine at eight voices.** Every lane earns its place in every section or
+  rests audibly; a resting bar is a dynamic. Bass is the saw **or** the triangle leading
+  with the other doubling or answering — not both hammering the same octave for three
+  minutes. Harmony is the VRC6 pulses. The lead is one 2A03 pulse or the saw, never two
+  leads at once. Echo canon (§2.2) goes on whichever pulse is free, and pulse 2 is a
+  VOICE (§9.2) for at least one whole section. Drums are the noise kit plus the DPCM pair,
+  with a fill every 4–8 bars and a signature (§9.4).
+
+### 12.3 §7.3 step 3 is amended: the composition is a generator script
+
+§7.3 step 3 and `docs/phase2-design.md` §5.3 rule 1 said **"Write the JSON directly. No
+intermediate DSL, no generator script."** The reason given was that a generator would
+become a second source of truth. That reason is answered by the byte-identical round
+trip, and the cost of the rule has since been measured: an eight-voice piece of two and a
+half minutes is thousands of cells, and a human-readable diff of it does not exist.
+
+**The amended rule.** A piece is authored as a committed generator script under
+`tools/songs/compose/NN-<id>.mjs`, importing `tools/songs/compose/lib.mjs`. It runs with
+`node`, writes `src/assets/songs/NN-<id>.json`, and **that JSON is the shipped artifact
+and is never hand-edited.** This is the same discipline the OCTET ports already use
+(`tools/songs/octet/`, `docs/soundtrack.md`), extended from conversion to composition.
+
+Why this is not a second source of truth:
+
+1. **The JSON is still the artifact.** The app, the driver, the gates and the user's ears
+   all read the committed file. The generator is how it was written, the way a `.psd` is
+   how a `.png` was drawn.
+2. **The round trip is still the gate.** Gate A asserts
+   `serializeSong(parseSong(text)) === text` on the committed bytes. The library emits
+   exactly `serializeSong`'s shape — key order, pattern sort, row sort, trailing-null
+   trimming, two-space indent — so a generator that drifts from the format fails the same
+   gate a hand-edit would.
+3. **The pin keeps them honest.** `extra.qa.renderChecksum` is the render's FNV-1a. Any
+   change to the music changes it, so the generator, the JSON and the checksum move in one
+   commit or the gate fails. A JSON edited behind the generator's back is caught the next
+   time anyone runs the generator.
+
+**What the generator owes the reader.** It IS the composition, so it is written to be
+read: named sections in the order they are heard, named motifs, and a comment on each lane
+in each section saying what that lane does and why. A reviewer should be able to follow
+the form without opening the JSON. A generator that reads as a wall of coordinates has
+failed this rule even if its output passes every gate.
+
+**What the library derives, so the composer does not declare it:** the channel prefix,
+the effect columns, pattern and sequence de-duplication, the instrument table,
+`qa.channels`, `qa.effects`, `qa.form`, `qa.loopFrame` and `qa.bank`. What the composer
+declares is what only a composer knows: the key, the tempo and duration brackets, any
+raised bound with its justification, and the checksum the gate prints. Shared-bank
+instruments are copied from `tests/fixtures/songs/shared-bank.json` by name rather than
+retyped, which is what keeps §7.1's bank-drift check meaningful.
+
+`tools/songs/compose/README.md` is the authoring guide — the loop end to end, the API,
+the fault table for `check()`, how to read `report.mjs`, and the delivery checklist.
+`tests/unit/compose.test.ts` gates the library itself, with one test per fault so the
+pre-flight cannot quietly stop working.
+
+### 12.4 what does not move
+
+Everything in §0 except the voice count; the whole of §1 (the floors, the noise wrap, the
+accumulating pitch macros, the inverted `Axy`, decimal params); §2's craft rules, read at
+eight voices; §3's frozen bank, appended-to and never rewritten; §5's `extra.qa` block;
+§6 and §9.5's rubric; and §7.1's gates, unchanged and unwaived. `Cxx` still never appears
+in an album piece. The lint's effect set for these pieces is
+`0 1 2 3 4 7 A B D F G P Q R S V`.
+
+### 12.5 gate B2 — the channel modes a note trigger does not clear
+
+A critic caught what every gate here passed: a piece with 132 `0xy` cells and no `000`
+anywhere, so three lanes reached the `Bxx` with the arpeggio still latched and the second
+pass of the song did not sound like the first. `tests/unit/presets.test.ts`'s `stickyLint`
+is the gate that would have caught it.
+
+**Why a note does not clear these.** `trackerDriver.ts`'s `trigger()` resets the PHASES —
+`arpStep`, `slideAccum`, `pitchAccum`, `portaTarget`, `portaNote`, `vibAcc`, `tremAcc` —
+and nothing else. The MODE each of those phases is stepping lives in a separate per-channel
+field that only `applyRowEffect` writes and only `resetChannels()` — a stop, never a loop —
+clears. So a mode outlives the note that was sounding when it was set, outlives the note
+after it, outlives the pattern, outlives the order frame, and outlives the loop. `cut()`
+does not clear them either: `---` silences the lane and leaves every mode standing.
+
+| effect | field | what actually cancels it |
+| --- | --- | --- |
+| `0xy` arpeggio | `arpParam` | `000`, or any of `1xx` `2xx` `3xx` `Qxy` `Rxy` |
+| `1xx` / `2xx` pitch slide | `slideRate` | `100` / `200`, or `3xx` `Qxy` `Rxy` |
+| `3xx` portamento | `portaEnabled` | `1xx` `2xx` `Qxy` `Rxy` — **`300` freezes it, it does not cancel** |
+| `4xy` vibrato | `vibDepth` | `4x0`: the depth nibble is the off switch |
+| `7xy` tremolo | `tremDepth` | `7x0` with x > 0 — **`700` replays the effect memory** |
+| `Axy` volume slide | `volSlide` | `A00` |
+| `Pxx` fine pitch | `finePitch` | `P80` (0x80 is in tune) |
+| `Vxx` duty override | `dutyOverride` | **nothing.** `V00` is duty 0, a real duty |
+
+The two bolded rows are the traps. `300` leaves `portaEnabled` at 1, and a latched
+`portaEnabled` makes the next note a glide target instead of an attack — the lane loses its
+transient without a note changing. `7` is in `MEMORY_COMMANDS` and is NOT in
+`OFF_ON_ZERO_COMMANDS`, so `resolveParam` turns a bare `700` into the last tremolo
+parameter. `Sxx` also survives its row in `cutTick`, but the tick it names consumes it, so
+it can only latch when `xx` is past the row's tick count — a cut that never fires, which is
+a different defect and not this gate's business.
+
+**What the gate does.** It walks the order from frame 0 the way the driver does — normal
+advance plus `Bxx` and `Dxx`, the flow `reachableFrames` already follows — from the
+document, never from the driver, so a driver bug cannot make it pass. It carries all eight
+fields per lane, resolves `§3.5` effect memory the way `resolveParam` does, and models the
+one note rule that matters here: a note sharing its row with `3xx`/`Qxy`/`Rxy` retargets a
+sounding note instead of triggering it. It reports, as a `problems` list with the lane, the
+value and the frame:row that set it:
+
+1. **`seam:`** — a lane that reaches the loop row (`extra.qa.loopFrame`, row 0) with a mode
+   still latched that the loop row itself does not state. This is the seam defect: pass 2
+   sounds that lane under an effect pass 1 did not have. Restating the effect ON the loop
+   row counts as clean — a loop row that describes its own state is the cheapest fix.
+2. **`drift:`** — the loop row is reached in a different state on the looping pass than on
+   the first. The mirror image of (1): an intro that leaks a mode into pass 1 only.
+3. **`inherited:`** — a note triggers under a mode it never asked for, last stated more
+   than ONE ORDER FRAME of played rows earlier. The frame is the unit the composer divides
+   the piece into, so a mode still inside the frame that wrote it is a sustained gesture
+   and a legitimate way to write a phrase; a mode still standing a whole frame later has
+   outlived its section. Measured against the album: skyline-run carries `0xy` at most 30
+   rows on pulse2 (under its 64-row frame), tide-tables carries `4xy` 320 rows — four whole
+   frames.
+4. **the summary** — `pulse2: 0xy set 6, cleared 10` per lane, set against cancel at a
+   glance. Only modes the lane actually asks for are listed; `1xx` clearing `arpParam` as a
+   side effect is not an arpeggio the composer typed.
+
+**The rule for a composer.** *Every channel mode you turn on, turn off in the same section
+that turned it on — and on the loop row, own every mode you want by stating it there.*
+
+**Anti-vacuity.** `tests/fixtures/songs/bad-sticky-seam.json` latches one mode per lane
+across its `Bxx` — `047` with no `000`, a `3xx` that `300` only freezes, a `7A4` that `700`
+replays — and every branch is exercised by mutating it back to health: adding `000`, `100`
+and `7A0` clears each finding, adding `V02`/`V00` proves `Vxx` has no off switch, and a
+`4A4`/`400` pair proves the `drift:` branch. Skyline-run passes the gate with its twelve
+`000` cells and fails it with those twelve cells deleted and nothing else changed.
+
+**RESOLVED, 2026-09-11 — `03-tide-tables.json` reports six findings here, and they are the
+composition, not a defect.** It is the one shipped piece the gate flags. The gate was not
+weakened to accommodate it: the findings are pinned in `KNOWN_STICKY`, the list cannot
+grow, and cancelling one of them fails the pin, so the pin now guards the music in both
+directions. The port was audited against the source project's own engine before this
+conclusion was drawn — both engines set vibrato and tremolo as channel state that a note
+trigger does not clear and that only a zero depth nibble cancels, both carry it across the
+loop, and driving the source engine over the original document reproduces the identical
+single audible difference. Every effect cell crossed the port one for one, so there is
+nothing for `applyEngineDifferences` to correct; extending it would have been
+re-composition. The `3xx` divergence between the two engines is real and was already
+compensated at port time. Details below stand as the description of what the piece does.
+
+| lane | latched at frame 0 row 0 | last stated |
+| --- | --- | --- |
+| `vrc6p1` | `4xy` vibrato, depth 3 | frame 9 row 0 |
+| `vrc6p2` | `4xy` vibrato, depth 4 | frame 9 row 8 |
+| `vrc6saw` | `3xx` portamento, on | frame 12 row 40 |
+| `vrc6saw` | `7xy` tremolo, depth 2 | frame 11 row 12 |
+
+The two vibratos also reach 17 and 16 notes that never asked for them, 320 rows after the
+cell that set them — from "flood" through "building", "high water", "running out" and
+"releasing", four named sections on.
+
+**What that actually costs, measured rather than asserted.** Walking pass 1 against pass 2
+event by event, ONE of the 234 note events differs: `vrc6saw` at frame 2 row 0, the
+entrance of the bass line, which sounds under `7xy` tremolo depth 2 on pass 2 and dry on
+pass 1. The latched `3xx` costs nothing audible — the loop row cuts the lane, so
+`baseNote` is `NOTE_NONE` and the note triggers anyway — and the two vibratos cost nothing
+either, because `vrc6p1` and `vrc6p2` have no notes at all in frames 0-5, which is as far
+as the latch reaches before frame 6 restates it. So the seam finding is one wobbling bass
+note, and the `inherited:` findings are the larger half of it: 33 notes carrying a vibrato
+written five sections earlier. Both are real, neither is an emergency, and fixing either
+changes what the album sounds like — the composer's call, not a test's.
+
+### 12.6 the piece-specific instrument cap is retired
+
+§3.1 allows **3** piece-specific `x-<piece>-*` instruments. That number was written for a
+five-lane album sharing one bank, and it has never described this repertoire: the three
+shipped pieces carry **12**, **17** and **23**, every one of them piece-specific, and no gate
+has ever enforced the cap. Two things made it obsolete. Eight lanes on two chips need more
+distinct voices than five on one — a VRC6 pulse, a 2A03 pulse and a sawtooth playing the same
+line want three different envelopes. And a piece composed as a generator script (§12.3) names
+its own instruments as a matter of course, where a hand-authored piece reached for the shared
+bank to save typing.
+
+**The rule that replaces it.** A piece carries as many instruments as it plays, each either
+byte-identical to a shared-bank entry of the same name or named `x-<id>-*`. Both halves are
+already gated: gate B's bank-drift check rejects a drifted bank name or a foreign name, and an
+instrument nothing plays is a load warning, which gate A rejects. Nothing further is capped.
+What the shared bank is still *for* is the kit — a drum that is the same drum across the album
+is worth more than a lead that is the same lead — so reach for `kick`, `snare`, `hat-closed`,
+`hat-open` and `crash` before writing your own, and say why in `extra.qa.notes` when you do
+write your own.

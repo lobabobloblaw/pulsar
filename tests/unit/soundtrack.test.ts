@@ -1,5 +1,8 @@
-/** Piece-specific contracts for the three OCTET tracks — what makes each one itself, not
- *  an automated claim of musical quality (tools/songs/octet/README.md, docs/soundtrack.md). */
+/** Album-wide rules for every preset (distinct textures, canonical bytes, loop entry,
+ *  hardware ranges, self-ending percussion) and piece-specific contracts for the three OCTET
+ *  tracks — what makes each one itself, not an automated claim of musical quality
+ *  (tools/songs/octet/README.md, docs/soundtrack.md). Pieces composed for pulsar with
+ *  tools/songs/compose/ pin their own contracts in tests/unit/track-<id>.test.ts. */
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -19,6 +22,9 @@ const songs = readdirSync(dir).filter((f) => f.endsWith('.json')).sort().map((fi
   const text = readFileSync(join(dir, file), 'utf8')
   return { file, text, song: parseSong(JSON.parse(text)).song }
 })
+/** The sibling project's three demos, ported by tools/songs/octet/. */
+const OCTET_FILES = ['01-skyline-run.json', '02-cathedral-of-gears.json', '03-tide-tables.json']
+const octet = songs.filter(({ file }) => OCTET_FILES.includes(file))
 function named(id: string): Song {
   return songs.find(({ file }) => file.endsWith(`-${id}.json`))!.song
 }
@@ -118,14 +124,12 @@ describe('the OCTET tracks', () => {
     }
   })
 
-  it('are three, each with its own texture, opening palette and tempo', () => {
-    expect(songs.map(({ file }) => file)).toEqual([
-      '01-skyline-run.json', '02-cathedral-of-gears.json', '03-tide-tables.json',
-    ])
-    expect(new Set(songs.map(({ song }) => texture(song))).size).toBe(3)
-    expect(new Set(songs.map(({ song }) => openingTimbre(song))).size).toBe(3)
-    expect(songs.map(({ song }) => bpm(song))).toEqual([150, 150, 56.25])
-    expect(songs.map(({ song }) => song.meta.speed)).toEqual([3, 6, 8])
+  it('are three, each with its own texture, opening palette and tempo — and every album piece differs from every other', () => {
+    expect(octet.map(({ file }) => file)).toEqual(OCTET_FILES)
+    expect(new Set(songs.map(({ song }) => texture(song))).size).toBe(songs.length)
+    expect(new Set(songs.map(({ song }) => openingTimbre(song))).size).toBe(songs.length)
+    expect(octet.map(({ song }) => bpm(song))).toEqual([150, 150, 56.25])
+    expect(octet.map(({ song }) => song.meta.speed)).toEqual([3, 6, 8])
     // Relabeling, transposing and speeding up a copy cannot fake a new texture.
     const original = songs[0].song
     const copy: Song = {
@@ -143,7 +147,7 @@ describe('the OCTET tracks', () => {
   })
 
   it('never name their author as a person or a work: they are the sibling project’s demos', () => {
-    for (const { song } of songs) expect(song.meta.author).toMatch(/^OCTET demo/)
+    for (const { song } of octet) expect(song.meta.author).toMatch(/^OCTET demo/)
   })
 
   it('Skyline Run: a 32nd-note grid, DPCM kick and snare on the kit slots, a two-row echo', () => {

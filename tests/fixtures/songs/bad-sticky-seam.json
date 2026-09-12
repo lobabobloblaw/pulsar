@@ -1,0 +1,79 @@
+{
+  "format": "pulsar-song",
+  "version": 1,
+  "meta": { "name": "bad-sticky-seam", "author": "pulsar", "engineSpeed": 60, "tempo": 150, "speed": 6, "rowsPerPattern": 16, "rowHighlight": 4, "rowHighlight2": 16, "region": "ntsc", "speedSplitPoint": 32, "evenTempo": false },
+  "channels": ["pulse1","pulse2","triangle","noise","dpcm"],
+  "effectColumns": [2,1,1,1,1],
+  "order": [
+    [0,0,0,0,0],
+    [1,1,1,0,0],
+    [2,2,2,0,0],
+    [3,3,3,0,0]
+  ],
+  "patterns": [
+    {
+      "channel": "pulse1",
+      "index": 0,
+      "rows": [
+        { "r": 0, "note": 60, "inst": 0, "vol": 15 },
+        { "r": 4, "note": 64, "fx": [{ "cmd": "0", "param": 71 }] },
+        { "r": 8, "note": 67 }
+      ]
+    },
+    { "channel": "pulse1", "index": 1, "rows": [{ "r": 0, "note": 60 }, { "r": 8, "note": 62 }] },
+    { "channel": "pulse1", "index": 2, "rows": [{ "r": 0, "note": 64 }, { "r": 8, "note": 65 }] },
+    {
+      "channel": "pulse1",
+      "index": 3,
+      "rows": [
+        { "r": 0, "note": 67 },
+        { "r": 15, "fx": [{ "cmd": "B", "param": 1 }] }
+      ]
+    },
+    {
+      "channel": "pulse2",
+      "index": 0,
+      "rows": [
+        { "r": 0, "note": 48, "inst": 0, "vol": 12 },
+        { "r": 4, "note": 55, "fx": [{ "cmd": "3", "param": 4 }] },
+        { "r": 12, "fx": [{ "cmd": "3", "param": 0 }] }
+      ]
+    },
+    { "channel": "pulse2", "index": 1, "rows": [{ "r": 0, "note": 50 }] },
+    { "channel": "pulse2", "index": 2, "rows": [{ "r": 0, "note": 52 }] },
+    { "channel": "pulse2", "index": 3, "rows": [{ "r": 0, "note": 53 }] },
+    {
+      "channel": "triangle",
+      "index": 0,
+      "rows": [
+        { "r": 0, "note": 36, "inst": 0 },
+        { "r": 2, "fx": [{ "cmd": "7", "param": 164 }] },
+        { "r": 10, "fx": [{ "cmd": "7", "param": 0 }] }
+      ]
+    },
+    { "channel": "triangle", "index": 1, "rows": [{ "r": 0, "note": 36 }] },
+    { "channel": "triangle", "index": 2, "rows": [{ "r": 0, "note": 38 }] },
+    { "channel": "triangle", "index": 3, "rows": [{ "r": 0, "note": 36 }] },
+    { "channel": "noise", "index": 0, "rows": [{ "r": 0, "note": 4, "inst": 0, "vol": 8 }, { "r": 8, "note": 4 }] },
+    { "channel": "dpcm", "index": 0, "rows": [] }
+  ],
+  "instruments": [{
+      "name": "lead",
+      "macros": { "volume": 0, "arpeggio": -1, "pitch": -1, "hiPitch": -1, "duty": 0 }
+    }],
+  "sequences": {
+    "volume": [
+      { "values": [ 15, 13, 11, 9, 8 ], "loop": 4, "release": -1 }
+    ],
+    "arpeggio": [],
+    "pitch": [],
+    "hiPitch": [],
+    "duty": [
+      { "values": [ 2, 2, 1, 1 ], "loop": 2, "release": -1 }
+    ]
+  },
+  "samples": [],
+  "extra": {
+    "qa": { "loopFrame": 1, "notes": "gate B2 fixture. Three lanes latch a channel mode across the Bxx: pulse1 047 with no 000, pulse2 3xx that 300 freezes instead of cancelling, triangle 7A4 that 700 replays instead of cancelling. Generated, not hand-edited." }
+  }
+}

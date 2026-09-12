@@ -25,16 +25,18 @@ Later phases cover the WAV export UI, further expansion chips and text interchan
 
 ## original soundtrack
 
-Three original NES/Famicom compositions ship as the presets: **Skyline Run** (an
-action-stage theme, 150 BPM, 2A03 with DPCM kick and snare), **Cathedral of Gears** (a
-gothic theme, 150 BPM) and **Tide Tables** (a slow ambient piece in 5/4, 56 BPM). They
-are the demo pieces of OCTET, a sibling 2A03 + VRC6 sequencer project, converted here
-by the modules in `tools/songs/octet/`: Skyline Run is a five-lane 2A03 song, while
-Cathedral of Gears and Tide Tables also carry the VRC6's two extra pulses and its
-sawtooth — eight lanes. Choose them in the transport row's **Song**
-picker. All notes and instruments are editable. `pnpm preview:songs` renders
-unnormalized WAVs, including a second pass through each loop, into `previews/`. See
-the [track notes and audition guide](docs/soundtrack.md).
+Six original NES/Famicom compositions ship as the presets, by two routes. Three are ports
+of the demo pieces of OCTET, a sibling 2A03 + VRC6 sequencer project, converted by the
+modules in `tools/songs/octet/` — **Skyline Run** (an action-stage theme, 150 BPM, five
+2A03 lanes with DPCM kick and snare), **Cathedral of Gears** (a gothic theme, 150 BPM) and
+**Tide Tables** (a slow ambient piece in 5/4, 56 BPM), the last two adding the VRC6's two
+pulses and its sawtooth for eight lanes — and three were composed for pulsar as generator
+scripts under `tools/songs/compose/`, eight lanes each: **Tailwind** (a bright stage
+theme, 180 BPM), **Counterweight** (a boss theme in D phrygian on a 32nd-note grid, 150
+BPM) and **Sunward Banner** (an anthem in D major, 150 BPM). Choose them in the transport
+row's **Song** picker. All notes and instruments are editable. `pnpm preview:songs`
+renders unnormalized WAVs, including a second pass through each loop, into `previews/`.
+See the [track notes and audition guide](docs/soundtrack.md).
 
 ## run
 

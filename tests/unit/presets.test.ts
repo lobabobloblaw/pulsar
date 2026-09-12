@@ -556,6 +556,326 @@ function lint(song: Song, id: string): Lint {
   return { ok: problems.length === 0, problems, accidentals, melodicNotes }
 }
 
+// --- gate B2, the channel-mode effects a note trigger does NOT clear (§12) ---------------
+
+/** `trigger()` resets the PHASES — `arpStep`, `slideAccum`, `pitchAccum`, `portaTarget`,
+ *  `portaNote`, `vibAcc`, `tremAcc` — and NOTHING else. Every field `applyRowEffect`
+ *  writes below therefore outlives the note that was sounding when it was set, outlives
+ *  the pattern, and outlives the order frame; only `resetChannels()` — a stop, never a
+ *  loop — puts it back. `neutral` is the value `resetChannels()` installs, so "latched"
+ *  is exactly "differs from what a fresh playback start would have".
+ *
+ *  `cancel` is what the DRIVER accepts, which is not always what the manual implies:
+ *   - `300` does NOT cancel `3xx`. It freezes the glide with `portaEnabled` still 1,
+ *     and a latched `portaEnabled` makes the next note a glide target instead of an
+ *     attack (`fire()`), so the lane loses its transient without changing a note.
+ *   - `700` does NOT cancel `7xy`. `7` is a memory command and is NOT in
+ *     `OFF_ON_ZERO_COMMANDS`, so `700` REPLAYS the last tremolo parameter. The depth
+ *     nibble is the off switch: `7x0` with x > 0.
+ *   - `Vxx` has no off value at all: `V00` is duty 0, a real duty. It must be restated.
+ *   - `Sxx` also survives the row (`cutTick`), but it is consumed by the tick it names,
+ *     so it only latches when xx >= the row's tick count — a cut that never fires, which
+ *     is a different defect and not this gate's business.
+ */
+interface StickyDef {
+  readonly cmd: string
+  readonly what: string
+  readonly neutral: number
+  readonly cancel: string
+}
+const STICKY = {
+  arp: { cmd: '0xy', what: 'arpeggio', neutral: 0, cancel: '000, or any of 1xx/2xx/3xx/Qxy/Rxy' },
+  slide: { cmd: '1xx/2xx', what: 'pitch slide', neutral: 0, cancel: '100/200, or 3xx/Qxy/Rxy' },
+  porta: { cmd: '3xx', what: 'portamento', neutral: 0, cancel: '1xx/2xx/Qxy/Rxy (300 freezes, it does not cancel)' },
+  vibrato: { cmd: '4xy', what: 'vibrato', neutral: 0, cancel: '4x0 — the depth nibble is the off switch' },
+  tremolo: { cmd: '7xy', what: 'tremolo', neutral: 0, cancel: '7x0 with x > 0 (700 replays the effect memory)' },
+  volSlide: { cmd: 'Axy', what: 'volume slide', neutral: 0, cancel: 'A00' },
+  finePitch: { cmd: 'Pxx', what: 'fine pitch', neutral: 0x80, cancel: 'P80' },
+  duty: { cmd: 'Vxx', what: 'duty override', neutral: -1, cancel: 'nothing — restate Vxx in every section that wants it' },
+} satisfies Record<string, StickyDef>
+type StickyField = keyof typeof STICKY
+const STICKY_FIELDS = Object.keys(STICKY) as StickyField[]
+
+/** `resolveParam`'s two tables, copied so the walk reads a row the way the driver does. */
+const MEMORY_CMDS = '12347AQR'
+const OFF_ON_ZERO_CMDS = '1234A'
+
+type StickyState = Record<StickyField, number>
+
+function neutralSticky(): StickyState {
+  const s = {} as StickyState
+  for (const f of STICKY_FIELDS) s[f] = STICKY[f].neutral
+  return s
+}
+
+/** How a latched value reads in a problem message, in the composer's own notation. */
+function stickyValue(field: StickyField, v: number): string {
+  const hex = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0')
+  switch (field) {
+    case 'arp': return `0${hex(v)}`
+    case 'slide': return v < 0 ? `1${hex(-v)}` : `2${hex(v)}`
+    case 'porta': return 'on'
+    case 'vibrato': return `depth ${v}`
+    case 'tremolo': return `depth ${v}`
+    case 'volSlide': return `A${hex(v)}`
+    case 'finePitch': return `P${hex(v)}`
+    case 'duty': return `V${hex(v)}`
+  }
+}
+
+interface Where {
+  frame: number
+  row: number
+  played: number
+}
+interface Lane {
+  state: StickyState
+  setAt: Map<StickyField, Where>
+  memory: Map<string, number>
+  counts: Map<StickyField, { set: number; cancel: number }>
+  sounding: boolean
+}
+interface StickyResult {
+  ok: boolean
+  problems: string[]
+  /** One `kind:lane:field` id per entry of `problems`, same order: the stable handle a
+   *  known-defect pin can name without pinning a sentence. */
+  findings: string[]
+  /** Per lane, "pulse2: 0xy set 6, cleared 10" — set against cancel at a glance. */
+  summary: string[]
+  /** Arrivals at the loop row: the first one and the one the Bxx jump makes. */
+  arrivals: number
+}
+
+/** How far a sticky effect may carry before a note that sounds under it counts as having
+ *  inherited somebody else's writing: ONE ORDER FRAME of played rows. The frame is the
+ *  unit the composer divides the piece into — every shipped piece's `extra.qa.form`
+ *  carries exactly one name per order frame — so an effect still inside the frame that
+ *  wrote it is a sustained gesture, a legitimate way to write a phrase, and one still on
+ *  a whole frame later has outlived its section. Measured against the album: skyline-run
+ *  carries `0xy` at most 30 rows on pulse2, half of its 64-row frame and one phrase,
+ *  while tide-tables carries `4xy` 320 rows — from "flood" through "building", "high
+ *  water", "running out" and "releasing", four named sections later. */
+const INHERIT_TOLERANCE_FRAMES = 1
+
+/** Walks the order the way the driver does — normal advance plus `Bxx`/`Dxx`, the same
+ *  flow `reachableFrames` follows — carrying every sticky channel mode per lane, and
+ *  reports what is still latched where it must not be. Written from the DOCUMENT: the
+ *  driver is not run, so a driver bug cannot make this gate pass. */
+function stickyLint(song: Song): StickyResult {
+  const qa = qaOf(song)
+  const problems: string[] = []
+  const findings: string[] = []
+  const report = (id: string, message: string): void => {
+    findings.push(id)
+    problems.push(message)
+  }
+  const chs = song.channels
+  const rpp = song.meta.rowsPerPattern
+  const frames = song.order.length
+  const tolerance = rpp * INHERIT_TOLERANCE_FRAMES
+  const byKey = new Map<string, Map<number, (typeof song.patterns)[number]['rows'][number]>>()
+  for (const p of song.patterns) {
+    const m = new Map<number, (typeof p.rows)[number]>()
+    for (const c of p.rows) m.set(c.r, c)
+    byKey.set(`${p.channel}:${p.index}`, m)
+  }
+  const lanes: Lane[] = chs.map(() => ({
+    state: neutralSticky(),
+    setAt: new Map<StickyField, Where>(),
+    memory: new Map<string, number>(),
+    counts: new Map<StickyField, { set: number; cancel: number }>(),
+    sounding: false,
+  }))
+  const inherited = new Map<string, { ch: number; field: StickyField; n: number; age: number; where: Where }>()
+  const arrivals: { state: StickyState[]; stated: Set<string> }[] = []
+  const loopFrame = qa.loopFrame
+
+  let oi = 0
+  let row = 0
+  let played = 0
+  let laps = 0
+  // Intro plus one full pass is every reachable row once; the guard only has to outlast
+  // a piece whose Bxx never comes back.
+  const guard = frames * rpp * 3 + 64
+
+  while (played < guard) {
+    let jump = -1
+    let skip = -1
+    let halt = false
+    const stated = new Set<string>()
+
+    for (let ch = 0; ch < chs.length; ch++) {
+      const cell = byKey.get(`${chs[ch]}:${song.order[oi][ch]}`)?.get(row)
+      if (cell === undefined) continue
+      const lane = lanes[ch]
+      const here: Where = { frame: oi, row, played }
+      const mark = (f: StickyField, v: number): void => {
+        const tally = lane.counts.get(f) ?? { set: 0, cancel: 0 }
+        if (v === STICKY[f].neutral) {
+          tally.cancel++
+          lane.setAt.delete(f)
+        } else {
+          tally.set++
+          lane.setAt.set(f, here)
+        }
+        lane.counts.set(f, tally)
+        lane.state[f] = v
+        stated.add(`${ch}:${f}`)
+      }
+      let noteSlide = false
+      for (const e of cell.fx ?? []) {
+        if (e === null || e === undefined) continue
+        // §3.5 effect memory, resolved before the switch exactly as the driver does it.
+        let param = e.param
+        if (MEMORY_CMDS.includes(e.cmd)) {
+          if (param !== 0) lane.memory.set(e.cmd, param)
+          else if (!OFF_ON_ZERO_CMDS.includes(e.cmd)) param = lane.memory.get(e.cmd) ?? 0
+        }
+        switch (e.cmd) {
+          case '0': mark('arp', param); break
+          case '1': mark('arp', 0); mark('porta', 0); mark('slide', -param); break
+          case '2': mark('arp', 0); mark('porta', 0); mark('slide', param); break
+          case '3': mark('arp', 0); mark('slide', 0); mark('porta', 1); break
+          case '4': mark('vibrato', param & 0x0f); break
+          case '7': mark('tremolo', param & 0x0f); break
+          case 'A': mark('volSlide', param); break
+          case 'P': mark('finePitch', param); break
+          case 'V': mark('duty', param); break
+          case 'Q':
+          case 'R':
+            noteSlide = true
+            mark('arp', 0)
+            mark('porta', 0)
+            mark('slide', 0)
+            break
+          case 'B': jump = e.param; break
+          case 'D': skip = e.param; break
+          case 'C': halt = true; break
+          default: break
+        }
+      }
+      const note = cell.note
+      if (note === undefined) continue
+      if (note === -1) {
+        // A cut silences the lane but leaves every mode above standing (`cut()`).
+        lane.sounding = false
+        continue
+      }
+      if (note < 0) continue
+      // A note sharing its row with 3xx/Qxy/Rxy retargets a sounding note instead of
+      // triggering it — the same rule the duration walk above models, and gate C's
+      // note-event count is what holds it honest.
+      const triggers = !((noteSlide || lane.state.porta === 1) && lane.sounding)
+      lane.sounding = true
+      if (!triggers) continue
+      for (const f of STICKY_FIELDS) {
+        if (lane.state[f] === STICKY[f].neutral || stated.has(`${ch}:${f}`)) continue
+        const where = lane.setAt.get(f)
+        if (where === undefined) continue
+        const age = played - where.played
+        if (age <= tolerance) continue
+        const key = `${ch}:${f}`
+        const rec = inherited.get(key) ?? { ch, field: f, n: 0, age: 0, where }
+        rec.n++
+        if (age >= rec.age) {
+          rec.age = age
+          rec.where = where
+        }
+        inherited.set(key, rec)
+      }
+    }
+
+    if (loopFrame !== undefined && oi === loopFrame && row === 0) {
+      // AFTER the loop row's own effects: a mode cancelled or restated on the loop row
+      // itself is stated by the seam, not carried across it.
+      arrivals.push({ state: lanes.map((l) => ({ ...l.state })), stated: new Set(stated) })
+      if (arrivals.length >= 2) break
+    }
+
+    played++
+    if (halt) break
+    if (jump >= 0 || skip >= 0) {
+      const next = jump >= 0 ? Math.max(0, Math.min(frames - 1, jump)) : (oi + 1) % frames
+      if (next <= oi) laps++
+      oi = next
+      row = skip >= 0 ? Math.max(0, Math.min(rpp - 1, skip)) : 0
+    } else {
+      row++
+      if (row >= rpp) {
+        row = 0
+        oi++
+        if (oi >= frames) {
+          oi = 0
+          laps++
+        }
+      }
+    }
+    if (loopFrame === undefined && laps >= 1) break
+  }
+
+  // 1. the seam. Pass 2 begins at the loop row, and it has to begin the way pass 1 did.
+  const first = arrivals[0]
+  const seam = arrivals[arrivals.length - 1]
+  if (loopFrame === undefined) {
+    report('seam:-:loopFrame', 'extra.qa.loopFrame is missing, so the loop seam cannot be walked')
+  } else if (arrivals.length < 2 || first === undefined || seam === undefined) {
+    report('seam:-:unreached', `the order walk never comes back to the loop row (frame ${loopFrame} row 0)`)
+  } else {
+    for (let ch = 0; ch < chs.length; ch++) {
+      for (const f of STICKY_FIELDS) {
+        const def = STICKY[f]
+        const now = seam.state[ch][f]
+        const before = first.state[ch][f]
+        const at = lanes[ch].setAt.get(f)
+        const from = at === undefined ? 'an earlier frame' : `frame ${at.frame} row ${at.row}`
+        if (now !== def.neutral && !seam.stated.has(`${ch}:${f}`)) {
+          // A mode the FIRST arrival carried too is not a pass-2-only surprise, but the
+          // loop row still does not own its own state: a reader of that row cannot tell
+          // what the lane is doing, and one edit to the intro changes the loop.
+          const cost =
+            now === before
+              ? 'every pass enters the loop under it and nothing on the loop row says so'
+              : 'pass 2 sounds that lane under an effect pass 1 did not have'
+          report(
+            `seam:${chs[ch]}:${f}`,
+            `${chs[ch]} reaches the loop row (frame ${loopFrame} row 0) with ${def.cmd} ${def.what} still latched (${stickyValue(f, now)}, last stated at ${from}): ${cost}. Restate it on the loop row, or cancel it before the Bxx — cancel: ${def.cancel}.`,
+          )
+        } else if (now !== before) {
+          report(
+            `drift:${chs[ch]}:${f}`,
+            `${chs[ch]} enters the loop row with ${def.cmd} ${def.what} = ${stickyValue(f, now)} on the looping pass but ${stickyValue(f, before)} on the first: the two passes do not start alike.`,
+          )
+        }
+      }
+    }
+  }
+
+  // 2. notes that sound under a mode written for an earlier section.
+  for (const rec of [...inherited.values()].sort((a, b) => b.age - a.age)) {
+    const def = STICKY[rec.field]
+    report(
+      `inherited:${chs[rec.ch]}:${rec.field}`,
+      `${chs[rec.ch]} triggers ${rec.n} note${rec.n === 1 ? '' : 's'} under ${def.cmd} ${def.what} it never asked for, inherited from frame ${rec.where.frame} row ${rec.where.row} and still latched ${rec.age} rows (${(rec.age / rpp).toFixed(1)} frames) later, past the ${tolerance}-row tolerance. Restate it, or cancel it where the section changes — cancel: ${def.cancel}.`,
+    )
+  }
+
+  // 3. set versus cancel, per lane, for the composer rather than for the assertion.
+  const summary: string[] = []
+  for (let ch = 0; ch < chs.length; ch++) {
+    // Only modes this lane actually ASKS for: `1xx` writes `arpParam` to 0 as a side
+    // effect, and reporting that as "0xy cancelled 7 times" on a lane with no arpeggio
+    // at all would be a count of something nobody typed.
+    const parts = STICKY_FIELDS.flatMap((f) => {
+      const t = lanes[ch].counts.get(f)
+      return t === undefined || t.set === 0 ? [] : [`${STICKY[f].cmd} set ${t.set}, cleared ${t.cancel}`]
+    })
+    if (parts.length > 0) summary.push(`${chs[ch]}: ${parts.join(', ')}`)
+  }
+
+  return { ok: problems.length === 0, problems, findings, summary, arrivals: arrivals.length }
+}
+
 // --- helpers ------------------------------------------------------------------------------
 
 function loudestWindow(samples: Float32Array, seconds: number, rate = 48000): number {
@@ -731,6 +1051,35 @@ describe('the shared instrument bank', () => {
   })
 })
 
+/** RESOLVED 2026-09-11 — NOT a port defect. tide-tables really does carry four channel
+ *  modes across its own loop, and the escalation these entries opened asked the right
+ *  question: is that Pulsar's driver diverging from the engine the piece was composed on?
+ *  It is not. OCTET's `core/engine.js` latches `4xy` and `7xy` exactly as `trackerDriver`
+ *  does — `applyCell` writes `vibDepth`/`tremDepth` and only a zero depth nibble clears
+ *  them, `triggerNote` resets the PHASES and not the modes, and `nextOrder()` wraps the
+ *  order with no channel reset, so the modes cross the loop there too. Running OCTET's own
+ *  engine over its own document for two passes reproduces the finding: of 189 note events
+ *  a pass, the one that differs audibly is `vrc6saw` frame 2 row 0 under `7xy` depth 2 —
+ *  the same note, the same effect, the same pass. `convert.mjs` carries every `3xx`, `4xy`
+ *  and `7xy` cell over one for one (34/3/2/20/4 per lane, both sides), so there is nothing
+ *  for `applyEngineDifferences` to correct: the song already plays what was composed.
+ *
+ *  The entries therefore stay as a PIN on the music, not a waiver of a bug: the gate still
+ *  reports all six in full, the list cannot grow without this assertion failing, and a
+ *  later edit that cancels one fails it too (delete the entry in the same commit).
+ *  Evidence and the frame:row table are in `docs/preset-suite.md` §12 and
+ *  `docs/soundtrack.md`. Changing the song here would be re-composition. */
+const KNOWN_STICKY: Record<string, string[]> = {
+  'tide-tables': [
+    'seam:vrc6p1:vibrato',
+    'seam:vrc6p2:vibrato',
+    'seam:vrc6saw:porta',
+    'seam:vrc6saw:tremolo',
+    'inherited:vrc6p1:vibrato',
+    'inherited:vrc6p2:vibrato',
+  ],
+}
+
 describe.each(SONGS)('$file', ({ id, raw }) => {
   const parsed = tryParse(raw)
   const song = parsed.song as Song
@@ -752,6 +1101,13 @@ describe.each(SONGS)('$file', ({ id, raw }) => {
     const r = lint(song, id)
     expect(r.problems).toEqual([])
     expect(r.melodicNotes).toBeGreaterThan(0)
+  })
+
+  it('gate B2 — no channel mode is left latched across the loop seam', () => {
+    const r = stickyLint(song)
+    expect(r.arrivals, 'the order walk must reach the loop row twice').toBe(2)
+    expect(r.findings, r.problems.join('\n')).toEqual(KNOWN_STICKY[id] ?? [])
+    expect(r.summary.length, 'an album piece uses at least one channel mode').toBeGreaterThan(0)
   })
 
   it('gate C — renders two passes: duration, level, audibility, checksum', () => {
@@ -942,5 +1298,135 @@ describe('gate D — a gate that cannot fail is not a gate', () => {
       const { song } = tryParse(s.raw)
       expect(lint(song as Song, s.id).problems, s.file).toEqual([])
     }
+  })
+})
+
+describe('gate B2 — the sticky-effect gate must be able to fail', () => {
+  const fixture = (): Song =>
+    tryParse(JSON.parse(readFileSync(join(FIXTURES, 'bad-sticky-seam.json'), 'utf8'))).song as Song
+
+  /** Write one cell's effect list, keeping whatever note the cell already had — the edit
+   *  a composer makes when they add the cancel the gate asked for. */
+  const withFx = (
+    song: Song,
+    channel: ChannelId,
+    index: number,
+    r: number,
+    fx: { cmd: string; param: number }[],
+  ): Song => ({
+    ...song,
+    patterns: song.patterns.map((p) =>
+      p.channel !== channel || p.index !== index
+        ? p
+        : { ...p, rows: [...p.rows.filter((c) => c.r !== r), { ...(p.rows.find((c) => c.r === r) ?? { r }), fx }].sort((a, b) => a.r - b.r) },
+    ),
+  })
+  const withQa = (song: Song, qa: Qa): Song => ({ ...song, extra: { ...song.extra, qa } })
+
+  it('bad-sticky-seam.json parses, and every branch of the gate fires on it', () => {
+    const r = stickyLint(fixture())
+    expect(r.ok).toBe(false)
+    expect(r.findings).toEqual([
+      'seam:pulse1:arp',
+      'seam:pulse2:porta',
+      'seam:triangle:tremolo',
+      'inherited:pulse1:arp',
+      'inherited:triangle:tremolo',
+    ])
+    expect(r.problems.join('\n')).toContain('loop row (frame 1 row 0)')
+  })
+
+  it('a note trigger does not clear 0xy — only 000 does', () => {
+    // pulse1 triggers four notes between the 047 and the Bxx and stays latched, because
+    // `trigger()` resets `arpStep` and never `arpParam`.
+    expect(stickyLint(fixture()).findings).toContain('seam:pulse1:arp')
+    const cancelled = stickyLint(withFx(fixture(), 'pulse1', 3, 0, [{ cmd: '0', param: 0 }]))
+    expect(cancelled.findings).not.toContain('seam:pulse1:arp')
+    // ...and the notes that already sounded under it two frames on are still reported.
+    expect(cancelled.findings).toContain('inherited:pulse1:arp')
+  })
+
+  it('300 freezes 3xx and does not cancel it; 100 cancels it', () => {
+    expect(stickyLint(withFx(fixture(), 'pulse2', 3, 0, [{ cmd: '3', param: 0 }])).findings)
+      .toContain('seam:pulse2:porta')
+    expect(stickyLint(withFx(fixture(), 'pulse2', 3, 0, [{ cmd: '1', param: 0 }])).findings)
+      .not.toContain('seam:pulse2:porta')
+  })
+
+  it('700 replays the tremolo memory; 7x0 is the off switch', () => {
+    expect(stickyLint(withFx(fixture(), 'triangle', 3, 0, [{ cmd: '7', param: 0 }])).findings)
+      .toContain('seam:triangle:tremolo')
+    expect(stickyLint(withFx(fixture(), 'triangle', 3, 0, [{ cmd: '7', param: 0xa0 }])).findings)
+      .not.toContain('seam:triangle:tremolo')
+  })
+
+  it('Vxx has no off value, so V00 does not clear the duty override', () => {
+    const set = withFx(fixture(), 'pulse1', 0, 12, [{ cmd: 'V', param: 2 }])
+    expect(stickyLint(set).findings).toContain('seam:pulse1:duty')
+    expect(stickyLint(withFx(set, 'pulse1', 3, 8, [{ cmd: 'V', param: 0 }])).findings)
+      .toContain('seam:pulse1:duty')
+  })
+
+  it('every mode in the table can be caught, one command at a time', () => {
+    // One cell in the intro, nothing to cancel it: each of the eight fields has to make
+    // it to the loop row on its own. `1xx` and `2xx` share a field and both are checked,
+    // since the driver stores a signed rate rather than a direction flag.
+    const cases: [string, number, string][] = [
+      ['0', 0x47, 'arp'],
+      ['1', 0x04, 'slide'],
+      ['2', 0x04, 'slide'],
+      ['3', 0x04, 'porta'],
+      ['4', 0xa4, 'vibrato'],
+      ['7', 0xa4, 'tremolo'],
+      ['A', 0x10, 'volSlide'],
+      ['P', 0x40, 'finePitch'],
+      ['V', 0x02, 'duty'],
+    ]
+    for (const [cmd, param, field] of cases) {
+      const mutated = withFx(fixture(), 'pulse1', 0, 12, [{ cmd, param }])
+      expect(stickyLint(mutated).findings, `${cmd}${param.toString(16)}`).toContain(`seam:pulse1:${field}`)
+    }
+  })
+
+  it('a mode the intro leaves behind that the loop pass clears is reported too', () => {
+    // 4A4 in the intro, 400 after the loop row: pass 1 reaches the loop row with vibrato
+    // running and pass 2 reaches it clear, so the passes do not start alike.
+    const drift = withFx(withFx(fixture(), 'pulse1', 0, 12, [{ cmd: '4', param: 0xa4 }]), 'pulse1', 1, 8, [{ cmd: '4', param: 0 }])
+    expect(stickyLint(drift).findings).toContain('drift:pulse1:vibrato')
+  })
+
+  it('a loop row the order never returns to, and a missing loopFrame, both fail', () => {
+    const song = fixture()
+    expect(stickyLint(withQa(song, { ...qaOf(song), loopFrame: 0 })).findings)
+      .toContain('seam:-:unreached')
+    expect(stickyLint(withQa(song, {})).findings).toContain('seam:-:loopFrame')
+  })
+
+  it('the summary counts set against cleared, per lane', () => {
+    expect(stickyLint(fixture()).summary).toEqual([
+      'pulse1: 0xy set 1, cleared 0',
+      'pulse2: 3xx set 2, cleared 0',
+      'triangle: 7xy set 2, cleared 0',
+    ])
+    expect(stickyLint(withFx(fixture(), 'pulse1', 3, 0, [{ cmd: '0', param: 0 }])).summary[0])
+      .toBe('pulse1: 0xy set 1, cleared 1')
+  })
+
+  it('the songs that pass are not passing for want of sticky effects', () => {
+    const source = SONGS.find((s) => s.id === 'skyline-run') as Registered
+    const song = tryParse(source.raw).song as Song
+    expect(stickyLint(song).findings).toEqual([])
+    expect(stickyLint(song).summary.join('\n')).toContain('0xy set')
+    // Delete its twelve 000 cells — nothing else — and the same song fails the gate.
+    const stripped: Song = {
+      ...song,
+      patterns: song.patterns.map((p) => ({
+        ...p,
+        rows: p.rows.map((c) =>
+          c.fx === undefined ? c : { ...c, fx: c.fx.filter((e) => !(e !== null && e.cmd === '0' && e.param === 0)) },
+        ),
+      })),
+    }
+    expect(stickyLint(stripped).findings.length).toBeGreaterThan(0)
   })
 })
