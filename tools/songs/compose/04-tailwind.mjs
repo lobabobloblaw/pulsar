@@ -18,7 +18,9 @@
  *  |-------|---------|------|-----------------------------------------------------------------|
  *  | 0     | intro   | 4    | unison riff R on saw + triangle + both pulses in octaves; roll    |
  *  | 1–4   | A       | 16   | hook H on pulse 1, echo canon on pulse 2 (3 rows, −5, duty 0);   |
- *  |       |         |      | saw gallop answered by the triangle on the off-16ths; VRC6 thirds |
+ *  |       |         |      | saw gallop WALKS: a bass line under the chords, leaning into each |
+ *  |       |         |      | change; the triangle echoes it on the off-16ths; VRC6 thirds and  |
+ *  |       |         |      | a prepared 4–3 in V1 at the second cadence (4:48)                 |
  *  | 5–8   | A′      | 16   | H on the saw AT PITCH as a brass lead (bend-in), the pulse-1      |
  *  |       |         |      | counter-hook an octave down under it; triangle takes the bass;    |
  *  |       |         |      | V2 stabs on an unbroken 6-row cell (2:3); open hats               |
@@ -46,7 +48,13 @@
  *          entry rows 5:0, 6:2, 7:4, 8:0); the hemiola in A″ bars 9–11; H displaced +2 rows in
  *          A″ bars 0–3; the metric surprise is the two-bar tag (`D00`).
  *    §9.2  pulse 2 is a voice for the whole chorus: own rhythm, 9–8 and 4–3 suspensions,
- *          a cadential 4–3 over the final A, contrary motion at both chorus cadences.
+ *          a 9–8 at the half-way cadence (13:0), a cadential 4–3 over the final A,
+ *          contrary motion at both chorus cadences. Prepared suspensions at the other
+ *          cadences too: V1's 4–3 over E7 (4:48, 8:48), V1's 4–3 at the pre-chorus half
+ *          cadence (10:16), pulse 2's 9–8 at the turn's E7 → A (18:32).
+ *    BASS  the gallop is a written line, not a stamped root: each bar a FIGURE of chord-tone
+ *          anchors (root on beats 1 and 3) and scale-step sixteenths, its last two leaning
+ *          by step into the next bar's bass. See FIGURES and the per-bar tables.
  *    §9.3  modal interchange (bVII, iv), chained secondaries (B7 → E7 → A), the F#7 pivot
  *          into B major; a descending-fifths chain C#m7 → F#m → Bm7 → E7 in the chorus.
  *    §9.4  kit changes every section; a fill every 8 bars, none repeated; the open hat on
@@ -54,7 +62,7 @@
  *
  *  ALLOCATION (lead = one voice at a time; every lane rests somewhere)
  *    intro   P1 P2 TRI SAW unison · NOISE kick on the riff, roll · DPCM kick · V1 V2 rest
- *    A       P1 hook · P2 echo · SAW gallop · TRI off-16ths · V1 V2 thirds · kit + DPCM
+ *    A       P1 hook · P2 echo · SAW walking gallop · TRI off-16ths · V1 V2 thirds · kit + DPCM
  *    A′      SAW hook on top · P1 counter-hook below it · P2 rests · TRI gallop bass ·
  *            V1 pad · V2 6-row stabs
  *    pre     P1 tune · P2 rests then the rising build · V2 0xy stabs · V1 rising pad · SAW · TRI
@@ -229,30 +237,169 @@ function echoWithCuts(sec, from, to, delay, inst, vol, opts = {}) {
   }
 }
 
-/** The saw gallop: attacks on rows 0, 2, 3 of every beat (an 8th and two 16ths), on the
- *  root written for that bar. `roots` is one MIDI note per bar (or null to rest);
- *  `accent` lifts the beat's own attack above the two sixteenths. */
-function gallop(sec, lane, inst, vol, roots, opts = {}) {
-  const { pattern = [0, 2, 3], firstBar = 0, accent = 0 } = opts
-  roots.forEach((root, i) => {
-    if (root === null) return
-    const bar = firstBar + i
+// -------------------------------------------------------------------------------------
+// the bass line: the gallop WALKS
+// -------------------------------------------------------------------------------------
+/** A bass passing tone is a step of the scale its chord lives in, so a borrowed chord
+ *  brings its own scale: the bVII (G) walks in A mixolydian (g for g#), the borrowed iv
+ *  (Dm) in A harmonic major (f for f#), the B7 of the turn in E major (its d#). The final
+ *  chorus transposes every scale with its bass. */
+const PC_OF = { c: 0, 'c#': 1, d: 2, 'd#': 3, e: 4, f: 5, 'f#': 6, g: 7, 'g#': 8, a: 9, 'a#': 10, b: 11 }
+const pc = (note) => ((note % 12) + 12) % 12
+const pcsOf = (names) => names.split(' ').map((x) => PC_OF[x])
+const SCALE = {
+  A: pcsOf('a b c# d e f# g#'),
+  Amix: pcsOf('a b c# d e f# g'),
+  Ahmaj: pcsOf('a b c# d e f g#'),
+  E: pcsOf('e f# g# a b c# d#'),
+}
+/** The chord a bar's bass walks under, as pitch classes: `'F#m'`, `'E7'`, `'C#m7'`,
+ *  `'D/F#'` (the slash only names the bass the table already writes). */
+const QUALITY = { '': [0, 4, 7], m: [0, 3, 7], 7: [0, 4, 7, 10], m7: [0, 3, 7, 10] }
+function chordOf(symbol, transpose = 0) {
+  const m = /^([A-G]#?)(m7|m|7|)(?:\/[A-G]#?)?$/.exec(symbol)
+  if (m === null) throw new Error(`chord symbol ${symbol}`)
+  const root = PC_OF[m[1].toLowerCase()] + transpose
+  return QUALITY[m[2]].map((i) => pc(root + i))
+}
+/** `k` steps from `note` along the pitch classes `set` (k < 0 goes down). The same walk
+ *  finds a scale step (set = a scale) and the next chord tone (set = a chord). */
+function stepBy(note, k, set) {
+  let p = note
+  for (let i = 0; i < Math.abs(k); i++) {
+    do p += Math.sign(k)
+    while (!set.includes(pc(p)))
+  }
+  return p
+}
+/** Signed number of scale steps from `a` up or down to `b`. */
+function stepsBetween(a, b, set) {
+  if (a === b) return 0
+  const dir = Math.sign(b - a)
+  let count = 0
+  for (let p = a + dir; dir > 0 ? p <= b : p >= b; p += dir) if (set.includes(pc(p))) count++
+  return dir * count
+}
+
+/** A bar of bass is four beats of ANCHOR + TWO SIXTEENTHS; the two sixteenths are the
+ *  pickup into the next anchor, so the gallop's DA-da-da reads as a line, not a stamp.
+ *  An anchor is a chord tone: `R` the bass the table writes (always on beat 1 and beat 3,
+ *  the strong points), `u1`/`u2` the first/second chord tone above it, `d1`/`d2` below.
+ *  A pickup is one of
+ *    drive  the anchor twice more: the gallop's own engine, where the bar should push
+ *    nbr    the lower scale neighbour and back: motion without leaving the chord
+ *    run    two scale steps INTO the next anchor (a third away: the anchor, then the one
+ *           passing tone between; a step away: the anchor again)
+ *    lean   a run into the NEXT BAR's bass. Onto the same bass it is an enclosure: the
+ *           step above, then the step below. A `+` on the figure makes the last lean
+ *           note the chromatic semitone instead, when the diatonic step is a whole tone.
+ *  Every tone off the chord therefore sits on a sixteenth, never on a beat, and moves on
+ *  by step into a chord tone or the next bar's bass. */
+const FIGURES = {
+  // three beats of root, a lower neighbour on beat 2; beat 4 on the next-but-one chord
+  // tone, which runs down or up the scale into the change. The most engine, least walk.
+  ENGINE: { anchors: ['R', 'R', 'R', 'u2'], pickups: ['drive', 'nbr', 'drive', 'lean'] },
+  // beat 2 jumps up to the fifth and the scale brings it back to the root for beat 3;
+  // beat 4 on the third, leaning into the next bar.
+  STRIDE: { anchors: ['R', 'u2', 'R', 'u1'], pickups: ['drive', 'run', 'drive', 'lean'] },
+  // the root climbs a scale to the third and back (both halves of beat 1 and 2 move),
+  // beat 3 drives, beat 4 on the fifth leans over.
+  CLIMB: { anchors: ['R', 'u1', 'R', 'u2'], pickups: ['run', 'run', 'drive', 'lean'] },
+  // for a high bass: down to the chord tone under it and back up the scale, then beat 4
+  // on the third above.
+  DROP: { anchors: ['R', 'd1', 'R', 'u1'], pickups: ['drive', 'run', 'drive', 'lean'] },
+  // down twice: the chord tone under the bass on beat 2, the next one under that on
+  // beat 4, which then climbs the scale into the change.
+  DIVE: { anchors: ['R', 'd1', 'R', 'd2'], pickups: ['drive', 'run', 'drive', 'lean'] },
+  // up to the fifth and back as in STRIDE, then beat 4 stays on the root and the whole
+  // lean is a scale from it.
+  VAULT: { anchors: ['R', 'u2', 'R', 'R'], pickups: ['drive', 'run', 'drive', 'lean'] },
+  // an arch over beats 1-2, then beat 4 on the chord tone BELOW (on a seventh chord, the
+  // seventh itself), which falls or climbs by step into the change.
+  ARCH: { anchors: ['R', 'u1', 'R', 'd1'], pickups: ['run', 'run', 'drive', 'lean'] },
+  // the fifth on beat 2 (as STRIDE), the chord tone below on beat 4 (as ARCH): for a
+  // dominant under a suspension that resolves on beat 2, where ARCH would put the bass on
+  // the resolving third and double it.
+  CADENCE: { anchors: ['R', 'u2', 'R', 'd1'], pickups: ['drive', 'run', 'drive', 'lean'] },
+  // only the tones two chords share (the root and the third above), for a bar whose
+  // harmony changes at the half: F#m then Bm7 over the same f#.
+  COMMON: { anchors: ['R', 'u1', 'R', 'u1'], pickups: ['drive', 'run', 'drive', 'lean'] },
+  // the dominant pedal under a build: nothing moves.
+  PEDAL: { anchors: ['R', 'R', 'R', 'R'], pickups: ['drive', 'drive', 'drive', 'drive'] },
+  // the pedal, released on its last beat by the lean.
+  PUSH: { anchors: ['R', 'R', 'R', 'R'], pickups: ['drive', 'drive', 'drive', 'lean'] },
+}
+
+/** The two sixteenths after `anchor`, heading for `to`, in `scale`. */
+function pickup(mode, anchor, to, scale, chromatic) {
+  if (mode === 'drive') return [anchor, anchor]
+  if (mode === 'nbr') return [stepBy(anchor, -1, scale), anchor]
+  const d = stepsBetween(anchor, to, scale)
+  const s = Math.sign(d)
+  if (d === 0) return mode === 'lean' ? [stepBy(to, 1, scale), stepBy(to, -1, scale)] : [stepBy(anchor, -1, scale), anchor]
+  let pair
+  if (Math.abs(d) === 1) pair = [anchor, anchor]
+  else if (Math.abs(d) === 2) pair = [anchor, stepBy(anchor, s, scale)]
+  else pair = [stepBy(to, -2 * s, scale), stepBy(to, -s, scale)]
+  if (mode === 'lean' && chromatic && Math.abs(to - pair[1]) === 2) pair[1] = to - s
+  return pair
+}
+
+/** One bar of the line: `[[anchor, 16th, 16th] x 4]`, from the table entry
+ *  `[bass, chord, figure, scale?]` and the bass of the bar after it. */
+function walkBar(entry, after, transpose) {
+  const [bassName, symbol, figureName, scaleName = 'A'] = entry
+  const chromatic = figureName.endsWith('+')
+  const figure = FIGURES[figureName.replace('+', '')]
+  const bass = n(bassName) + transpose
+  const chord = chordOf(symbol, transpose)
+  const scale = SCALE[scaleName].map((p) => pc(p + transpose))
+  const target = n(after[0]) + transpose
+  // the lean belongs to the chord it leaves unless the next bass is foreign to that
+  // chord's scale; then it walks in the scale of the chord it arrives at
+  const leanScale = scale.includes(pc(target)) ? scale : SCALE[after[3] ?? 'A'].map((p) => pc(p + transpose))
+  const tone = (sym) => (sym === 'R' ? bass : stepBy(bass, (sym[0] === 'u' ? 1 : -1) * Number(sym[1]), chord))
+  const anchors = figure.anchors.map(tone)
+  const beats = anchors.map((a, beat) => {
+    const last = beat === 3
+    return [a, ...pickup(figure.pickups[beat], a, last ? target : anchors[beat + 1], last ? leanScale : scale, chromatic)]
+  })
+  return { beats, chord }
+}
+
+/** The gallop: attacks on rows 0, 2, 3 of every beat (an 8th and two 16ths) — the rhythm
+ *  and the accents are the old gallop's exactly — but the PITCHES walk: each bar is
+ *  `walkBar()`'s line under the chord the table names, leaning into the next bar's bass.
+ *  `bars` is the table; `next` the entry of the bar after the last. `pattern: [0, 2]`
+ *  (straight 8ths) keeps each beat's anchor and the pickup note nearer the target.
+ *  Returns the lines, so the triangle can answer the line instead of a root. */
+function gallop(sec, lane, inst, vol, bars, opts = {}) {
+  const { pattern = [0, 2, 3], firstBar = 0, accent = 0, next, transpose = 0 } = opts
+  return bars.map((entry, i) => {
+    const line = walkBar(entry, bars[i + 1] ?? next, transpose)
     for (let beat = 0; beat < 4; beat++) {
+      const [anchor, first, second] = line.beats[beat]
       for (const r of pattern) {
-        sec.put(lane, sec.at(bar, beat * 4 + r), { note: root, inst, vol: r === 0 ? vol + accent : vol })
+        const note = r === 0 ? anchor : r === 3 || pattern.length === 2 ? second : first
+        sec.put(lane, sec.at(firstBar + i, beat * 4 + r), { note, inst, vol: r === 0 ? vol + accent : vol })
       }
     }
+    return line
   })
 }
 
-/** The triangle answering on the off-16th (row 1 of every beat), an octave above. */
-function offbeats(sec, roots, opts = {}) {
-  const { firstBar = 0, up = 12, rows = [1], inst = BASS_SHORT } = opts
-  roots.forEach((root, i) => {
-    if (root === null) return
-    const bar = firstBar + i
+/** The triangle answering the gallop. By default on the off-16th (row 1 of every beat),
+ *  echoing that beat's anchor an octave up, so the hocket follows the line. With
+ *  `under: true` (the chorus, where it strikes WITH the saw on the beat) it doubles the
+ *  root on beats 1 and 3 and on beats 2 and 4 takes the chord tone under the saw's
+ *  octave: a sixth or a fifth over the walking bass, never a second doubled octave. */
+function offbeats(sec, lines, opts = {}) {
+  const { firstBar = 0, rows = [1], inst = BASS_SHORT, under = false } = opts
+  lines.forEach((line, i) => {
     for (let beat = 0; beat < 4; beat++) {
-      for (const r of rows) sec.put(L.TRI, sec.at(bar, beat * 4 + r), { note: root + up, inst, vol: 15 })
+      const anchor = line.beats[beat][0]
+      const note = under && beat % 2 === 1 ? stepBy(anchor + 12, -1, line.chord) : anchor + 12
+      for (const r of rows) sec.put(L.TRI, sec.at(firstBar + i, beat * 4 + r), { note, inst, vol: 15 })
     }
   })
 }
@@ -326,16 +473,56 @@ const HOOK_2 = [
   [2, 'b4', 12], [2, 'c#5', 12], [4, 'd5', 13], [4, 'f#5', 14], [4, '-'],
   [4, 'e5', 14], [4, 'd5', 13], [4, 'b4', 12], [4, '-'],
 ]
-/** Chord roots under H (one per bar), and the second statement's cadence. */
-const HOOK_ROOTS = ['a1', 'a1', 'f#2', 'd2', 'e2', 'c#2', 'd2', 'e2'].map(midi)
-const HOOK_ROOTS_2 = ['a1', 'a1', 'f#2', 'd2', 'e2', 'c#2', 'b1', 'e2'].map(midi)
+/** The bass line under H, one entry per bar: [bass, chord, figure]. The bass notes are
+ *  the old roots; what each bar DOES is the figure (see FIGURES), and every bar's last two
+ *  sixteenths lean by step into the next entry's bass. The lines are written out so a
+ *  reader can hear them; MIDI in brackets, `|` between beats, `>` the next downbeat.
+ *  bar 0  A    ENGINE  a a a | a g# a | a a a | e c# b > a    the section starts on the engine
+ *  bar 1  A    STRIDE  a a a | e c# b | a a a | c# d e > f#   up to the fifth, down to the
+ *                                                             root, then climbs into vi
+ *  bar 2  F#m  DROP    f# f# f# | c# d e | f# f# f# | a f# e > d  the high bass dips to its
+ *                                                             fifth and back, falls into IV
+ *  bar 3  D    CLIMB   d d e | f# f# e | d d d | a g# f# > e  scale up to the third and back;
+ *                                                             the g# on a 16th leans on V
+ *  bar 4  E    STRIDE  e e e | b g# f# | e e e | g# e d > c#
+ *  bar 5  C#m  ENGINE  c# c# c# | c# b c# | c# c# c# | g# f# e > d
+ *  bar 6  D    DROP    d d d | a b c# | d d d | f# f# f# > e  under to the fifth, a scale home
+ *  bar 7  E    VAULT   e e e | b g# f# | e e e | e c# b > a    the half cadence falls a
+ *                                                             whole scale onto the tonic */
+const HOOK_BASS = [
+  ['a1', 'A', 'ENGINE'], ['a1', 'A', 'STRIDE'], ['f#2', 'F#m', 'DROP'], ['d2', 'D', 'CLIMB'],
+  ['e2', 'E', 'STRIDE'], ['c#2', 'C#m', 'ENGINE'], ['d2', 'D', 'DROP'], ['e2', 'E', 'VAULT'],
+]
+/** The second statement varies the figures and changes the last two chords.
+ *  bar 0  A    STRIDE  a a a | e c# b | a a a | c# c# b > a
+ *  bar 1  A    CLIMB   a a b | c# c# b | a a a | e e e > f#
+ *  bar 2  F#m  DIVE    f# f# f# | c# d e | f# f# f# | a b c# > d  from the third UNDER the
+ *                                                             bass, a scale up into IV
+ *  bar 3  D    VAULT+  d d d | a f# e | d d d | d d d# > e    the chromatic d# pushes V
+ *  bar 4  E    DIVE    e e e | b c# d | e e e | g# a b > c#
+ *  bar 5  C#m  STRIDE  c# c# c# | g# e d | c# c# c# | e d c# > b
+ *  bar 6  Bm7  CLIMB   b b c# | d d c# | b b b | f# f# f# > e
+ *  bar 7  E7   CADENCE e e e | b g# f# | e e e | d c# b > a  beat 4 on the seventh, which
+ *                                                             falls by step, as a 7th must;
+ *                      beat 2 on the fifth, not the third, because V1's 4-3 resolves to g#4
+ *                      on that beat (4:52) and the bass must not double the leading tone.
+ *                      Under A' the triangle leans d e f# > g instead, into the pre-chorus. */
+const HOOK_BASS_2 = [
+  ['a1', 'A', 'STRIDE'], ['a1', 'A', 'CLIMB'], ['f#2', 'F#m', 'DIVE'], ['d2', 'D', 'VAULT+'],
+  ['e2', 'E', 'DIVE'], ['c#2', 'C#m', 'STRIDE'], ['b1', 'Bm7', 'CLIMB'], ['e2', 'E7', 'CADENCE'],
+]
 /** VRC6 thirds under H: [bar, row, V1, V2] — the third of the chord on top, moving by
- *  step; the same voicing serves both statements. */
+ *  step; the second statement keeps the voicing but for its last two bars (below). */
 const HOOK_THIRDS = [
   [0, 0, 'e4', 'c#4'], [2, 0, 'c#4', 'a3'], [3, 0, 'd4', 'a3'], [4, 0, 'e4', 'b3'],
   [5, 0, 'e4', 'c#4'], [6, 0, 'f#4', 'd4'], [7, 0, 'g#4', 'e4'],
 ]
-const HOOK_THIRDS_2 = [...HOOK_THIRDS.slice(0, 6), [6, 0, 'f#4', 'd4'], [7, 0, 'g#4', 'd4']]
+/** The second statement's cadence carries a prepared 4-3 in V1 instead of the third:
+ *  a4 is struck over Bm7 (bar 6, its seventh, a chord tone), is NOT re-struck when E7
+ *  arrives (bar 7: only V2 re-strikes its d4), so over E it is the suspended fourth, and
+ *  it resolves down by step to g#4 on beat 2. Frame:row 4:32 struck, 4:48 suspended, 4:52
+ *  resolved; the same cells sound under the saw's hook in A' at 8:32, 8:48, 8:52. */
+const HOOK_THIRDS_2 = [...HOOK_THIRDS.slice(0, 6), [6, 0, 'a4', 'd4'], [7, 0, null, 'd4'], [7, 4, 'g#4', null]]
 
 /** C — the chorus tune, sixteen bars over
  *    A · A/C# · D · E · C#m7 · F#m · Bm7 · E7 ‖ A · A/C# · D · E · C#m7 · F#m Bm7 · Dm · A.
@@ -367,7 +554,10 @@ const CHORUS = [
  *  keeps its own 8th-note rhythm, sits below the tune, and carries the written
  *  suspensions: 9–8 over D (bar 2, e5 held from A, resolves to d5 on beat 2), 4–3 over E
  *  (bar 3, a4 held from D, resolves to g#4), the tritone with the tune's d5 on the E7,
- *  and the cadential 4–3 over the final A (bar 15, d4 held from Dm, resolves to c#4). */
+ *  a 9–8 at the half-way cadence (b4 struck on beat 4 of the E7, the chord's fifth, held
+ *  over the barline where A makes it a ninth, resolving to a4 on beat 2 of bar 8: 12:60,
+ *  13:0, 13:4), and the cadential 4–3 over the final A (bar 15, d4 held from Dm, resolves
+ *  to c#4). */
 const COUNTER = [
   [4, 'a4', 10], [4, '-'], [2, 'e4', 10], [2, 'f#4', 10], [4, 'g#4', 11],
   [4, 'a4', 11], [2, '-'], [2, 'c#5', 10], [4, 'a4', 10], [4, 'e5', 11],
@@ -376,8 +566,8 @@ const COUNTER = [
   [4, 'c#5', 11], [2, '-'], [2, 'b4', 10], [4, 'g#4', 11], [4, '-'],
   [4, '-'], [2, 'f#4', 10], [2, 'e4', 10], [4, 'f#4', 11], [4, 'a4', 10],
   [4, 'f#4', 11], [4, 'a4', 10], [4, '-'], [2, 'f#4', 10], [2, 'e4', 10],
-  [4, 'e4', 11], [4, '-'], [4, 'g#4', 11], [2, 'b4', 11], [2, 'a4', 10],
-  [4, 'a4', 10], [4, '-'], [2, 'e4', 10], [2, 'f#4', 10], [4, 'e4', 11],
+  [4, 'e4', 11], [4, '-'], [4, 'g#4', 11], [4, 'b4', 11],
+  [4, '~'], [4, 'a4', 10], [2, 'e4', 10], [2, 'f#4', 10], [4, 'e4', 11],
   [4, 'a4', 11], [2, '-'], [2, 'c#5', 10], [4, 'a4', 10], [4, 'c#5', 11],
   [4, '~'], [4, 'b4', 11], [2, '-'], [2, 'f#4', 10], [4, 'a4', 11],
   [4, '~'], [4, 'g#4', 11], [4, '-'], [2, 'b4', 10], [2, 'd5', 11],
@@ -386,7 +576,7 @@ const COUNTER = [
   [4, 'f4', 11], [4, '-'], [8, 'd4', 11],
   [4, '~'], [4, 'c#4', 11], [8, '-'],
 ]
-/** Chorus bass roots per bar, and the VRC6 pad voicing [bar, row, V1, V2] (V1 above V2,
+/** The chorus bass line (CHORUS_BASS), and the VRC6 pad voicing [bar, row, V1, V2] (V1 above V2,
  *  both under the tune; the iv bar is voiced root + fifth so the tune's f-natural
  *  appoggiatura is the only f, and its resolution to e is heard clean).
  *
@@ -396,10 +586,37 @@ const COUNTER = [
  *  C#m7 -> F#m7 (3rd becoming 7th), V2 holds a3 over F#m7 -> Bm7 (3rd becoming 7th), and the
  *  two move in contrary motion into E7 — three changes, no similar motion, and the chain is
  *  spelled in guide tones instead of a parallel slab. */
-const CHORUS_ROOTS = [
-  'a1', 'c#2', 'd2', 'e2', 'c#2', 'f#2', 'b1', 'e2',
-  'a1', 'c#2', 'd2', 'e2', 'c#2', 'f#2', 'd2', 'a1',
-].map(midi)
+/** The chorus bass line. The bass notes already climb a1 c#2 d2 e2 across the first
+ *  four bars; the figures make each bar a line inside that climb.
+ *  bar 0  A      ENGINE  a a a | a g# a | a a a | e e d > c#   the engine under the peak
+ *  bar 1  A/C#   ARCH    c# c# d | e e d | c# c# c# | a b c# > d   the third arches up and
+ *                                                               back, drops, climbs into IV
+ *  bar 2  D      VAULT+  d d d | a f# e | d d d | d d d# > e   the chromatic push into V
+ *  bar 3  E      STRIDE  e e e | b g# f# | e e e | g# e d > c#
+ *  bar 4  C#m7   CLIMB   c# c# d | e e d | c# c# c# | g# g# g# > f#
+ *  bar 5  F#m7   ARCH    f# f# g# | a a g# | f# f# f# | e d c# > b   beat 4 on the seventh,
+ *                                                               falling into Bm7
+ *  bar 6  Bm7    VAULT   b b b | f# d c# | b b b | b c# d > e
+ *  bar 7  E7     ARCH    e e f# | g# g# f# | e e e | d c# b > a  the seventh falls to the tonic
+ *  bar 8  A      STRIDE  a a a | e c# b | a a a | c# d b > c#   an enclosure onto A/C#
+ *  bar 9  A/C#   CLIMB   c# c# d | e e d | c# c# c# | a f# e > d
+ *  bar 10 D      CLIMB   d d e | f# f# e | d d d | a g# f# > e
+ *  bar 11 E      VAULT   e e e | b g# f# | e e e | e e d > c#
+ *  bar 12 C#m7   ARCH    c# c# d | e e d | c# c# c# | b d e > f#
+ *  bar 13 F#m    COMMON  f# f# f# | a a g# | f# f# f# | a f# e > d   the chord turns to Bm7 at
+ *                                                               the half: only f# and a, the
+ *                                                               tones both chords own
+ *  bar 14 Dm     PUSH    d d d | d d d | d d d | d c# b > a   the bass HOLDS d under the tune's
+ *                                                               f-natural appoggiatura, so the
+ *                                                               f and its resolution stay clean,
+ *                                                               then falls by step to the tonic
+ *  bar 15 A      ENGINE  a a a | a g# a | a a a | e c# b > a   into the break's held a */
+const CHORUS_BASS = [
+  ['a1', 'A', 'ENGINE'], ['c#2', 'A/C#', 'ARCH'], ['d2', 'D', 'VAULT+'], ['e2', 'E', 'STRIDE'],
+  ['c#2', 'C#m7', 'CLIMB'], ['f#2', 'F#m7', 'ARCH'], ['b1', 'Bm7', 'VAULT'], ['e2', 'E7', 'ARCH'],
+  ['a1', 'A', 'STRIDE'], ['c#2', 'A/C#', 'CLIMB'], ['d2', 'D', 'CLIMB'], ['e2', 'E', 'VAULT'],
+  ['c#2', 'C#m7', 'ARCH'], ['f#2', 'F#m', 'COMMON'], ['d2', 'Dm', 'PUSH', 'Ahmaj'], ['a1', 'A', 'ENGINE'],
+]
 const CHORUS_SIXTHS = [
   [0, 0, 'c#4', 'e3'], [1, 0, 'e4', 'g#3'], [2, 0, 'f#4', 'a3'], [3, 0, 'g#4', 'b3'],
   [4, 0, 'e4', 'g#3'], [5, 0, null, 'a3'], [6, 0, 'd4', null], [7, 0, 'e4', 'g#3'],
@@ -474,14 +691,18 @@ const A = s.section('A', 16)
   // breathes with the lead. Silent on the loop row, and it says so (§2.9 rule 2).
   A.put(L.P2, 0, { note: CUT })
   echoWithCuts(A, L.P1, L.P2, 3, ECHO, 8)
-  // SAW  the gallop on the chord roots — the engine of the piece, never stopping.
-  gallop(A, L.SAW, SAW_BASS, 10, HOOK_ROOTS, { accent: 1 })
-  gallop(A, L.SAW, SAW_BASS, 10, HOOK_ROOTS_2, { firstBar: 8, accent: 1 })
-  // TRI  answers on the off-16th of every beat, an octave above the saw: the hocket
-  // fills the gallop's one empty sixteenth. Explicit cut on the loop row.
+  // SAW  the gallop, walking HOOK_BASS then HOOK_BASS_2 — the engine of the piece, never
+  // stopping, and a bass line: root on 1 and 3, chord tones on 2 and 4, and the last two
+  // sixteenths of every bar leaning by step into the next chord. The second statement
+  // leans into A' (whose bass, the triangle, starts on a1).
+  const lineA = gallop(A, L.SAW, SAW_BASS, 10, HOOK_BASS, { accent: 1, next: HOOK_BASS_2[0] })
+  const lineA2 = gallop(A, L.SAW, SAW_BASS, 10, HOOK_BASS_2, { firstBar: 8, accent: 1, next: HOOK_BASS[0] })
+  // TRI  answers on the off-16th of every beat, echoing the saw's beat note an octave up:
+  // the hocket fills the gallop's one empty sixteenth and follows the line (a e a c#, not
+  // a a a a). Explicit cut on the loop row.
   A.put(L.TRI, 0, { note: CUT })
-  offbeats(A, HOOK_ROOTS)
-  offbeats(A, HOOK_ROOTS_2, { firstBar: 8 })
+  offbeats(A, lineA)
+  offbeats(A, lineA2, { firstBar: 8 })
   // V1 / V2  sustained thirds, the pad opening (7 → 3) on every chord change; a notch
   // louder the second time round.
   pad(A, HOOK_THIRDS, 8)
@@ -562,10 +783,13 @@ const A2 = s.section("A'", 16)
   // P2  rests for the whole section — the saw's arrival is the event, and a silent
   // lane is the cheapest way to make the pre-chorus's entrance count.
   A2.put(L.P2, 0, { note: CUT })
-  // TRI  takes the bass: the gallop, an octave under where the saw galloped in A.
-  gallop(A2, L.TRI, BASS_SHORT, 15, HOOK_ROOTS)
-  gallop(A2, L.TRI, BASS_SHORT, 15, HOOK_ROOTS_2, { firstBar: 8 })
-  // V1  the held upper third of each chord, as in A.
+  // TRI  takes the bass: the same walking gallop the saw played in A, on the same notes,
+  // leaning at the end into the pre-chorus's g (the entry written out here because
+  // PRE_BASS is declared with its section, below).
+  gallop(A2, L.TRI, BASS_SHORT, 15, HOOK_BASS, { next: HOOK_BASS_2[0] })
+  gallop(A2, L.TRI, BASS_SHORT, 15, HOOK_BASS_2, { firstBar: 8, next: ['g2', 'G', '', 'Amix'] })
+  // V1  the held upper third of each chord, as in A, with the same prepared 4–3 over the
+  // E7 (a4 struck 8:32, suspended 8:48, g#4 at 8:52).
   pad(A2, HOOK_THIRDS.map(([b, r, v1]) => [b, r, v1, null]), 8)
   pad(A2, HOOK_THIRDS_2.map(([b, r, v1]) => [b + 8, r, v1, null]), 8)
   // V2  chord stabs on a SIX-ROW cell (§9.1 recipe D: 2 against the kit's 3), run UNBROKEN
@@ -609,7 +833,22 @@ const PRE = [
   [4, 'g5', 13], [4, 'f#5', 12], [4, 'd5', 12], [4, '-'],
   [2, 'd5', 12], [2, 'e5', 12], [4, 'g#5', 13], [8, '-'],
 ]
-const PRE_ROOTS = ['g2', 'f#2', 'e2', 'g2', 'f#2', 'e2', 'e2', 'e2'].map(midi)
+/** The pre-chorus bass: the G bars walk in A mixolydian (the g-natural is the chord's).
+ *  bar 0  G     DIVE    g g g | d e f# | g g g | b d e > f#   under to d, a scale back up;
+ *                                                             then b and up into D/F#
+ *  bar 1  D/F#  DROP    f# f# f# | d d e | f# f# f# | a g# f# > e
+ *  bar 2  E     VAULT   e e e | b g# f# | e e e | e e f# > g  the climb into the bVII
+ *  bar 3  G     ARCH    g g a | b b a | g g g | d d e > f#
+ *  bar 4  D/F#  DIVE    f# f# f# | d d e | f# f# f# | a c# d > e
+ *  bar 5  E     ENGINE  e e e | e d e | e e e | b g# f# > e
+ *  bar 6  E7    PEDAL   eight 8ths of e: the dominant pedal under the build, the one bar
+ *                       of the section that does not move, on purpose
+ *  bar 7  E7    PUSH    e e e e e e e | b > a   the pedal lets go on its last 8th, onto the
+ *                                               fifth of E7 a step above the chorus's a */
+const PRE_BASS = [
+  ['g2', 'G', 'DIVE', 'Amix'], ['f#2', 'D/F#', 'DROP'], ['e2', 'E', 'VAULT'], ['g2', 'G', 'ARCH', 'Amix'],
+  ['f#2', 'D/F#', 'DIVE'], ['e2', 'E', 'ENGINE'], ['e2', 'E7', 'PEDAL'], ['e2', 'E7', 'PUSH'],
+]
 /** V2's off-beat `0xy` stabs: [root, x, y] per bar — G, D in first inversion (f# a d =
  *  `038`), E, then E7 (`04a`) under the build. */
 const PRE_STABS = [['g3', 4, 7], ['f#3', 3, 8], ['e3', 4, 7], ['g3', 4, 7], ['f#3', 3, 8], ['e3', 4, 10], ['e3', 4, 10], ['e3', 4, 10]]
@@ -625,17 +864,21 @@ const pre = s.section('pre', 8)
     [4, 'e4', 9], [4, 'g#4', 10], [4, 'b4', 11], [4, 'd5', 12],
     [4, 'e5', 13], [4, 'g#5', 13], [4, 'b5', 14], [4, '-'],
   ])
-  // SAW  the gallop under the phrase; straight 8ths (a pump) under the build.
-  gallop(pre, L.SAW, SAW_BASS, 10, PRE_ROOTS.slice(0, 6), { accent: 1 })
-  gallop(pre, L.SAW, SAW_BASS, 11, PRE_ROOTS.slice(6), { firstBar: 6, pattern: [0, 2] })
-  // TRI  off-beat answers under the phrase; a held E under the build.
-  offbeats(pre, PRE_ROOTS.slice(0, 6))
+  // SAW  the walking gallop under the phrase (PRE_BASS); straight 8ths (a pump) under the
+  // build: a dominant pedal that lets go on its last 8th into the chorus's a1.
+  const linePre = gallop(pre, L.SAW, SAW_BASS, 10, PRE_BASS.slice(0, 6), { accent: 1, next: PRE_BASS[6] })
+  gallop(pre, L.SAW, SAW_BASS, 11, PRE_BASS.slice(6), { firstBar: 6, pattern: [0, 2], next: CHORUS_BASS[0] })
+  // TRI  off-beat answers echoing the line under the phrase; a held E under the build.
+  offbeats(pre, linePre)
   pre.put(L.TRI, pre.at(6, 0), { note: n('e3'), inst: BASS, vol: 15 })
   pre.put(L.TRI, pre.at(7, 12), { note: CUT })
   // V1  the rising harmony: one held note per bar climbing b3 → b4, then the two build
-  // notes; the duty opening on each step.
+  // notes; the duty opening on each step. At the second phrase's half cadence the climb
+  // is delayed by a prepared 4-3: a4, the fifth of D/F# at 10:0, is held into the E at
+  // 10:16 (a fourth over it, against V2's E stab on 10:18), resolves down to g#4 at 10:20,
+  // and only then reaches b4 at 10:24.
   pad(pre, [[0, 0, 'b3', null], [1, 0, 'd4', null], [2, 0, 'e4', null], [3, 0, 'g4', null],
-    [4, 0, 'a4', null], [5, 0, 'b4', null], [6, 0, 'g#4', null], [7, 0, 'b4', null]], 9)
+    [4, 0, 'a4', null], [5, 4, 'g#4', null], [5, 8, 'b4', null], [6, 0, 'g#4', null], [7, 0, 'b4', null]], 9)
   pre.put(L.V1, pre.at(7, 12), { note: CUT })
   // V2  chord stabs on the off-beat 8ths — the skank that pushes the phrase forward.
   for (let bar = 0; bar < 8; bar++) {
@@ -680,11 +923,13 @@ function kitChorus(sec, bar, opts = {}) {
  *  reuse it a whole step up. `transpose` moves the bass and the harmony. */
 function chorusBed(sec, transpose, opts = {}) {
   const { padVol = 9, v1 = true, padInst = PAD_BRIGHT } = opts
-  // SAW  the gallop on the roots; TRI doubles them an octave up on the beats only, so
-  // the two never hammer the same octave.
-  gallop(sec, L.SAW, SAW_BASS, 11, CHORUS_ROOTS.map((r) => r + transpose), { accent: 1 })
+  // SAW  the walking gallop (CHORUS_BASS), leaning at the end into the next section's a1
+  // (the break, and in B the tag's b1). TRI strikes with it on the beats only: the root an
+  // octave up on 1 and 3, and on 2 and 4 the chord tone under the saw's octave, so the
+  // two lanes move against each other instead of hammering one octave.
+  const line = gallop(sec, L.SAW, SAW_BASS, 11, CHORUS_BASS, { accent: 1, transpose, next: ['a1', 'A'] })
   sec.put(L.TRI, 0, { note: CUT })
-  offbeats(sec, CHORUS_ROOTS.map((r) => r + transpose), { rows: [0], inst: BASS_SHORT })
+  offbeats(sec, line, { rows: [0], inst: BASS_SHORT, under: true })
   // V1 / V2  sixths, the pad opening on each change. When V1 is doubling the tune
   // (chorus′), V2 alone carries the harmony and takes the upper, colour-tone line.
   const up = (name) => (name === null ? null : n(name) + transpose)
@@ -765,6 +1010,8 @@ const TURN = [
   [4, 'e5', 13], [4, 'c#5', 13], [4, 'a#4', 12], [4, 'c#5', 13],
 ]
 const TURN_ROOTS = ['b1', 'e2', 'a1', 'f#2'].map(midi)
+/** The one turn bar the saw still gallops (bar 8, B7), as a bass-table entry. */
+const TURN_BASS = ['b1', 'B7', 'ARCH', 'E']
 /** Hemiola stabs across the last three bars (48 rows, every 6 rows: eight groups closing
  *  on chorus′'s downbeat): [root, x, y] follows the bar's chord. */
 const TURN_STABS = [['e3', 4, 10], ['a3', 4, 7], ['f#3', 4, 10]]
@@ -779,19 +1026,26 @@ const A3 = s.section("A''", 12)
   phrase(A3, L.P1, LEAD, A3.at(8), TURN, { vib: VIB })
   // P2  the echo canon again, but only under the on-grid statement (bars 4–7) — under
   // the displaced bars the echo would blur the lag — and the raised thirds of the turn
-  // as a third below the tune (bars 8–11).
+  // as a third below the tune (bars 8–11). At the turn's authentic cadence E7 → A it
+  // SUSPENDS: b4, struck at 18:24 as the fifth of E7, is held over the A at 18:32 (a ninth
+  // over the triangle's a) and resolves down by step to a4 at 18:36 — a 9–8, then a
+  // half-bar of air before the F#7.
   A3.put(L.P2, 0, { note: CUT })
   echoWithCuts(A3, L.P1, L.P2, 3, ECHO, 8, { fromRow: A3.at(4), toRow: A3.at(8) })
   phrase(A3, L.P2, VOICE, A3.at(8), [
     [4, '-'], [4, 'b4', 10], [8, 'd#5', 11],
     [4, 'e5', 11], [4, '-'], [8, 'b4', 10],
-    [8, 'c#5', 11], [8, 'a4', 10],
+    [4, '~'], [4, 'a4', 10], [8, '-'],
     [4, 'c#5', 11], [4, 'a#4', 11], [4, 'f#4', 10], [4, 'a#4', 11],
   ])
   // SAW  the gallop under the hook; under the turn, B7 gallops, then the HEMIOLA: one
   // root every six rows through E7 · A · F#7 (§9.1 recipe E), the last landing on row 42
   // of the span so the downbeat of chorus′ is the resolution.
-  gallop(A3, L.SAW, SAW_BASS, 10, [...HOOK_ROOTS, TURN_ROOTS[0]], { accent: 1 })
+  // The line is A's first statement (HOOK_BASS) and then the B7 bar, walked in E major:
+  //   bar 8  B7  ARCH  b b c# | d# d# c# | b b b | a c# d# > e   the seventh a under the
+  //                    bass, then a scale through the raised third d# onto E7's root
+  // so bar 7 now leans into b1 (e e e | b g# f# | e e e | e d c# > b), not into a1.
+  const lineA3 = gallop(A3, L.SAW, SAW_BASS, 10, [...HOOK_BASS, TURN_BASS], { accent: 1, next: ['e2', 'E7'] })
   for (let i = 0; i < 8; i++) {
     const row = A3.at(9) + i * 6
     const bar = Math.floor(row / 16) - 9
@@ -801,7 +1055,7 @@ const A3 = s.section("A''", 12)
   // TRI  off-beats under the hook; under the hemiola it HOLDS the roots so the bar
   // stays audible while the saw and V2 argue with it.
   A3.put(L.TRI, 0, { note: CUT })
-  offbeats(A3, [...HOOK_ROOTS, TURN_ROOTS[0]])
+  offbeats(A3, lineA3)
   for (let bar = 9; bar < 12; bar++) A3.put(L.TRI, A3.at(bar, 0), { note: TURN_ROOTS[bar - 8] + 12, inst: BASS, vol: 15 })
   A3.put(L.TRI, A3.at(11, 12), { note: CUT })
   // V1  thirds as in A, then the B7's d# on top and one held colour tone per bar of the
@@ -927,7 +1181,13 @@ s.qa({
     "six-row V2 stab cell through A' (entering 5:0, 6:2, 7:4, 8:0), the hook displaced +2 rows at 16:2, " +
     'a six-row hemiola in the saw and V2 from 18:16 to 18:58, a two-bar tag ending with B01+D00 ' +
     'at 23:31. Suspensions on pulse 2: 9-8 at 11:32-36, 4-3 at 11:48-52, cadential 4-3 at ' +
-    '14:48-52 (and the same a step up in chorus\'). 0xy params are decimal: 047 = 71, 037 = 55, ' +
+    '14:48-52 (and the same a step up in chorus\'). Prepared suspensions at the other ' +
+    'cadences, each struck consonant, held across the change and resolved down by step: V1 ' +
+    "4-3 over E7 struck 4:32, suspended 4:48, resolved 4:52 (the same cells under A' at " +
+    '8:32-8:52); pulse 2 9-8 at the half-way cadence of the chorus, struck 12:60, suspended ' +
+    '13:0, resolved 13:4 (a step up at 20:60-21:4); V1 4-3 at the pre-chorus half cadence, ' +
+    'struck 10:0, suspended 10:16, resolved 10:20; pulse 2 9-8 at the turn E7 -> A, struck ' +
+    '18:24, suspended 18:32, resolved 18:36. 0xy params are decimal: 047 = 71, 037 = 55, ' +
     '038 = 56, 04a = 74. 4xy vibrato 442 = 66, written a beat after the note it colours (11:12, ' +
     '11:28, 11:60, 12:20, 12:44 in the first chorus). Voicing and mix: the chorus backbeat is ' +
     "layered as A's is - the monophonic DPCM lane plays kick on 1 and 3 and its own snare on 2 " +
@@ -939,8 +1199,18 @@ s.qa({
     'because at 95 the VRC6 divider rounds 11.5 cents flat against the 2A03 pulse at +3.8 and the ' +
     'octave would beat at ~17 Hz on the loudest note of the piece. At 12:16 and 12:32 the two VRC6 ' +
     'lanes hold a common tone in turn, so the descending-fifths chain is voiced in guide tones ' +
-    'rather than four bars of parallel sixths.',
-  renderChecksum: 1367915919,
+    'rather than four bars of parallel sixths. The bass: every gallop keeps its rhythm and ' +
+    'accents, but each bar is a written line - a FIGURE of chord-tone anchors on the beats, ' +
+    'the root on beats 1 and 3, scale-step sixteenths between, and the last two sixteenths ' +
+    'leaning by step into the next bar (an enclosure when the bass repeats). Off-chord bass ' +
+    'tones sit only on sixteenths and move on by step; a borrowed chord walks in its own ' +
+    'scale (G in A mixolydian, B7 in E major), and over the borrowed iv the bass holds d ' +
+    'until its last beat, adding no f under the tune appoggiatura. The pre-chorus build ' +
+    '(10:32-10:61) is a deliberate dominant pedal. The triangle follows the line: in A and ' +
+    'the pre-chorus it echoes each beat note an octave up on the off-16th; in both choruses ' +
+    'it strikes with the saw, the root an octave up on beats 1 and 3 and the chord tone under ' +
+    'that octave on 2 and 4, so it doubles the walking bass only on its roots.',
+  renderChecksum: 659676593,
 })
 s.check()
 s.write('src/assets/songs/04-tailwind.json')

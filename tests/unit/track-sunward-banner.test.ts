@@ -5,7 +5,8 @@
  *  `tools/songs/compose/06-sunward-banner.mjs` says it wrote, asserted against the bytes
  *  that shipped. None of it is a claim that the music is good — it is a claim that the
  *  music is the one that was described, so a later edit that quietly loses the phase
- *  carry, the augmented sixth or the independent counter-melody fails here.
+ *  carry, the augmented sixth, the independent counter-melody, the walking bass or a
+ *  prepared suspension fails here.
  *
  *  House style is anti-vacuity, so two of these prove they could fail: the phase-carry
  *  rows are re-derived from preset-suite §9.1's own formula rather than typed in, and the
@@ -203,6 +204,118 @@ describe('06 Sunward Banner', () => {
     expect(notes('pulse2').get(at(21, 32))).toBe(70)
     expect(notes('vrc6saw').get(at(21, 36))).toBe(47)
     expect(notes('pulse2').get(at(21, 36))).toBe(71)
+  })
+
+  it('walks the sawtooth bass: chord tones on the beats, and a step into every chord change', () => {
+    // The saw is the bass through the theme and both choruses. It used to pump each root
+    // and its octave (58 % of its bars held two pitches); its RHYTHM is unchanged — every
+    // bar is still eight 8ths — and its pitches are now a line. The roots are read off the
+    // triangle, a different lane, so the saw is checked against the harmony rather than
+    // against itself. Chorus bars 2, 6 and 14 carry a second chord from row 8, 8 and 4.
+    const saw = notes('vrc6saw')
+    const tri = notes('triangle')
+    const sections = [
+      { frame: frameOf.theme, splits: {} as Record<number, number>, exit: false },
+      { frame: frameOf.chorus, splits: { 2: 8, 6: 8, 14: 4 } as Record<number, number>, exit: true },
+      { frame: frameOf.chorusP, splits: { 2: 8, 6: 8, 14: 4 } as Record<number, number>, exit: true },
+    ]
+    let motions = 0
+    let steps = 0
+    let octaves = 0
+    for (const { frame, splits, exit } of sections) {
+      const first = at(frame)
+      const changes: number[] = []
+      for (let bar = 0; bar < 16; bar++) {
+        const rows = attacksIn('vrc6saw', first + bar * BAR, first + bar * BAR + BAR - 1)
+        expect(rows.map(([row]) => (row - first) % BAR), `${frame} bar ${bar} rhythm`).toEqual([0, 2, 4, 6, 8, 10, 12, 14])
+        // the pump held one or two pitches a bar; a line holds at least three
+        expect(new Set(rows.map(([, note]) => note)).size, `${frame} bar ${bar} pitches`).toBeGreaterThanOrEqual(3)
+        changes.push(first + bar * BAR)
+        if (splits[bar] !== undefined) changes.push(first + bar * BAR + splits[bar])
+      }
+      if (exit) changes.push(first + 16 * BAR) // into the bridge's b1 and the coda's e2
+      for (const change of changes) {
+        const root = saw.get(change)!
+        if (change < first + 16 * BAR) {
+          expect((((root - tri.get(change)!) % 12) + 12) % 12, `root at ${change}`).toBe(0)
+        }
+        if (change === first) continue
+        const before = [...saw].filter(([row]) => row < change).sort((a, b) => a[0] - b[0]).at(-1)!
+        const lean = Math.abs(root - before[1])
+        expect(lean, `approach into ${Math.floor(change / ROWS)}:${change % ROWS}`).toBeGreaterThanOrEqual(1)
+        expect(lean, `approach into ${Math.floor(change / ROWS)}:${change % ROWS}`).toBeLessThanOrEqual(2)
+      }
+      const line = attacksIn('vrc6saw', first, first + 16 * BAR - 1).map(([, note]) => note)
+      for (let i = 1; i < line.length; i++) {
+        const d = Math.abs(line[i] - line[i - 1])
+        motions++
+        if (d >= 1 && d <= 2) steps++
+        if (d === 12) octaves++
+      }
+    }
+    // the octave leap survives as a gesture, not as the whole bass
+    expect(octaves, 'octave leaps kept').toBeGreaterThan(0)
+    expect(octaves / motions, 'octave leaps are a minority').toBeLessThan(0.15)
+    expect(steps / motions, 'the line moves mostly by step').toBeGreaterThan(0.4)
+
+    // In the theme the harmony is one chord a bar, so the beat rule can be read directly:
+    // D D G A | Bm F#m G A | D Bm E A | G F#m A D. Every attack on a beat is a chord tone;
+    // any other attack is on a weak 8th and moves on by a step.
+    const MAJ = [0, 4, 7]
+    const MIN = [0, 3, 7]
+    const chords: [number, number[]][] = [
+      [2, MAJ], [2, MAJ], [7, MAJ], [9, MAJ], [11, MIN], [6, MIN], [7, MAJ], [9, MAJ],
+      [2, MAJ], [11, MIN], [4, MAJ], [9, MAJ], [7, MAJ], [6, MIN], [9, MAJ], [2, MAJ],
+    ]
+    const theme = attacksIn('vrc6saw', at(frameOf.theme), at(frameOf.theme) + 16 * BAR - 1)
+    theme.forEach(([row, note], i) => {
+      const local = row - at(frameOf.theme)
+      const [root, shape] = chords[Math.floor(local / BAR)]
+      const tone = shape.includes((((note - root) % 12) + 12) % 12)
+      if (local % 4 === 0) expect(tone, `beat ${frameOf.theme}:${local}`).toBe(true)
+      else if (!tone && i + 1 < theme.length) {
+        expect(Math.abs(theme[i + 1][1] - note), `passing ${frameOf.theme}:${local}`).toBeLessThanOrEqual(2)
+      }
+    })
+    // ...and one bar, note for note: the loop frame's downbeat bar, d2 e2 d2 d3 a2 g2 f#2 e2
+    // — the old octave kept on the 'and' of 2, then down the triad and in by step
+    expect(attacksIn('vrc6saw', at(frameOf.theme), at(frameOf.theme, 15)).map(([, note]) => note))
+      .toEqual([38, 40, 38, 50, 45, 43, 42, 40])
+  })
+
+  it('hangs prepared suspensions at its cadences, each resolving down a step', () => {
+    // [lane, preparation row, the change, what it is]. Each note is consonant over the bass
+    // where it is struck, sounds unbroken to (or is re-struck on) the chord change, where it
+    // is a dissonance, and resolves down by step four rows later onto a chord tone.
+    const bassAt = (row: number) => [...notes('vrc6saw')].filter(([r]) => r <= row).sort((a, b) => a[0] - b[0]).at(-1)![1]
+    const interval = (upper: number, lower: number) => (((upper - lower) % 12) + 12) % 12
+    const cases = [
+      ['vrc6p1', at(0, 24), at(0, 32), '4-3, fanfare'],
+      ['vrc6p2', at(0, 32), at(0, 48), '9-8, fanfare cadence'],
+      ['vrc6p2', at(11, 40), at(11, 48), '9-8, deceptive cadence'],
+      ['vrc6p2', at(12, 48), at(13, 0), '9-8, authentic cadence'],
+      ['vrc6p2', at(17, 32), at(18, 0), '9-8, the modulation lands'],
+      ['vrc6p2', at(19, 40), at(19, 48), "9-8, chorus' deceptive cadence"],
+      ['vrc6p2', at(20, 48), at(21, 0), "9-8, chorus' authentic cadence"],
+    ] as const
+    for (const [ch, prep, change, what] of cases) {
+      const held = notes(ch).get(prep)!
+      expect(held, what).toBeGreaterThan(0)
+      expect([0, 3, 4, 7, 8, 9], `${what}: consonant when struck`).toContain(interval(held, bassAt(prep)))
+      // nothing interrupts it between the preparation and the change
+      expect([...lane(ch)].filter(([row, c]) => row > prep && row < change && c.note !== undefined), what).toEqual([])
+      expect(notes(ch).get(change), `${what}: re-struck on the change`).toBe(held)
+      const dissonance = interval(held, bassAt(change))
+      expect(what.startsWith('4-3') ? 5 : 2, `${what}: dissonant over the new chord`).toBe(dissonance)
+      const resolution = notes(ch).get(change + 4)!
+      expect(held - resolution, `${what}: down a step`).toBeGreaterThanOrEqual(1)
+      expect(held - resolution, `${what}: down a step`).toBeLessThanOrEqual(2)
+      expect(what.startsWith('4-3') ? [3, 4] : [0], `${what}: onto a chord tone`).toContain(interval(resolution, bassAt(change)))
+      // and the walking bass never doubles the dissonance while it hangs
+      for (const [, note] of attacksIn('vrc6saw', change, change + 3)) {
+        expect(interval(note, held), `${what}: bass doubles the suspension`).not.toBe(0)
+      }
+    }
   })
 
   it('gives pulse 2 a tune of its own for both choruses, not the lead at another interval', () => {

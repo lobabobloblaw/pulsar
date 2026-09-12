@@ -3,7 +3,9 @@
  *  The album-wide rules (canonical bytes, loop entry, hardware registers, self-ending
  *  percussion, distinct texture and opening palette) are in `soundtrack.test.ts` and run
  *  over every song. This file pins the composition: the riff and its octave doubling, the
- *  displaced power fifths and the `000` that ends every one of their blocks, the
+ *  VRC6 pulses that do NOT double it, the cell's three harmonisations and the guide tones
+ *  that carry them, the displaced power fifths and the `000` that ends every one of their
+ *  blocks, the
  *  scale-degree inversion that opens the second phase, the breath B takes, the register
  *  the re-orchestrated riff occupies, the three metric devices, the single metric
  *  surprise, the pattern-variation quota, the one global peak, and the eight-voice
@@ -121,6 +123,83 @@ describe('05 Counterweight — the boss theme', () => {
     // and the sawtooth is the lowest voice in the piece, under the triangle
     expect(Math.min(...attacks('vrc6saw').map((c) => c.note as number)))
       .toBeLessThan(Math.min(...attacks('triangle').map((c) => c.note as number)))
+  })
+
+  it('the VRC6 pulses are voices of their own, not octaves of the riff', () => {
+    // The saw and the triangle are the riff in octaves, and that pair is the only one in
+    // the piece locked to one interval. Neither VRC6 pulse is: over every row both lanes
+    // of a pair attack, no single interval accounts for more than 55 % of them. Before
+    // the harmony pass vrc6p2 was the triangle's unison on 98 % of 197 shared rows (phase
+    // 2 was the riff on three lanes) and an octave under vrc6p1 on 99 % of 114.
+    const lockedShare = (a: Channel, b: Channel) => {
+      const other = new Map(attacks(b).map((c) => [c.row, c.note as number]))
+      const counts = new Map<number, number>()
+      let shared = 0
+      for (const c of attacks(a)) {
+        const note = other.get(c.row)
+        if (note === undefined) continue
+        shared++
+        counts.set((c.note as number) - note, (counts.get((c.note as number) - note) ?? 0) + 1)
+      }
+      return { shared, share: shared === 0 ? 0 : Math.max(...counts.values()) / shared }
+    }
+    const riff = lockedShare('triangle', 'vrc6saw')
+    expect(riff.share, 'the riff pair stays locked').toBeGreaterThan(0.9)
+    for (const [a, b] of [
+      ['vrc6p1', 'vrc6p2'], ['triangle', 'vrc6p1'], ['triangle', 'vrc6p2'], ['vrc6p1', 'vrc6saw'], ['vrc6p2', 'vrc6saw'],
+    ] as const) {
+      const { shared, share } = lockedShare(a, b)
+      if (shared >= 15) expect(share, `${a}/${b} over ${shared} shared rows`).toBeLessThanOrEqual(0.55)
+    }
+    // In phase 2 vrc6p2 holds an inner line on the beats: a handful of attacks a frame,
+    // where the saw strikes the cell's nineteen.
+    const inner = inFrames(attacks('vrc6p2'), 28, 35)
+    expect(inner.length / 8).toBeLessThanOrEqual(8)
+    expect(inner.every((c) => c.r % 8 === 0), 'on the beat, never on the riff\'s 16ths').toBe(true)
+  })
+
+  it('reharmonises the riff cell: three readings, none heard more than twice', () => {
+    // The riff is identical in all six full statements that carry the phrygian cell
+    // (2:0, 4:0, 6:0, 8:0, 36:0, 38:0); what changes is the root each vrc6p2 stab sounds.
+    // The original reading (D Eb D C | D D Eb Bb) is heard at 2 and 4 only; R1 (D Bb D A |
+    // G F Eb A) at 6 and 36; R2 (D C Bb A | G C F Bb) at 8 and 38.
+    const CELLS = [2, 4, 6, 8, 36, 38]
+    const riff = (f: number) => inFrames(attacks('vrc6saw'), f, f).map((c) => `${c.r}:${c.note}`).join(' ')
+    for (const f of CELLS) expect(riff(f), `the riff at ${f}:0`).toBe(riff(2))
+    const roots = (f: number) => inFrames(attacks('vrc6p2'), f, f)
+      .filter((c) => (c.fx ?? []).some((e) => e !== null && e.cmd === '0' && e.param === 7))
+      .map((c) => (c.note as number) % 12).join(' ')
+    const readings = new Map<string, number[]>()
+    for (const f of CELLS) readings.set(roots(f), [...(readings.get(roots(f)) ?? []), f])
+    expect([...readings.values()]).toEqual([[2, 4], [6, 36], [8, 38]])
+    // R1 and R2 both put A under the riff's C C# — the dominant, with the C# as its third.
+    for (const f of [6, 8]) {
+      const beat4 = inFrames(attacks('vrc6p2'), f, f).find((c) => c.r === 29)
+      expect((beat4?.note as number) % 12, `${f}:29`).toBe(9)
+    }
+  })
+
+  it('vrc6p1 holds the guide tones over riff A, where it used to stab the root an octave up', () => {
+    // Over each of riff A's four cells vrc6p1 sustains one note a beat or two, and that
+    // note is the third or the seventh of the root vrc6p2 stabs in the same beat — the
+    // tones that say which chord it is. It carries no 0xy there any more.
+    let judged = 0
+    let guide = 0
+    for (const f of [2, 4, 6, 8]) {
+      const stabs = inFrames(attacks('vrc6p2'), f, f)
+      const tones = inFrames(attacks('vrc6p1'), f, f)
+      expect(tones.length, `frame ${f}`).toBeGreaterThanOrEqual(7)
+      for (const t of tones) {
+        expect(t.r % 8, `${f}:${t.r} lands on a beat`).toBe(0)
+        expect((t.fx ?? []).some((e) => e !== null && e.cmd === '0'), `${f}:${t.r}`).toBe(false)
+        const root = stabs.find((c) => c.r === t.r + 5)
+        if (root === undefined) continue
+        judged++
+        if ([3, 4, 10, 11].includes((((t.note as number) - (root.note as number)) % 12 + 12) % 12)) guide++
+      }
+    }
+    expect(judged).toBeGreaterThanOrEqual(28)
+    expect(guide / judged).toBeGreaterThanOrEqual(0.9)
   })
 
   it('states the riff cell in full at least ten times across four sections', () => {

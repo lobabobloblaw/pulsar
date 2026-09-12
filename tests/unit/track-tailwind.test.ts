@@ -47,6 +47,20 @@ function pitchOf(inst: number): number[] {
   const i = song.instruments[inst].macros.pitch
   return i < 0 ? [] : [...song.sequences.pitch[i].values]
 }
+/** A lane's gallop bars in `frameList`: each bar's attacks, for bars that carry twelve. */
+function gallopBars(channel: Channel, frameList: number[]): Cell[][] {
+  const byBar = new Map<number, Cell[]>()
+  for (const c of attacks(channel, frameList)) {
+    const bar = Math.floor(c.row / 16)
+    byBar.set(bar, [...(byBar.get(bar) ?? []), c])
+  }
+  return [...byBar.values()].filter((b) => b.length === 12)
+}
+/** A bar leans into `next` when its last attack is a step (one or two semitones) from it. */
+const leansInto = (bar: readonly { note?: number | undefined }[], next: number) => {
+  const d = Math.abs(bar.at(-1)!.note! - next)
+  return d === 1 || d === 2
+}
 const frames = (label: string) =>
   (song.extra!.qa as { form: string[] }).form.map((l, f) => (l === label ? f : -1)).filter((f) => f >= 0)
 const qa = song.extra!.qa as {
@@ -106,7 +120,7 @@ describe('Tailwind — the bright stage theme', () => {
     expect(attacks('pulse1', A).filter((c) => c.note === 81)).toHaveLength(1)
   })
 
-  it('A: the saw gallop (8th + two 16ths) with the triangle answering on the off-16th an octave up', () => {
+  it('A: the saw gallop (8th + two 16ths) with the triangle answering its beat notes on the off-16th an octave up', () => {
     const saw = attacks('vrc6saw', [1])
     expect(saw).toHaveLength(48)
     expect(saw.every((c) => [0, 2, 3].includes(c.r % 4))).toBe(true)
@@ -120,6 +134,45 @@ describe('Tailwind — the bright stage theme', () => {
     // the gallop's own dynamics: the beat sits above its two sixteenths
     expect(new Set(saw.map((c) => c.vol)).size).toBeGreaterThanOrEqual(2)
     expect(cellAt('vrc6saw', 1, 0)!.vol!).toBeGreaterThan(cellAt('vrc6saw', 1, 2)!.vol!)
+  })
+
+  it('the gallop WALKS: root on the downbeat, a line inside the bar, a step into every change', () => {
+    // A (frames 1-4): the downbeats are the chord roots the table writes — A A F#m D E C#m D E,
+    // then A A F#m D E C#m Bm7 E7 — and no bar stamps one pitch twelve times
+    const A = frames('A')
+    const downbeats = [33, 33, 42, 38, 40, 37, 38, 40, 33, 33, 42, 38, 40, 37, 35, 40]
+    const bars = gallopBars('vrc6saw', A)
+    expect(bars.map((b) => b[0].note)).toEqual(downbeats)
+    for (const b of bars) {
+      expect(b.map((c) => c.row % 16)).toEqual([0, 2, 3, 4, 6, 7, 8, 10, 11, 12, 14, 15])
+      expect(new Set(b.map((c) => c.note)).size, `bar at ${b[0].frame}:${b[0].r}`).toBeGreaterThanOrEqual(3)
+      expect(b[8].note, `root on beat 3 at ${b[0].frame}:${b[0].r}`).toBe(b[0].note) // the strong points
+    }
+    for (const [i, b] of bars.entries()) {
+      // A's last bar leans into A', whose bass is the triangle on a1
+      const next = i + 1 < bars.length ? bars[i + 1][0].note! : cellAt('triangle', 5, 0)!.note!
+      expect(leansInto(b, next), `bar at ${b[0].frame}:${b[0].r} leans into ${next}`).toBe(true)
+    }
+    // note for note, the second statement's cadence bar (4:48): E7 up to its fifth and back
+    // down the scale, then its SEVENTH d falling by step d c# b onto the tonic
+    expect(bars[15].map((c) => c.note)).toEqual([40, 40, 40, 47, 44, 42, 40, 40, 40, 38, 37, 35])
+    // the same property through both choruses, including across the modulation to B
+    for (const f of [frames('chorus'), frames("chorus'")]) {
+      const cb = gallopBars('vrc6saw', f)
+      expect(cb).toHaveLength(16)
+      for (let i = 0; i + 1 < cb.length; i++) {
+        expect(leansInto(cb[i], cb[i + 1][0].note!), `chorus bar at ${cb[i][0].frame}:${cb[i][0].r}`).toBe(true)
+        expect(new Set(cb[i].map((c) => c.note)).size).toBeGreaterThanOrEqual(3)
+      }
+    }
+    // and in the chorus the triangle strikes WITH the saw: the root an octave up on beats 1
+    // and 3, the chord tone under that octave on beats 2 and 4 — never the saw's octave there
+    const sawAt = notesByRow('vrc6saw')
+    for (const c of attacks('triangle', frames('chorus'))) {
+      const beat = (c.r % 16) / 4
+      if (beat % 2 === 0) expect(c.note! - sawAt.get(c.row)!, `triangle ${c.frame}:${c.r}`).toBe(12)
+      else expect(c.note! - sawAt.get(c.row)!, `triangle ${c.frame}:${c.r}`).not.toBe(12)
+    }
   })
 
   it("A′: the hook re-orchestrated onto the saw at pitch, above the counter-hook, V2 on an unbroken six-row cell", () => {
@@ -233,6 +286,36 @@ describe('Tailwind — the bright stage theme', () => {
     expect(sixths.every((d) => [8, 9, 5, 3].includes(d))).toBe(true) // the iv bar is root + fifth
   })
 
+  it('prepared suspensions at four more cadences: struck consonant, held over the change, resolved down by step', () => {
+    const noAttack = (ch: Channel, f: number, r: number) => cellAt(ch, f, r)?.note === undefined
+    // V1 4-3 over E7 at the end of A (and again under A'): a4 over Bm7, held into E7, g#4
+    for (const f of [4, 8]) {
+      expect(cellAt('vrc6p1', f, 32)?.note, `V1 ${f}:32`).toBe(69) // a4, the seventh of Bm7
+      for (let r = 33; r < 52; r++) expect(noAttack('vrc6p1', f, r), `V1 held ${f}:${r}`).toBe(true)
+      expect(cellAt('vrc6p1', f, 52)?.note, `V1 ${f}:52`).toBe(68) // g#4, down a step
+    }
+    expect(cellAt('vrc6p2', 4, 48)?.note).toBe(62) // E7 is struck around the held a4 (d4)
+    expect(cellAt('vrc6saw', 4, 48)?.note).toBe(40) // over E: the a4 is a fourth
+    expect(cellAt('vrc6saw', 4, 52)?.note).not.toBe(44) // and the bass does not double the g#
+    // pulse 2 9-8 at the half-way cadence of the chorus: b4 on E7, held over A, then a4
+    for (const [f, up] of [[12, 0], [20, 2]] as const) {
+      expect(cellAt('pulse2', f, 60)?.note, `P2 ${f}:60`).toBe(71 + up)
+      expect(noAttack('pulse2', f + 1, 0), `P2 held ${f + 1}:0`).toBe(true)
+      expect(cellAt('pulse2', f + 1, 4)?.note, `P2 ${f + 1}:4`).toBe(69 + up)
+      expect(cellAt('vrc6saw', f + 1, 0)?.note).toBe(33 + up) // the ninth is over this root
+    }
+    // V1 4-3 at the pre-chorus half cadence: a4 over D/F#, held into E, g#4, then b4
+    expect(cellAt('vrc6p1', 10, 0)?.note).toBe(69)
+    for (let r = 1; r < 20; r++) expect(noAttack('vrc6p1', 10, r), `V1 held 10:${r}`).toBe(true)
+    expect([20, 24].map((r) => cellAt('vrc6p1', 10, r)?.note)).toEqual([68, 71])
+    expect(cellAt('vrc6saw', 10, 16)?.note).toBe(40)
+    // pulse 2 9-8 at the turn's E7 -> A: b4 struck 18:24, held over 18:32, a4 at 18:36
+    expect(cellAt('pulse2', 18, 24)?.note).toBe(71)
+    for (let r = 25; r < 36; r++) expect(noAttack('pulse2', 18, r), `P2 held 18:${r}`).toBe(true)
+    expect(cellAt('pulse2', 18, 36)?.note).toBe(69)
+    expect(cellAt('triangle', 18, 32)?.note).toBe(45) // the A the ninth sits over
+  })
+
   it('break: half-time, the saw alone under the DPCM pair, one hat-only bar, then the tom fill', () => {
     for (const lane of ['pulse1', 'pulse2', 'triangle', 'vrc6p1', 'vrc6p2'] as const) expect(attacks(lane, [15])).toHaveLength(0)
     const noise = attacks('noise', [15])
@@ -344,5 +427,9 @@ describe('Tailwind — the bright stage theme', () => {
     expect(shifted[0].r).not.toBe(2)
     const untransposed = attacks('pulse1', frames("chorus'")).map((c) => [c.row - 8 * ROWS, c.note])
     expect(untransposed).not.toEqual(attacks('pulse1', frames('chorus')).map((c) => [c.row, c.note]))
+    // the walking pin refuses the old stamped gallop: twelve roots never lean into a change
+    const stamped = Array.from({ length: 12 }, () => ({ note: 42 }))
+    expect(leansInto(stamped, 38)).toBe(false) // f#2 x 12 into d2
+    expect(leansInto(stamped, 42)).toBe(false) // or into itself
   })
 })

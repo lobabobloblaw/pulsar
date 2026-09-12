@@ -24,31 +24,36 @@
  *         `accidentalFractionMax` is declared at 0.2 to pay for all of it.
  *
  *  FORM   frame  section   bars   what happens
- *         0-1    fanfare    8     three-voice VRC6 chorale (V1 V2 SAW), 2A03 silent; snare
+ *         0-1    fanfare    8     three-voice VRC6 chorale (V1 V2 SAW), 2A03 silent, with
+ *                                 prepared 4-3s and a 9-8 at its first cadence; snare
  *                                 rolls, DPCM kick on 1 and 3, crash on the downbeats
  *         2-5    theme     16     THE TUNE on pulse 1, echo on pulse 2 three rows behind;
- *                                 saw 8th bass with octave leaps, triangle an octave up,
- *                                 8th hats; the VRC6 thirds wait until bar 8 so the tune
+ *                                 the saw a WALKING 8th line that leans into every chord
+ *                                 by step, the triangle's root and octave above it; 8th
+ *                                 hats; the VRC6 thirds wait until bar 8 so the tune
  *                                 arrives on bare pulses               (loop frame 2)
  *         6-7    theme'     8     the tune's second phrase re-orchestrated onto the SAW
  *                                 (vol 11, bend-in attack); pulse 1 a descant a sixth
  *                                 above; pulse 2 rests; the triangle is the bass alone
  *         8-9    lift       8     bVI-bVII (Bb, C) as a 3+3 SIX-BAR phrase (the piece's
  *                                 asymmetry) whose HARMONIC RHYTHM DOUBLES — two bars a
- *                                 chord, then one — under a lead that climbs d5 e5 f5 g5
- *                                 and a 4-3 chain in the brass; 8th -> 16th hats, then
- *                                 two bars of the dominant
+ *                                 chord, then one — under a lead that climbs d5 e5 f5 g5,
+ *                                 a saw walking in D aeolian and a 4-3 chain in the brass;
+ *                                 8th -> 16th hats, then two bars of the dominant
  *         10-13  chorus    16     the big tune on a 6+6+4 tresillo; pulse 2 an INDEPENDENT
  *                                 counter-melody for the whole section; V1/V2 a two-voice
- *                                 chorale that holds common tones; all eight lanes on
+ *                                 chorale that holds common tones and hangs a 9-8 at the
+ *                                 deceptive and the authentic cadence; the saw walks; all
+ *                                 eight lanes on
  *         14-15  bridge     8     B minor, quiet: the tune's head INVERTED on pulse 1 at
  *                                 vol 9; the saw on a 6-row cell (3 against 4) under VRC6
  *                                 stabs; pulse 2, triangle and DPCM rest; the kit stops
  *                                 for the last bar — the piece's one metric surprise
  *         16-17  build      8     the head sequenced up a step a bar over a rising bass
  *                                 (d e f# g a b), the 6-row cell carried one more frame,
- *                                 then B7 under a snare roll
- *         18-21  chorus'   16     E major; the lead doubled in unison by VRC6 pulse 1; the
+ *                                 then the saw walking into B7 under a snare roll
+ *         18-21  chorus'   16     E major, entered on a 9-8 over the new tonic; the lead
+ *                                 doubled in unison by VRC6 pulse 1 from 20:0; the
  *                                 counter-melody returns transposed; global peak c#6 at
  *                                 20:48; the kit at its busiest
  *         22     coda       4     the fanfare chorale in E, then A7 with an Fxx
@@ -73,6 +78,14 @@
  *         (c) the lift's 3+3 six-bar phrase, 8:0-9:31. The metric surprise: 15:48, where
  *         the kit stops for a whole bar and only the 6-row cell and the stabs continue.
  *
+ *  BASS   the sawtooth WALKS wherever it is the bass (theme, lift, both choruses, the
+ *         build's last four bars): root on the chord's first attack, chord tones on the
+ *         beats, passing and neighbour notes only on the weak 8ths and only moving on by
+ *         step, and the last attack before every chord change a step from the coming root.
+ *         The octave leap it used to pump is kept as one gesture among ten named figures.
+ *         `sawLine` enforces those rules and throws on a figure that breaks one. The
+ *         fanfare and coda hold whole-bar roots and the bridge keeps its 6-row cell.
+ *
  *  DRUMS  §9.4 signature: the kick on 1 and the 'and' of 2 (on 1 and 3 in the choruses),
  *         the snare on 2 and 4 doubled by the DPCM snare, and a vol-4 ghost on the last
  *         16th pushing into the next downbeat. Every section changes at least two of: hat
@@ -88,8 +101,9 @@
  *         mix — the single 12 is in the fanfare, where the 2A03 is silent — and the lead's
  *         column tops out at 14, and it reaches it only in the lift's last bar and the
  *         two choruses. Measured at gain 2.0 over the two-pass render: unclamped peak
- *         0.909, 0 clamped samples, RMS -17.59 dBFS, longest exact-zero run 59 ms (a
- *         tom break, not a seam).
+ *         0.889, 0 clamped samples, RMS -17.57 dBFS (re-measured after the bass became a
+ *         line; it was 0.909 and -17.59 as a pump), longest exact-zero run 59 ms (a tom
+ *         break, not a seam).
  */
 import { CUT, L, REL, Song, n } from './lib.mjs'
 
@@ -188,34 +202,172 @@ function hold(sec, lane, inst, vol, bar, row, note, len, fx) {
   if (end < sec.len) sec.put(lane, end, { note: REL })
 }
 
-/** Sawtooth bass, one bar, rooted on a note name in octave 2 (the saw floor is MIDI 24).
- *  'eighths' is the march: the root on every 8th with the octave leap on the 'and' of 2
- *  and on 4. 'march' is quarters, 'hold' one long note, 'split' two chords in the bar.
- *  `approach` adds a chromatic approach note on the last 8th, into the next bar's root. */
-function sawBar(sec, bar, root, style, opts = {}) {
-  const r = n(root)
-  const vol = opts.vol ?? 10
-  const put = (row, note) => sec.put(L.SAW, sec.at(bar, row), { note, inst: SAWBASS, vol })
-  if (style === 'eighths') {
-    for (const [row, note] of [[0, r], [2, r], [4, r], [6, r + 12], [8, r], [10, r], [12, r + 12], [14, r]]) put(row, note)
-  } else if (style === 'split') {
-    const r2 = n(opts.second)
-    for (const [row, note] of [[0, r], [2, r], [4, r + 12], [6, r], [8, r2], [10, r2], [12, r2 + 12], [14, r2]]) put(row, note)
-  } else if (style === 'march') {
-    for (const [row, note] of [[0, r], [4, r], [8, r + 12], [12, r]]) put(row, note)
-  } else if (style === 'drive') {
-    // the lift's saw: the triangle's quarters plus the two off-8ths, with the octave leap
-    // on the 'and' of 2 and the 'and' of 4, so the bass pair is not in lockstep (§12.2 —
-    // saw OR triangle leads, the other answers; two lanes on the same four rows is one).
-    for (const [row, note] of [[0, r], [4, r], [6, r + 12], [8, r], [12, r], [14, r + 12]]) put(row, note)
-  } else if (style === 'hold') {
-    put(0, r)
-  }
-  if (opts.approach !== undefined) put(14, n(opts.approach))
-  if (opts.restAt !== undefined) sec.put(L.SAW, sec.at(bar, opts.restAt), { note: CUT })
+/** SAWTOOTH BASS — a written line, not a root and its octave.
+ *
+ *  The piece first shipped with the saw pumping each root and its octave in 8ths: 58 % of
+ *  its bars held exactly two pitches and 7 % of its motion moved by step, which is the
+ *  sound of a bass nobody wrote. Its RHYTHM was right, and it is unchanged — every attack
+ *  row and every volume is where it was — so everything below only chooses pitches, and
+ *  it chooses them the way a bass player does:
+ *
+ *   1. the chord's root on the chord's first attack (the downbeat, or beat 3 of a split);
+ *   2. chord tones on the beats, rows 0 4 8 12, so the harmony is never in doubt;
+ *   3. the weak 8ths, rows 2 6 10 14, free to pass, to neighbour or to lean — a note off
+ *      the chord is allowed only there, and only if the next note is a step away;
+ *   4. and the last attack before every chord change a STEP from the coming root — a
+ *      tone or a semitone, diatonic or chromatic, from above or below. The line always
+ *      knows where it is going next, which is what makes it a line.
+ *
+ *  The octave leap that WAS the whole bass survives as one gesture among several: about
+ *  one bar in two still jumps to the octave, and then walks back down instead of jumping.
+ *
+ *  A bar is written as a FIGURE, a list of tokens read over the bar's chord and scale:
+ *    R 3 5 8     chord tones above the root: root, third, fifth, octave
+ *    5- 3-       the fifth / third BELOW the root, for a line that turns downward
+ *    p           a passing tone: the one scale step between the notes either side of it
+ *    u  l        upper / lower diatonic neighbour of the note before
+ *    A           approach the next root by diatonic step from the side the line is on;
+ *                if that step is the note already sounding, the chromatic semitone on the
+ *                same side; if that is too, the diatonic step from the other side
+ *    A+ A-       approach from above / below by diatonic step
+ *    C+ C-       approach from above / below by a chromatic semitone
+ *  `sawLine` throws on a figure that breaks rule 1, 3 or 4, so the rules are enforced by
+ *  the generator rather than hoped for; `check()` still owns the saw's MIDI-24 floor.
+ */
+const PC = { c: 0, 'c#': 1, d: 2, 'd#': 3, e: 4, f: 5, 'f#': 6, g: 7, 'g#': 8, a: 9, 'a#': 10, b: 11 }
+const scale = (...names) => names.map((name) => PC[name])
+const D_MAJOR = scale('d', 'e', 'f#', 'g', 'a', 'b', 'c#')
+const D_LYDIAN = scale('d', 'e', 'f#', 'g#', 'a', 'b', 'c#') // the V/V bar: E major's g#
+const D_AEOLIAN = scale('d', 'e', 'f', 'g', 'a', 'a#', 'c') // the lift's borrowed bVI and bVII
+const E_MAJOR = scale('e', 'f#', 'g#', 'a', 'b', 'c#', 'd#') // the build's B and B7, V of E
+const QUALITY = { maj: [0, 4, 7], min: [0, 3, 7], dom7: [0, 4, 7, 10] }
+const EIGHTHS = [0, 2, 4, 6, 8, 10, 12, 14]
+const FIRST_HALF = [0, 2, 4, 6]
+const SECOND_HALF = [8, 10, 12, 14]
+
+/** The bar figures, named for what the line does. Each is eight tokens on the 8ths. */
+const FIG = {
+  // the old octave kept as a gesture: a neighbour above the root, the leap on the 'and'
+  // of 2, then down the triad through a passing tone and in by step
+  leap: ['R', 'u', 'R', '8', '5', 'p', '3', 'A'],
+  // the same with the neighbour BELOW the root, for a bar whose upper voices hold the
+  // second degree, which the bass must not double
+  dip: ['R', 'l', 'R', '8', '5', 'p', '3', 'A'],
+  // up the scale to the fifth, an upper neighbour, and in
+  climb: ['R', 'p', '3', 'p', '5', 'u', '5', 'A'],
+  // the octave at once, then the whole way down the scale to the root, and in
+  fall: ['R', '8', '5', 'p', '3', 'p', 'R', 'A'],
+  // a turn around the root, above and below, then up the triad, and in
+  turn: ['R', 'u', 'R', 'l', 'R', '3', '5', 'A'],
+  // up the triad to the octave and back down it, and in
+  arch: ['R', 'p', '3', '5', '8', '5', '3', 'A'],
+  // up the scale to the fifth and back down it to the third, and in
+  wave: ['R', 'p', '3', 'p', '5', 'p', '3', 'A'],
+  // up the triad, then down through the root to the third below, and in
+  cascade: ['R', '3', '5', '3', 'R', '5-', '3-', 'A'],
+  // up the scale to the fifth, back down the triad to the root, and in
+  rise: ['R', 'p', '3', 'p', '5', '3', 'R', 'A'],
+  // the octave at once, down the triad and on below the root, and in
+  plunge: ['R', '8', '5', '3', 'R', '5-', '3-', 'A'],
+}
+/** A figure with its last token — the lean into the next root — chosen for this bar. */
+const lean = (figure, token) => [...figure.slice(0, -1), token]
+/** Half-bar figures, four tokens, for the chorus bars that carry two chords. */
+const HALF = {
+  step: ['R', 'p', '3', 'A'], // root, passing tone, third, lean into the next root
+  octave: ['R', '8', '5', 'A'], // the octave, down to the fifth, and across into the next
+  triad: ['R', '3', '5', 'A'], // straight up the triad, and in
+}
+/** The lift's six-attack `drive` rhythm, rows 0 4 6 8 12 14: quarters plus the two
+ *  off-8ths, so the saw is never in lockstep with the triangle's plain quarters. */
+const DRIVE_ROWS = [0, 4, 6, 8, 12, 14]
+const DRIVE = {
+  rise: ['R', '3', 'p', '5', '3', 'A'], // third, passing tone, fifth, back to the third
+  octave: ['R', 'R', '8', '5', '3', 'A'], // the octave on the 'and' of 2, then down the triad
+  low: ['R', '5-', 'u', '5-', 'R', 'A'], // down to the fifth below, a neighbour, home
+  peak: ['R', '5', 'u', '5', 'R', 'A'], // up to the fifth, its upper neighbour, home
 }
 
-/** Triangle. 'double' doubles the saw an octave up in quarters; 'lead' is the triangle as
+const pcOf = (midi) => ((midi % 12) + 12) % 12
+function stepAbove(pcs, midi) {
+  for (let m = midi + 1; ; m++) if (pcs.includes(pcOf(m))) return m
+}
+function stepBelow(pcs, midi) {
+  for (let m = midi - 1; ; m--) if (pcs.includes(pcOf(m))) return m
+}
+
+/** Resolve one span — one chord — into MIDI notes. `target` is the root that follows.
+ *  Chord tones first, then everything that depends on its neighbours, left to right. */
+function resolveSpan(where, root, quality, pcs, figure, target) {
+  const r = n(root)
+  const shape = QUALITY[quality]
+  const chord = shape.map((i) => pcOf(r + i))
+  for (const pc of chord) {
+    if (!pcs.includes(pc)) throw new Error(`${where}: chord tone ${pc} of ${root} ${quality} is not in the scale`)
+  }
+  if (figure[0] !== 'R') throw new Error(`${where}: a span opens on its root`)
+  const TONE = { R: 0, 3: shape[1], 5: 7, 8: 12, '5-': -5, '3-': shape[1] - 12 }
+  const out = figure.map((token) => (token in TONE ? r + TONE[token] : null))
+  figure.forEach((token, i) => {
+    if (out[i] !== null) return
+    const prev = out[i - 1]
+    if (prev === undefined || prev === null) throw new Error(`${where}: '${token}' needs a note before it`)
+    if (token === 'p') {
+      const next = out[i + 1]
+      if (next === undefined || next === null) throw new Error(`${where}: 'p' needs a chord tone after it`)
+      const between = []
+      for (let m = Math.min(prev, next) + 1; m < Math.max(prev, next); m++) if (pcs.includes(pcOf(m))) between.push(m)
+      if (between.length !== 1) throw new Error(`${where}: 'p' between ${prev} and ${next} is not one scale step`)
+      out[i] = between[0]
+    } else if (token === 'u') out[i] = stepAbove(pcs, prev)
+    else if (token === 'l') out[i] = stepBelow(pcs, prev)
+    else if (token === 'C+') out[i] = target + 1
+    else if (token === 'C-') out[i] = target - 1
+    else if (token === 'A+') out[i] = stepAbove(pcs, target)
+    else if (token === 'A-') out[i] = stepBelow(pcs, target)
+    else if (token === 'A') {
+      const above = prev > target
+      const diatonic = above ? stepAbove(pcs, target) : stepBelow(pcs, target)
+      const chromatic = target + (above ? 1 : -1)
+      const across = above ? stepBelow(pcs, target) : stepAbove(pcs, target)
+      out[i] = diatonic !== prev ? diatonic : chromatic !== prev ? chromatic : across
+    } else throw new Error(`${where}: unknown token '${token}'`)
+  })
+  return { notes: out, chord }
+}
+
+/** Write the saw's line for one bar. `spans` has one entry per chord in the bar,
+ *  `{ root, quality, scale, figure, rows }` (rows default to the eight 8ths), and `next`
+ *  is the root the bar leans into. `t` transposes all of it, scale included. */
+function sawLine(sec, bar, spans, next, { vol, t = 0 }) {
+  const written = []
+  spans.forEach((span, k) => {
+    const target = n(k + 1 < spans.length ? spans[k + 1].root : next) + t
+    const where = `${sec.name} bar ${bar} span ${k}`
+    const rows = span.rows ?? EIGHTHS
+    if (rows.length !== span.figure.length) throw new Error(`${where}: ${rows.length} rows, ${span.figure.length} tokens`)
+    const pcs = span.scale.map((pc) => (pc + t) % 12)
+    const { notes, chord } = resolveSpan(where, n(span.root) + t, span.quality, pcs, span.figure, target)
+    notes.forEach((note, i) => written.push({ row: rows[i], note, chord, where, target, last: i === notes.length - 1 }))
+  })
+  written.forEach(({ row, note, chord, where, target, last }, i) => {
+    const following = i + 1 < written.length ? written[i + 1].note : target
+    if (!chord.includes(pcOf(note))) {
+      if (row % 4 !== 2) throw new Error(`${where}: non-chord tone ${note} on beat row ${row}`)
+      const d = Math.abs(following - note)
+      if (d < 1 || d > 2) throw new Error(`${where}: non-chord tone ${note} at row ${row} does not move on by step`)
+    }
+    const d = Math.abs(target - note)
+    if (last && (d < 1 || d > 2)) throw new Error(`${where}: ends on ${note}, not a step from the next root ${target}`)
+    sec.put(L.SAW, sec.at(bar, row), { note, inst: SAWBASS, vol })
+  })
+}
+/** One bar, one chord: the common case. */
+const walk = (sec, bar, root, quality, pcs, figure, next, opts) =>
+  sawLine(sec, bar, [{ root, quality, scale: pcs, figure }], next, opts)
+
+/** Triangle. 'double' states the bar's root an octave above the saw's, in quarters, with
+ *  its own octave on beat 3, while the saw walks beneath; 'lead' is the triangle as
  *  the bass on its own, in detached 8ths with its own octave leap; 'hold' is one note. */
 function triBar(sec, bar, root, style, opts = {}) {
   const r = n(root) + (opts.octave ?? 12)
@@ -367,23 +519,39 @@ function echoCuts(sec, from, to, delay) {
 // middle, the sawtooth as the bass, one chord a bar. The 2A03 pulses and the triangle are
 // silent for the whole section — their entrance IS the theme's downbeat, and a section
 // with three lanes resting is the piece's first dynamic (§2.8). A 4-3 suspension in bars
-// 2 and 6: d5 is prepared as a chord tone of G, held over the A chord, and steps down to
-// c#5. Chords: D G A(4-3) D | Bm G A(4-3) A. Kit: DPCM kick on 1 and 3 with the noise
+// 2 and 6: d5 is prepared as a chord tone of G (V1 climbs to it at 0:24 and at 1:16),
+// held over the A chord, and steps down to c#5. And a 9-8 at the first cadence, bar 3:
+// V2 keeps the A's e4 over the D and falls to d4 (0:48 -> 0:52). Chords: D G A(4-3)
+// D(9-8) | Bm G A(4-3) A. Kit: DPCM kick on 1 and 3 with the noise
 // kick under it, crash on the downbeats of bars 0 and 4, an 8th roll in bar 3 and a
 // whole-bar 16th roll in bar 7 that hands over to the tune.
 // =====================================================================================
 const fanfare = s.section('fanfare', 8)
 {
   // [bar, saw bass, V2 middle, V1 top, the suspension's resolution]
+  // A voice is one note for the bar, or a list of [row, note, end?] moves inside it, each
+  // held until the next move (or `end`). Two voices move inside a bar, both for a
+  // suspension. Bar 1's top voice climbs b4 -> d5 on beat 3 and HOLDS it to the barline,
+  // so the d5 of bar 2 is prepared — consonant as the fifth of G at 0:24, a fourth over
+  // the A at 0:32, resolving to c#5 at 0:36 — rather than leapt onto. And bar 3's middle
+  // voice re-strikes bar 2's e4 (the fifth of A, 0:32) over the D: a 9-8 at the chorale's
+  // first cadence, e4 at 0:48 falling to the root d4 at 0:52, then up to the third, f#4.
   const chorale = [
-    [0, 'd2', 'f#4', 'a4'], [1, 'g2', 'g4', 'b4'], [2, 'a2', 'e4', 'd5', 'c#5'], [3, 'd2', 'f#4', 'd5'],
+    [0, 'd2', 'f#4', 'a4'], [1, 'g2', 'g4', [[0, 'b4'], [8, 'd5', 16]]], [2, 'a2', 'e4', 'd5', 'c#5'],
+    [3, 'd2', [[0, 'e4'], [4, 'd4'], [8, 'f#4']], 'd5'],
     [4, 'b2', 'f#4', 'd5'], [5, 'g2', 'g4', 'd5'], [6, 'a2', 'e4', 'd5', 'c#5'], [7, 'a2', 'g4', 'c#5', 'e5'],
   ]
+  const voice = (lane, bar, part, len) => {
+    const moves = Array.isArray(part) ? part : [[0, part]]
+    moves.forEach(([row, note, end], i) => {
+      hold(fanfare, lane, BRASS, 9, bar, row, note, (end ?? moves[i + 1]?.[0] ?? len) - row)
+    })
+  }
   for (const [bar, bass, mid, top, resolution] of chorale) {
     const len = bar === 7 ? 15 : bar === 2 || bar === 6 ? 16 : 12 // breathe, except through a suspension
     hold(fanfare, L.SAW, SAWBASS, 10, bar, 0, bass, len)
-    hold(fanfare, L.V2, BRASS, 9, bar, 0, mid, len)
-    if (resolution === undefined) hold(fanfare, L.V1, BRASS, 9, bar, 0, top, len)
+    voice(L.V2, bar, mid, len)
+    if (resolution === undefined) voice(L.V1, bar, top, len)
     else {
       fanfare.put(L.V1, fanfare.at(bar, 0), { note: n(top), inst: BRASS, vol: 9 })
       hold(fanfare, L.V1, BRASS, bar === 7 ? 12 : 9, bar, bar === 7 ? 8 : 4, resolution, bar === 7 ? 7 : len - 4)
@@ -463,9 +631,10 @@ function theTune(t = 0, bars = [0, 15]) {
 // THEME — frames 2-5, 16 bars, the loop target. Pulse 1 sings the tune at 13. Pulse 2 is
 // its echo three rows behind at 8 on the thin 12.5 % duty (§2.2), silenced three rows
 // after each rest so it answers into the gap rather than smearing across it; four frames
-// of echo is well inside §9.2's one-third budget. The sawtooth marches in 8ths with the
-// octave leap on the 'and' of 2 and on 4, with a chromatic approach note into bars 4, 10
-// and 15; the triangle doubles it an octave up in quarters. V1/V2 sustain diatonic thirds
+// of echo is well inside §9.2's one-third budget. The sawtooth WALKS in 8ths — root on the
+// downbeat, chord tones on the beats, passing and neighbour notes between, and every bar
+// leaning into the next root by step — while the triangle keeps the plain root and octave
+// in quarters above it, so the pair is an outline and a line. V1/V2 sustain diatonic thirds
 // on the reed, a sixth and more below the tune, and V2 writes the cadential 4-3 in bar 14.
 // Chords: D D G A | Bm F#m G A(half) | D Bm E(V/V) A | G F#m A(4-3) D.
 // Kit: 8th hats, the signature, the roll fill at bar 7 and the tom run at bar 15.
@@ -479,9 +648,47 @@ const theme = s.section('theme', 16)
     ['d2'], ['d2'], ['g2'], ['a2', 'a#2'], ['b2'], ['f#2'], ['g2'], ['a2', 'c#2'],
     ['d2'], ['b2', 'd#2'], ['e2'], ['a2', 'g#2'], ['g2'], ['f#2'], ['a2', 'c#2'], ['d2'],
   ]
-  bass.forEach(([root, approach], bar) => {
-    sawBar(theme, bar, root, 'eighths', { vol: 10, approach })
-    triBar(theme, bar, root, 'double', { approach })
+  bass.forEach(([root, approach], bar) => triBar(theme, bar, root, 'double', { approach }))
+  // The saw's line, [quality, scale, figure] a bar over the roots above. Where the triangle
+  // has an approach note (bars 3 7 9 11 14) the saw leans in on the same pitch class, so
+  // the two bass lanes never approach one root from two different notes.
+  const line = [
+    // d2 e2 d2 d3 a2 g2 f#2 e2 — the octave kept on the 'and' of 2, then down into d
+    /*  0 D   */ ['maj', D_MAJOR, FIG.leap],
+    // d2 e2 f#2 g2 a2 b2 a2 f#2 — a scale up against the tune's falling e5 d5, in on f#
+    /*  1 D   */ ['maj', D_MAJOR, lean(FIG.climb, 'A-')],
+    // g2 a2 g2 g3 d3 c#3 b2 g2 — the octave again, walking down, in on the root below a
+    /*  2 G   */ ['maj', D_MAJOR, lean(FIG.leap, 'A-')],
+    // a2 b2 c#3 e3 a3 e3 c#3 a#2 — the triad's arch, then the chromatic a# into Bm
+    /*  3 A   */ ['maj', D_MAJOR, lean(FIG.arch, 'C-')],
+    // b2 c#3 d3 e3 f#3 d3 b2 g2 — up to the fifth under the tune's long descent, in from g
+    /*  4 Bm  */ ['min', D_MAJOR, FIG.rise],
+    // f#2 g2 a2 b2 c#3 d3 c#3 a2 — a climb that steps back over a into G
+    /*  5 F#m */ ['min', D_MAJOR, FIG.climb],
+    // g2 a2 b2 d3 g3 d3 b2 g2 — rises with the tune's g a b c#, turns away, in from g
+    /*  6 G   */ ['maj', D_MAJOR, lean(FIG.arch, 'A-')],
+    // a2 a3 e3 d3 c#3 b2 a2 e2 — the half cadence falls a whole octave and steps onto d
+    /*  7 A   */ ['maj', D_MAJOR, FIG.fall],
+    // d2 e2 d2 d3 a2 g2 f#2 a2 — bar 0's opening, because the head returns; in on a to b
+    /*  8 D   */ ['maj', D_MAJOR, FIG.leap],
+    // b2 d3 f#3 d3 b2 f#2 d2 d#2 — down the Bm triad and chromatically up into the E
+    /*  9 Bm  */ ['min', D_MAJOR, lean(FIG.cascade, 'C-')],
+    // e2 f#2 g#2 a2 b2 c#3 b2 g#2 — the V/V bar climbs its own lydian scale, g# into a
+    /* 10 E   */ ['maj', D_LYDIAN, lean(FIG.climb, 'A-')],
+    // a2 a3 e3 d3 c#3 b2 a2 g#2 — the peak bar falls an octave, g# sliding down to g
+    /* 11 A   */ ['maj', D_MAJOR, lean(FIG.fall, 'C+')],
+    // g2 a2 g2 f#2 g2 b2 d3 g2 — a turn around g, then the triad, stepping down to f#
+    /* 12 G   */ ['maj', D_MAJOR, FIG.turn],
+    // f#2 f#3 c#3 b2 a2 g2 f#2 b2 — down the octave and in from above, b to a
+    /* 13 F#m */ ['min', D_MAJOR, lean(FIG.fall, 'A+')],
+    // a2 b2 c#3 e3 a3 e3 c#3 c#2 — no d under the 4-3; the leading tone dropped an octave
+    /* 14 A   */ ['maj', D_MAJOR, lean(FIG.arch, 'A-')],
+    // d2 e2 f#2 g2 a2 b2 a2 c#3 — the cadence bar climbs to c#, the leading tone of the d
+    // the triangle states at theme', where the saw leaves the bass to sing the tune
+    /* 15 D   */ ['maj', D_MAJOR, FIG.climb],
+  ]
+  line.forEach(([quality, pcs, figure], bar) => {
+    walk(theme, bar, bass[bar][0], quality, pcs, figure, bass[bar + 1]?.[0] ?? 'd3', { vol: 10 })
   })
   const thirds = [
     ['d4', 'f#4'], ['d4', 'f#4'], ['b3', 'd4'], ['c#4', 'e4'], ['d4', 'f#4'], ['a3', 'c#4'], ['b3', 'd4'], ['c#4', 'e4'],
@@ -570,8 +777,9 @@ const themeP = s.section('themeP', 8)
 // first three bars (the third of Bb, the ninth over the C of bar 2) and then climbs with
 // the chords, e5 f5 g5 — a stepwise ascent through the borrowed f natural, which is the
 // same modal interchange the chords are — one note a bar. And the bass pair stops
-// marching in lockstep: the sawtooth takes the `drive` figure (quarters plus the two
-// off-8ths, octave leaps on the 'and' of 2 and 4) against the triangle's plain quarters.
+// marching in lockstep: the sawtooth takes the `drive` rhythm (quarters plus the two
+// off-8ths) against the triangle's plain quarters, and walks it in D aeolian — the scale
+// the borrowed chords come from — leaning into every chord change by step.
 //
 // V1/V2 carry a chain of FOUR written 4-3 suspensions, one at every chord that can hold
 // one: 8:0 over Bb (d#4 -> d4), 8:32 over C (f4 -> e4), 9:16 over C again (f4 -> e4) and
@@ -593,9 +801,32 @@ const lift = s.section('lift', 8)
   lift.put(L.P2, 0, { note: CUT })
   const bass = ['a#2', 'a#2', 'c3', 'c3', 'a#2', 'c3', 'a2', 'a2']
   bass.forEach((root, bar) => {
-    sawBar(lift, bar, root, bar < 6 ? 'drive' : 'hold', { vol: 10, restAt: bar === 7 ? 8 : undefined })
     triBar(lift, bar, root, bar < 6 ? 'double' : 'hold', { restAt: bar === 7 ? 8 : undefined })
   })
+  // The saw, one figure a bar over the six-bar phrase. Bars 1 and 3 are one shape a step
+  // apart — the second bar of each two-bar chord, so the sequence marks the 3 + 3 — and
+  // the one-bar chords of bars 4 and 5 turn tighter around their roots.
+  const drive = [
+    // bb2 d3 e3 f3 d3 c3 — up the Bb triad through a passing e, then down into the repeat
+    /* 0 Bb */ DRIVE.rise,
+    // bb2 bb2 bb3 f3 d3 bb2 — the octave on the 'and' of 2, down the triad, up to c
+    /* 1 Bb */ lean(DRIVE.octave, 'A-'),
+    // c3 g2 a2 g2 c3 bb2 — below the root to g and its neighbour, home, bb into C again
+    /* 2 C  */ DRIVE.low,
+    // c3 c3 c4 g3 e3 a2 — bar 1's shape a step higher, in on a from below the Bb
+    /* 3 C  */ lean(DRIVE.octave, 'A-'),
+    // bb2 f2 g2 f2 bb2 d3 — down to f and back, then d above the coming c
+    /* 4 Bb */ lean(DRIVE.low, 'A+'),
+    // c3 g3 a3 g3 c3 bb2 — up to g and its neighbour, home, bb falling onto the dominant
+    /* 5 C  */ DRIVE.peak,
+  ]
+  drive.forEach((figure, bar) => {
+    const span = { root: bass[bar], quality: 'maj', scale: D_AEOLIAN, figure, rows: DRIVE_ROWS }
+    sawLine(lift, bar, [span], bass[bar + 1], { vol: 10 })
+  })
+  // bars 6-7, the dominant under the tom break: one held a2, cut halfway through bar 7
+  for (const bar of [6, 7]) lift.put(L.SAW, lift.at(bar, 0), { note: n('a2'), inst: SAWBASS, vol: 10 })
+  lift.put(L.SAW, lift.at(7, 8), { note: CUT })
   // [bar, V2's chord tone, V1's suspended note, V1's resolution]. V1 is always above V2
   // and the pair never moves in parallel for two chords running.
   const brass = [
@@ -720,22 +951,76 @@ function writeChorus(sec, t, roots, opts = {}) {
   sing(sec, L.P1, LEAD, opts.leadVol ?? 14, chorusTune(t))
   sec.line(L.P2, COUNTER, opts.counterVol ?? 11, counterMelody(t))
 
-  // Bass: the saw marches in 8ths with the octave leap, the triangle in quarters above
-  // it. A two-element root splits the bar into two chords — the section's own harmonic
-  // rhythm change (§9.3), against one chord a bar everywhere else in the piece.
+  // Bass. The triangle keeps the roots in quarters, root and octave; the saw WALKS under
+  // it in 8ths. A two-element root splits the bar into two chords — the section's own
+  // harmonic rhythm change (§9.3), against one chord a bar everywhere else in the piece.
   roots.forEach((root, bar) => {
     if (bar === 14) return // the augmented-sixth bar is written by hand below
     const [first, second] = Array.isArray(root) ? root : [root, undefined]
-    sawBar(sec, bar, first, second === undefined ? 'eighths' : 'split', { vol: sawVol, second })
     triBar(sec, bar, first, second === undefined ? 'double' : 'split', { second })
+  })
+  // The saw's line, written in D and moved by `t`: one span per chord, [root, quality,
+  // scale, figure, rows?]. Note names below are the D chorus; the final one is a step up.
+  // Where vrc6p2 hangs a 9-8 (bars 7 and 12 of both choruses, bar 0 of the final one) the
+  // bass never doubles the suspended note while it hangs.
+  const span = (root, quality, pcs, figure, rows) => (rows === undefined
+    ? { root, quality, scale: pcs, figure } : { root, quality, scale: pcs, figure, rows })
+  const bassLine = [
+    // d2 c#2 d2 d3 a2 g2 f#2 a2 — the octave, with the neighbour BELOW the root: the final
+    // chorus enters on a suspended second degree, and the bass must not double it
+    /*  0 D     */ [span('d2', 'maj', D_MAJOR, FIG.dip)],
+    // g2 g3 d3 c#3 b2 a2 g2 d2 — a whole octave down the scale, d stepping up into e
+    /*  1 G     */ [span('g2', 'maj', D_MAJOR, lean(FIG.fall, 'A-'))],
+    // e2 f#2 g2 b2 | a2 c#3 e3 e2 — passing f# to the third, b falling onto a; then up the
+    // A triad and its fifth dropped an octave, a step above the d
+    /*  2 Em A  */ [span('e2', 'min', D_MAJOR, lean(HALF.step, 'A+'), FIRST_HALF),
+      span('a2', 'maj', D_MAJOR, HALF.triad, SECOND_HALF)],
+    // d2 e2 d2 c#2 d2 f#2 a2 c#3 — a turn around the root, up the triad, c# above the b
+    /*  3 D     */ [span('d2', 'maj', D_MAJOR, lean(FIG.turn, 'A+'))],
+    // b2 c#3 d3 e3 f#3 d3 b2 e2 — up to the fifth and back; in from e BELOW the f# that
+    // three upper voices are holding, so the approach is a ninth against them, not a rub
+    /*  4 Bm    */ [span('b2', 'min', D_MAJOR, lean(FIG.rise, 'A-'))],
+    // f#2 g2 a2 b2 c#3 b2 a2 f#2 — up the scale to c# and back, the root stepping to g
+    /*  5 F#m   */ [span('f#2', 'min', D_MAJOR, lean(FIG.wave, 'A-'))],
+    // g2 g3 d3 b2 | a2 a3 e3 c#3 — two octave half-bars, b onto a and c# onto the deceptive
+    // b; no c# until row 14, after pulse 2 has resolved its own 4-3 onto c#4 at row 12
+    /*  6 G A   */ [span('g2', 'maj', D_MAJOR, HALF.octave, FIRST_HALF),
+      span('a2', 'maj', D_MAJOR, HALF.octave, SECOND_HALF)],
+    // b2 d3 f#3 d3 b2 f#2 d2 e2 — down through the Bm triad under vrc6p2's 9-8, e into f#
+    /*  7 Bm    */ [span('b2', 'min', D_MAJOR, FIG.cascade)],
+    // f#2 e2 f#2 f#3 c#3 b2 a2 c#3 — the displaced head's bar: the octave, down, c# above b
+    /*  8 F#m   */ [span('f#2', 'min', D_MAJOR, lean(FIG.dip, 'A+'))],
+    // b2 b3 f#3 e3 d3 c#3 b2 f#2 — a full octave down the scale, f# above the e
+    /*  9 Bm    */ [span('b2', 'min', D_MAJOR, FIG.fall)],
+    // e2 f#2 g2 a2 b2 c#3 b2 g2 — a climb to c# under the chain, g below the a
+    /* 10 Em    */ [span('e2', 'min', D_MAJOR, lean(FIG.climb, 'A-'))],
+    // a2 b2 a2 a3 e3 d3 c#3 c#2 — the peak bar keeps its octave; the leading tone drops an
+    // octave onto the d, which is where vrc6p2 holds its 9-8
+    /* 11 A     */ [span('a2', 'maj', D_MAJOR, lean(FIG.leap, 'A-'))],
+    // d2 f#2 a2 f#2 d2 a1 f#1 f#2 — the descent home starts at the bottom of the register:
+    // down the triad to f#1 and up the octave to f#, below the g. No e while e4 hangs above
+    /* 12 D     */ [span('d2', 'maj', D_MAJOR, FIG.cascade)],
+    // g2 a2 b2 d3 g3 d3 b2 a2 — an arch, then a rising to the bVI's b-flat
+    /* 13 G     */ [span('g2', 'maj', D_MAJOR, FIG.arch)],
+    // bb2 bb2 | a2 a3 e3 c#3 a2 e2 — bVI for one beat under the raised fourth, the semitone
+    // fall onto A, then the octave and down the chord, e above the d
+    /* 14 Bb A  */ [span('a#2', 'maj', D_AEOLIAN, ['R', 'R'], [0, 2]),
+      span('a2', 'maj', D_MAJOR, ['R', '8', '5', '3', 'R', 'A'], [4, 6, 8, 10, 12, 14])],
+    // d2 d3 a2 g2 f#2 e2 d2 c#2 — down the scale; c#2 leads into the bridge's b1 here, and a
+    // step up, d#2 into the coda's e2
+    /* 15 D     */ [span('d2', 'maj', D_MAJOR, FIG.fall)],
+  ]
+  bassLine.forEach((spans, bar) => {
+    // the saw and the triangle read the same roots, so a later edit cannot split them
+    const tri = [roots[bar]].flat().map((root) => n(root))
+    const saw = spans.map(({ root }) => n(root) + t)
+    if (saw.join() !== tri.join()) throw new Error(`chorus bar ${bar}: saw roots ${saw} but triangle roots ${tri}`)
+    const next = bar + 1 < bassLine.length ? bassLine[bar + 1][0].root : n(opts.exit) - t
+    sawLine(sec, bar, spans, next, { vol: sawVol, t })
   })
   // Bar 14, the Italian sixth: the bass takes bVI for one beat under the raised fourth a
   // tritone above it, then both fall a semitone onto the dominant on row 4.
   const [flat6, dom] = roots[14]
-  for (const row of [0, 2]) sec.put(L.SAW, sec.at(14, row), { note: n(flat6), inst: SAWBASS, vol: sawVol })
-  for (const [row, up] of [[4, 0], [6, 12], [8, 0], [10, 0], [12, 12], [14, 0]]) {
-    sec.put(L.SAW, sec.at(14, row), { note: n(dom) + up, inst: SAWBASS, vol: sawVol })
-  }
   sec.put(L.TRI, sec.at(14, 0), { note: n(flat6) + 12, inst: BASS, vol: 15 })
   for (const [row, up] of [[4, 12], [8, 24], [12, 12]]) sec.put(L.TRI, sec.at(14, row), { note: n(dom) + up, inst: BASS, vol: 15 })
 
@@ -749,12 +1034,24 @@ function writeChorus(sec, t, roots, opts = {}) {
     [14, 0, 'g#4', 4], [14, 4, 'a4', 12], [15, 0, 'f#4', 14],
   ]
   // vrc6p2, the lower voice, with its own held spans so the two never move in lockstep.
+  // It carries the section's two cadential 9-8 SUSPENSIONS, each prepared as a chord tone
+  // of the A before it, held over the change, and resolved down a step four rows later:
+  //  - bar 7, the deceptive cadence: c#4, the third of the A at 6:8, hangs over the Bm as
+  //    its ninth and falls to b3 (chorus 11:48 -> 11:52, final chorus 19:48 -> 19:52);
+  //  - bar 12, the authentic cadence that opens the descent home: e4, the fifth of the A
+  //    through bar 11, hangs over the D and falls to d4 (13:0 -> 13:4, 21:0 -> 21:4).
   const lower = [
     [0, 0, 'a3', 16], [1, 0, 'b3', 24], [2, 8, 'c#4', 8], [3, 0, 'a3', 16],
     [4, 0, 'b3', 16], [5, 0, 'a3', 16], [6, 0, 'b3', 8], [6, 8, 'c#4', 8],
-    [7, 0, 'b3', 16], [8, 0, 'a3', 16], [9, 0, 'b3', 32], [11, 0, 'c#4', 16],
-    [12, 0, 'd4', 32], [14, 0, 'd4', 4], [14, 4, 'c#4', 12], [15, 0, 'd4', 14],
+    [7, 0, 'c#4', 4], [7, 4, 'b3', 12], // 9-8 over Bm
+    [8, 0, 'a3', 16], [9, 0, 'b3', 32], [11, 0, 'e4', 16],
+    [12, 0, 'e4', 4], [12, 4, 'd4', 28], // 9-8 over D
+    [14, 0, 'd4', 4], [14, 4, 'c#4', 12], [15, 0, 'd4', 14],
   ]
+  // ...and the final chorus opens on a third 9-8, at the cadence that confirms the new
+  // key: the build holds f#4, the fifth of its B7, to the barline (17:32-17:63), and the
+  // lower voice keeps it over the E at 18:0 before falling to e4 at 18:4 (in D: e4 -> d4).
+  if (opts.suspendEntry) lower.splice(0, 1, [0, 0, 'e4', 4], [0, 4, 'd4', 12])
   for (const [bar, row, note, len] of lower) hold(sec, L.V2, BRASS, brassVol, bar, row, T(note), len)
   for (const [bar, row, note, len] of upper) {
     if (opts.doubleFrom !== undefined && bar >= opts.doubleFrom) continue
@@ -784,7 +1081,7 @@ const chorus = s.section('chorus', 16)
   writeChorus(chorus, 0, [
     'd2', 'g2', ['e2', 'a2'], 'd2', 'b2', 'f#2', ['g2', 'a2'], 'b2',
     'f#2', 'b2', 'e2', 'a2', 'd2', 'g2', ['a#2', 'a2'], 'd2',
-  ], { brassVol: 9 })
+  ], { brassVol: 9, exit: 'b1' })
   // `burst` returns here from the lift (9:24) and comes back on the other snare, a hit
   // wider; `rim` is heard here first and returns altered in the final chorus.
   const fills = { 3: 'rim', 7: 'flam', 11: 'burst', 15: 'roll' }
@@ -868,8 +1165,11 @@ const bridge = s.section('bridge', 8)
 //
 // The sawtooth carries the 6-row cell one frame further (entry row 4 of frame 16, the
 // third value in the phase-carry table) and only then snaps to 8ths at bar 4, so the
-// metre resolves onto the downbeat exactly where the bass starts driving. The kit goes
-// from beat kicks to a rising 8th-then-16th snare roll, and the brass swells with A0y.
+// metre resolves onto the downbeat exactly where the bass starts driving — and it drives
+// as a line, walking the pivot in D and the B chords in E, and stepping into the final
+// chorus's e2. vrc6p2 holds the B7's f#4 to the barline, for chorus' to suspend over the
+// E. The kit goes from beat kicks to a rising 8th-then-16th snare roll, and the brass
+// swells with A0y.
 //
 // The lead rests the last beat of bars 1, 3 and 5 — the second bar of each two-bar unit
 // — and the brass re-swells on exactly those rows (16:28, 16:60, 17:28). A sequence that
@@ -914,8 +1214,21 @@ const build = s.section('build', 8)
   for (let row = 4, i = 0; row < 64; row += 6, i++) {
     build.put(L.SAW, row, { note: n(roots[Math.floor(row / 16)]) + cell[i % 3], inst: SAWBASS, vol: 10 })
   }
-  // frame 17: the cell resolves and the bass drives in 8ths
-  for (let bar = 4; bar < 8; bar++) sawBar(build, bar, roots[bar], 'eighths', { vol: 10 })
+  // frame 17: the cell resolves and the bass walks in 8ths
+  const drive = [
+    // a2 b2 c#3 d3 e3 f#3 e3 c#3 — the pivot climbs its scale, the last d natural, c# into b
+    /* 4 A  */ ['maj', D_MAJOR, FIG.climb],
+    // b2 c#3 d#3 f#3 b3 f#3 d#3 c#3 — up the B triad to the octave and back, d# for d
+    /* 5 B  */ ['maj', E_MAJOR, FIG.arch],
+    // b2 c#3 b2 a2 b2 d#3 f#3 c#3 — a turn through the seventh, a, then up the chord
+    /* 6 B7 */ ['dom7', E_MAJOR, FIG.turn],
+    // b2 b3 f#3 d#3 b2 f#2 d#2 f#2 — down the chord to the leading tone, f# above the e
+    /* 7 B7 */ ['dom7', E_MAJOR, FIG.plunge],
+  ]
+  drive.forEach(([quality, pcs, figure], i) => {
+    const bar = 4 + i
+    walk(build, bar, roots[bar], quality, pcs, figure, roots[bar + 1] ?? 'e2', { vol: 10 })
+  })
   roots.forEach((root, bar) => triBar(build, bar, root, bar < 4 ? 'double' : 'lead'))
 
   // brass: sixths climbing with the bass, then B7 held under an A0y swell
@@ -933,7 +1246,7 @@ const build = s.section('build', 8)
       build.put(L.V1, build.at(bar, 12), { note: n(hi), inst: BRASS, vol: 8 })
     }
   }
-  hold(build, L.V2, BRASS, 7, 6, 0, 'f#4', 30)
+  hold(build, L.V2, BRASS, 7, 6, 0, 'f#4', 32) // held to the barline: chorus' suspends it
   hold(build, L.V1, BRASS, 7, 6, 0, 'd#5', 30)
   for (const lane of [L.V1, L.V2]) {
     build.put(lane, build.at(6, 0), { fx: [['A', 1]] })
@@ -972,7 +1285,7 @@ const chorusP = s.section('chorusP', 16)
   writeChorus(chorusP, 2, [
     'e2', 'a2', ['f#2', 'b2'], 'e2', 'c#3', 'g#2', ['a2', 'b2'], 'c#3',
     'g#2', 'c#3', 'f#2', 'b2', 'e2', 'a2', ['c3', 'b2'], 'e2',
-  ], { brassVol: 8, doubleFrom: 8, doubleVol: 9 })
+  ], { brassVol: 8, doubleFrom: 8, doubleVol: 9, exit: 'e2', suspendEntry: true })
   // both returning shapes come back changed: `rim` on higher ticks and a last-16th kick,
   // `toms` on a wider spread and the other snare (§9.4 — a reprise, not a copy)
   const fills = { 3: 'push', 7: 'riser', 11: 'rim', 15: 'toms' }
@@ -1080,13 +1393,29 @@ s.qa({
     'through its own dominant and the final',
     'chorus is a whole step up, which is most of the accidental count on its own.',
     'Written suspensions and appoggiaturas: 5:28-5:36, the lead strikes d5 over D/F#,',
-    'holds it over the A that arrives at 5:32 and resolves to c#5 at 5:36, with vrc6p2',
-    'doing the same underneath; the brass chain at 8:0 (d#4 -> d4), 8:32 (f4 -> e4),',
+    'holds it over the A that arrives at 5:32 and resolves to c#5 at 5:36, while vrc6p2',
+    'strikes d4 fresh on that beat as an appoggiatura and falls to c#4 with it; the brass',
+    'chain at 8:0 (d#4 -> d4), 8:32 (f4 -> e4),',
     '9:16 (f4 -> e4) and 9:32 (d4 -> c#4), the two f4 suspensions each prepared as the',
     'fifth of the Bb in the bar before it; 10:48, where the lead attacks g5 — the fourth',
     'over D — on the downbeat and resolves to f#5 at 10:52; and 11:36-11:44, where pulse 2',
     'enters a beat late on d4, the fifth of G, holds it over the A of 11:40 and resolves',
     'down to c#4.',
+    'PREPARED 9-8 SUSPENSIONS on vrc6p2, each consonant when struck, held or re-struck over',
+    'the chord change and resolved down a step four rows later: 0:48, e4 (the fifth of the A',
+    'at 0:32) over D, to d4 at 0:52; 11:48, c#4 (the third of the A at 11:40) over the',
+    'deceptive Bm, to b3 at 11:52; 13:0, e4 (the fifth of the A at 12:48) over D, to d4 at',
+    '13:4; and 18:0, f#4 (the fifth of the B7, held from 17:32) over the new E tonic, to e4',
+    'at 18:4. The final chorus sounds the first chorus pair a step up, 19:48 (d#4 to c#4)',
+    'and 21:0 (f#4 to e4). The fanfare 4-3 at 0:32 is prepared as well: vrc6p1 climbs to d5',
+    'at 0:24 and holds it over the change.',
+    'THE BASS is a written line, not a root-and-octave pump. Wherever the sawtooth walks',
+    '(theme, 8:0-9:31, both choruses, 17:0-17:63) it plays the root on the first attack of',
+    'each chord, chord tones on the beats, passing and neighbour notes only on weak 8ths and',
+    'only moving on by step, and it leans into every chord change from a step away, diatonic',
+    'or chromatic, above or below. Its attack rows and volumes are the ones the pump had;',
+    'about one walking bar in two keeps an octave leap, and the rest of its motion is steps',
+    'and chord tones. The fanfare, coda and 9:32-9:63 hold roots; the bridge keeps its cell.',
     'TWO DECLARED DEVIATIONS. (a) This piece carries NINE x- instruments against §3.1\'s',
     'cap of three. Eight lanes on two chips is the reason: the 2A03 lead, its counter-',
     'voice, the VRC6 brass, the bright reed that sits under a 2A03 lead, the one-shot',
@@ -1108,7 +1437,7 @@ s.qa({
     '(§9.4). The Fxx ritardando slows speed 6 -> 7 -> 9 -> 12 over 22:48-22:63, and the',
     'loop row restores speed 6 at 2:0 because a tempo survives the seam as an effect does.',
   ].join(' '),
-  renderChecksum: 82701101,
+  renderChecksum: 3629895864,
 })
 s.check()
 s.write('src/assets/songs/06-sunward-banner.json')
