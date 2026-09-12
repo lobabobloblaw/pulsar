@@ -42,10 +42,10 @@ export const ALLOWED_EFFECTS = Object.freeze(
   ['0', '1', '2', '3', '4', '7', 'A', 'B', 'D', 'F', 'G', 'P', 'Q', 'R', 'S', 'V'],
 )
 
-/** Effects that LATCH on their channel until a zero param cancels them (§2.9 rule 3):
- *  `0xy` arpeggio, `3xx` portamento, `4xy` vibrato, `7xy` tremolo. `line()` clears these
- *  automatically so a hook does not keep wobbling under the next phrase. */
-export const STICKY_EFFECTS = Object.freeze(['0', '3', '4', '7'])
+// Which of those effects LATCH on their channel, and what actually cancels each, live in
+// `sticky.mjs` — one table, read off the driver, shared by `section.mjs` and `check.mjs`
+// (§2.9 rule 3, preset-suite §12.5). A zero param is NOT the cancel for every letter:
+// `300` freezes the portamento and `700` replays the tremolo's effect memory.
 
 const PITCH_CLASS = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 }
 const NOTE_RE = /^([a-g])(#|s|b)?(-?\d+)$/

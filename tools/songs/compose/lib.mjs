@@ -214,10 +214,15 @@ export class Song {
     return this
   }
 
-  /** Flatten, close the loop, de-duplicate, serialize. Pure: safe to call repeatedly. */
+  /** Seal the channel modes, flatten, close the loop, de-duplicate, serialize.
+   *  Idempotent: safe to call repeatedly, and `check()` and `write()` both do. */
   build() {
     if (this.orderNames === null) throw new Error('call order([...]) before building')
     if (this.loopTarget === null) throw new Error('call loopTo(section) before building — an album piece loops (§2.9)')
+    // §12.5: a mode a note trigger does not clear is cancelled in the section that turned
+    // it on. Done here, once, so every writer is covered — `chord()` and a bare `put()`
+    // as much as `line()` — and each lane's cancel list is complete before it is written.
+    for (const name of new Set(this.orderNames)) this.sections.get(name).sealSticky()
     const { frames, form, firstFrameOf } = flatten(this)
     const lanes = soundingLanes(frames)
     const channels = channelPrefix(frames)

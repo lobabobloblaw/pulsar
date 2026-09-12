@@ -219,12 +219,12 @@ describe('what the library derives', () => {
     expect(diagnostics.filter((d) => d.message.includes('instrument is never referenced'))).toEqual([])
   })
 
-  it('clears every latched effect line() started, letter by letter', () => {
+  it('clears every latched effect line() started, with the cancel the DRIVER honours', () => {
     const s = new lib.Song({ id: 'sticky', speed: 6, rowsPerPattern: 32, rowHighlight: 4, rowHighlight2: 16 })
     const LEAD = s.bank('lead-bright')[0]
     const a = s.section('A', 2)
     // 0xy then 4xy latch independently; the next bare event has to cancel BOTH, and a
-    // still-latched effect is cleared on the section last row.
+    // still-latched mode is cancelled on the section's last row.
     a.line(lib.L.P1, LEAD, 12, [
       [0, 0, 'e4', '0', lib.nib(4, 7)], [0, 8, 'g4', '4', 0x32], [1, 0, 'b4'], [1, 8, 'e5', '3', 0x10],
     ])
@@ -235,9 +235,12 @@ describe('what the library derives', () => {
     const fxAt = (r: number) => p.rows.find((c) => c.r === r)?.fx?.map((e) => `${e!.cmd}${e!.param}`) ?? []
     expect(fxAt(0)).toEqual(['071'])
     expect(fxAt(8)).toEqual(['450'])
-    expect(fxAt(16), 'both latched letters cancelled on the next bare event').toEqual(['00', '40'])
+    expect(fxAt(16), 'both latched modes cancelled on the next bare event').toEqual(['00', '40'])
     expect(fxAt(24)).toEqual(['316'])
-    expect(fxAt(31), '3xx is still latched at the section end').toEqual(['30'])
+    // §12.5's first trap: `300` sets portaEnabled = 1 like any other param and only
+    // FREEZES the glide. `100` is what `applyRowEffect` clears portaEnabled on.
+    expect(fxAt(31), '3xx is cancelled with 100, not with 300').toEqual(['10'])
+    expect(faults(s), 'and the piece is clean once it is').toEqual([])
   })
 
   it('stores effect params as DECIMAL, which is what the grid hides', () => {
@@ -400,6 +403,165 @@ describe('check', () => {
     const bare = tiny()
     bare.declared = {}
     expect(faults(bare)).toContain('qa-missing')
+  })
+})
+
+// --- the channel modes a note trigger does not clear (preset-suite §12.5) -------------
+//
+// `trigger()` resets the phases and nothing else, so `0xy`, `1xx`/`2xx`, `3xx`, `4xy`,
+// `7xy`, `Axy` and `Pxx` outlive the note, the pattern, the frame and the loop. A piece
+// with 132 uncancelled `0xy` cells is what put §12.5 in the annex, and `chord()` is the
+// library's own `0xy` helper, so every claim here is about a fault that has happened.
+
+describe('channel modes', () => {
+  /** An intro plus a looping section — the shape that makes both seams reachable: the
+   *  END of the order, where pass 2 begins, and the LOOP ROW, which pass 1 reaches in
+   *  whatever state the intro left. Pulse 1 carries eight attacks a section so no lane
+   *  under test has to meet the lint's thin-lane floor on its own. */
+  function modeSong(write: (secs: { intro: Any; a: Any }, ids: Any) => void): Any {
+    const s = new lib.Song({ id: 'modes', speed: 6, rowsPerPattern: 32, rowHighlight: 4, rowHighlight2: 16 })
+    const [LEAD] = s.bank('lead-bright')
+    const PAD = s.instrument('pad', { volume: { values: [10, 10], loop: 1 }, duty: [7, 5, 3, 2] })
+    const intro = s.section('intro', 2)
+    const a = s.section('A', 2)
+    for (const sec of [intro, a]) {
+      sec.line(lib.L.P1, LEAD, 12, [
+        [0, 0, 'e4'], [0, 4, 'g4'], [0, 8, 'b4'], [0, 12, 'e5'],
+        [1, 0, 'e4'], [1, 4, 'g4'], [1, 8, 'b4'], [1, 12, 'e5'],
+      ])
+    }
+    write({ intro, a }, { LEAD, PAD })
+    s.order(['intro', 'A'])
+    s.loopTo('A')
+    s.qa({ key: 'e-minor', bpmRange: [148, 152], durationSec: [5, 30] })
+    return s
+  }
+
+  /** Four chords a bar on vrc6p2 in both sections: eight attacks, the lint's floor. */
+  const chords = (sec: Any, PAD: number): void => {
+    for (const bar of [0, 1]) {
+      sec.chord(lib.L.V2, PAD, 10, bar, 0, 'e3', [3, 7])
+      sec.chord(lib.L.V2, PAD, 10, bar, 8, 'g3', [4, 7])
+    }
+  }
+
+  /** A mode set on A's LAST row. There is no later row to cancel it on, so the library's
+   *  own seal steps aside and `check()` is all that stands between the composer and a
+   *  second pass that does not sound like the first. */
+  const latchedToTheEnd = (cmd: string, param: number): string[] =>
+    faults(modeSong(({ a }) => { a.fx(lib.L.P1, 1, 15, cmd, param) }))
+
+  /** The same mode set mid-section and cancelled by hand on A's last row — the row the
+   *  seal would have used, so this proves the CANCEL and not the seal. */
+  const cancelledWith = (cmd: string, param: number, by: [string, number]): string[] =>
+    faults(modeSong(({ a }) => {
+      a.fx(lib.L.P1, 0, 4, cmd, param)
+      a.fx(lib.L.P1, 1, 15, by[0], by[1])
+    }))
+
+  it('catches a chord nobody cancels — the defect that cost an album piece a revision', () => {
+    const s = modeSong(({ intro, a }, { PAD }) => {
+      chords(intro, PAD)
+      chords(a, PAD)
+      // One more on A's last row, where the seal cannot help: from here the arpeggio
+      // voices every note the lane plays on pass 2, and the loop never clears it.
+      a.chord(lib.L.V2, PAD, 10, 1, 15, 'b2', [4, 8])
+    })
+    expect(faults(s)).toContain('sticky-latched')
+    expect(() => s.check()).toThrow(/0xy arpeggio/)
+  })
+
+  it('cancels a chord where the lane next plays something that is not part of it', () => {
+    const s = modeSong(({ intro, a }, { LEAD, PAD }) => {
+      for (const sec of [intro, a]) {
+        chords(sec, PAD)
+        // A bare `line()` event is the lane playing something else, so it carries the 000.
+        sec.line(lib.L.V2, LEAD, 11, [[1, 12, 'e4']])
+      }
+    })
+    expect(faults(s)).toEqual([])
+    const p = docOf(s).patterns.find((x) => x.channel === 'vrc6p2')!
+    expect(p.rows.find((r) => r.r === 28)!.fx).toEqual([{ cmd: '0', param: 0 }])
+  })
+
+  it('cancels a chord on the section last row when nothing else does', () => {
+    const s = modeSong(({ intro, a }, { PAD }) => {
+      chords(intro, PAD)
+      chords(a, PAD)
+    })
+    expect(faults(s)).toEqual([])
+    const p = docOf(s).patterns.find((x) => x.channel === 'vrc6p2')!
+    expect(p.rows.find((r) => r.r === 31)!.fx, 'the seal, on the last row').toEqual([{ cmd: '0', param: 0 }])
+  })
+
+  it('fails if the cancels the library writes are deleted from the document', () => {
+    const s = modeSong(({ intro, a }, { PAD }) => {
+      chords(intro, PAD)
+      chords(a, PAD)
+    })
+    const built = s.build()
+    const last = built.doc.meta.rowsPerPattern - 1
+    const sealed = built.doc.patterns.filter(
+      (p: Any) => p.channel === 'vrc6p2' && p.rows.some((r: Any) => r.r === last && r.fx !== undefined),
+    )
+    expect(sealed.length, 'the library cancels the chord on each section last row').toBeGreaterThan(0)
+    expect(check.checkDoc(built.doc, s.id, built.loopFrame), 'clean while they are there').toEqual([])
+    for (const p of sealed) p.rows = p.rows.filter((r: Any) => r.r !== last)
+    const codes = (check.checkDoc(built.doc, s.id, built.loopFrame) as { code: string }[]).map((x) => x.code)
+    expect(codes, 'and the check is what catches their absence').toContain('sticky-latched')
+  })
+
+  it('reports every mode the library can emit and accepts each documented cancel', () => {
+    // sticky.mjs's table, restated: the param that latches, and the cell that cancels it.
+    const modes: [string, number, [string, number]][] = [
+      ['0', 0x47, ['0', 0x00]], // 0xy arpeggio     -> 000
+      ['1', 0x08, ['1', 0x00]], // 1xx slide up     -> 100
+      ['2', 0x08, ['2', 0x00]], // 2xx slide down   -> 200
+      ['3', 0x10, ['1', 0x00]], // 3xx portamento   -> 100 (NOT 300)
+      ['4', 0x32, ['4', 0x00]], // 4xy vibrato      -> 4x0
+      ['7', 0xa4, ['7', 0x10]], // 7xy tremolo      -> 7x0, x > 0 (NOT 700)
+      ['A', 0x20, ['A', 0x00]], // Axy volume slide -> A00
+      ['P', 0x90, ['P', 0x80]], // Pxx fine pitch   -> P80 (0x80 is in tune)
+    ]
+    for (const [cmd, param, by] of modes) {
+      expect(latchedToTheEnd(cmd, param), `${cmd}${param.toString(16)} left latched`).toContain('sticky-latched')
+      expect(cancelledWith(cmd, param, by), `${cmd}${param.toString(16)} cancelled by ${by[0]}${by[1].toString(16)}`)
+        .toEqual([])
+    }
+  })
+
+  it('refuses 300 and 700 as cancels, which is where §12.5 says a composer loses', () => {
+    // `FX_PORTAMENTO` sets portaEnabled = 1 for every param — `300` freezes the glide,
+    // it does not end it — and `7` is in MEMORY_COMMANDS but not in OFF_ON_ZERO_COMMANDS,
+    // so `resolveParam` turns a bare `700` back into the last tremolo depth.
+    expect(cancelledWith('3', 0x10, ['3', 0x00])).toContain('sticky-latched')
+    expect(cancelledWith('7', 0xa4, ['7', 0x00])).toContain('sticky-latched')
+  })
+
+  it('leaves Vxx alone, because the driver gives dutyOverride no off value', () => {
+    // §12.5's eighth row: `V00` is duty 0, a real duty. A pre-flight that demanded a
+    // cancel here could not be satisfied; `stickyLint` reports it at album level, where
+    // the remedy that exists — restate it on the loop row — is available.
+    expect(latchedToTheEnd('V', 0x02)).toEqual([])
+  })
+
+  it('catches a mode that reaches the loop row, which the end of the order does not see', () => {
+    const s = modeSong(({ intro, a }) => {
+      intro.fx(lib.L.P1, 1, 15, '4', 0x32) // latched on the intro's last row...
+      a.fx(lib.L.P1, 1, 15, '4', 0x00) // ...and cancelled before the order ends
+    })
+    const codes = faults(s)
+    expect(codes, 'pass 1 plays A under a vibrato pass 2 does not have').toContain('sticky-loop')
+    expect(codes, 'and the end of the order is clean, so only this seam reports it').not.toContain('sticky-latched')
+  })
+
+  it('accepts a mode the loop row states itself (§12.5 rule 1)', () => {
+    const s = modeSong(({ intro, a }) => {
+      intro.fx(lib.L.P1, 1, 15, '4', 0x32)
+      a.put(lib.L.P1, 0, { fx: [['4', 0x32]] }) // the loop row owns its own state
+      a.fx(lib.L.P1, 1, 15, '4', 0x00)
+    })
+    expect(faults(s)).toEqual([])
   })
 })
 

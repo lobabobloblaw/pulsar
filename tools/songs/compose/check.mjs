@@ -12,6 +12,7 @@
 import { ALLOWED_EFFECTS, CHANNELS, LANE_FLOOR, L, MAX_NOTE, NOISE_MAX, NOISE_MIN, noteName } from './notes.mjs'
 import { MACRO_KINDS } from './build.mjs'
 import { loadBank } from './bank.mjs'
+import { STICKY_MODES, applyCell, spell, statedBy } from './sticky.mjs'
 
 const PULSE_LANES = [L.P1, L.P2]
 const VRC6_LANES = [L.V1, L.V2, L.SAW]
@@ -178,6 +179,44 @@ export function checkDoc(doc, id, loopFrame) {
       const ok = first !== undefined
         && (first.note === -1 || (first.note !== undefined && first.note >= 0 && first.inst !== undefined && first.vol !== undefined))
       if (!ok) add('loop-row', `${CHANNELS[c]}: no explicit note/inst/vol (or cut) at the loop row, frame ${loopFrame} row 0`)
+    }
+  }
+
+  // --- the channel modes a note trigger does not clear (§12.5) ----------------------
+  // `trigger()` resets the phases and nothing else, so an arpeggio, a slide, a
+  // portamento, a vibrato, a tremolo, a volume slide or a fine pitch outlives its note,
+  // its pattern, its frame and the loop. Two moments change what the piece SOUNDS like:
+  // the end of the order, which is where pass 2 begins, and the loop row, which pass 1
+  // reaches in whatever state the frames before it left. `stickyLint` is the album gate
+  // for the same table; asking it here costs a second instead of a two-minute render.
+  {
+    const byKey = new Map(doc.patterns.map((p) => [`${p.channel}:${p.index}`, p]))
+    const ledgers = doc.channels.map(() => new Map())
+    const rowsOf = (f, c) => [...(byKey.get(`${doc.channels[c]}:${doc.order[f][c]}`)?.rows ?? [])].sort((a, b) => a.r - b.r)
+    let arriving = null
+    for (let f = 0; f < doc.order.length; f++) {
+      // Snapshot BEFORE the loop frame's own row 0, which is allowed to state its modes.
+      if (f === loopFrame) arriving = ledgers.map((l) => new Map(l))
+      for (let c = 0; c < doc.channels.length; c++) {
+        for (const cell of rowsOf(f, c)) applyCell(ledgers[c], cell, `frame ${f} row ${cell.r}`)
+      }
+    }
+    for (let c = 0; c < doc.channels.length; c++) {
+      const set = (info) => `${spell(info.cmd, info.param)} at ${info.where}`
+      for (const [field, info] of ledgers[c]) {
+        add('sticky-latched', `${CHANNELS[c]}: ${STICKY_MODES[field].name} is still latched at the end of the ` +
+          `order — ${set(info)}. Pass 2 starts under it, so it never sounds like pass 1. Cancel it with ` +
+          `${STICKY_MODES[field].text}.`)
+      }
+      if (arriving === null) continue
+      // §12.5 rule 1: a loop row that states the mode itself is clean, however it got there.
+      const stated = statedBy(rowsOf(loopFrame, c).find((r) => r.r === 0))
+      for (const [field, info] of arriving[c]) {
+        if (stated.has(field)) continue
+        add('sticky-loop', `${CHANNELS[c]}: ${STICKY_MODES[field].name} reaches the loop row (frame ${loopFrame} ` +
+          `row 0) latched — ${set(info)}, and the loop row does not state it. Cancel it with ` +
+          `${STICKY_MODES[field].text}, or state it on the loop row.`)
+      }
     }
   }
 

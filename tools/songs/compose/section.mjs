@@ -7,7 +7,8 @@
  *  Every setter validates on the spot and throws naming the section, the lane and the
  *  row. A cell that is wrong at 3 a.m. is cheaper to find here than in a gate's checksum.
  */
-import { CUT, MAX_EFFECT_COLUMNS, MAX_NOTE, REL, STICKY_EFFECTS, hex, n, nib } from './notes.mjs'
+import { CUT, MAX_EFFECT_COLUMNS, MAX_NOTE, REL, hex, n, nib } from './notes.mjs'
+import { applyCell, cancelsFor } from './sticky.mjs'
 
 const LANE_NAMES = ['P1', 'P2', 'TRI', 'NOISE', 'DPCM', 'V1', 'V2', 'SAW']
 
@@ -76,6 +77,36 @@ export class Section {
     return cell
   }
 
+  /** This lane's sticky-effect ledger through `upToRow` inclusive: which channel modes
+   *  of preset-suite §12.5 are latched there, and the cell that latched each.
+   *
+   *  It is DERIVED from the grid rather than tracked alongside it, so one ledger serves
+   *  every writer — `line()`, `chord()`, a bare `put()` — and a cell written out of row
+   *  order still reads correctly. Effect memory is per channel and per MODE, so two
+   *  latched modes are two separate things to cancel. */
+  latched(lane, upToRow = this.len - 1) {
+    const ledger = new Map()
+    for (let r = 0; r <= upToRow && r < this.len; r++) {
+      applyCell(ledger, this.lanes[lane][r], this.where(lane, r))
+    }
+    return ledger
+  }
+
+  /** §12.5's rule for a composer, applied: *every channel mode you turn on, turn off in
+   *  the section that turned it on.* Whatever each lane still has latched at the end of
+   *  the section is cancelled on its last row. A last row that already carries effects of
+   *  its own is left alone — `check()` reports it, because guessing which of four columns
+   *  to displace is not the library's call. Idempotent: `Song.build()` runs it. */
+  sealSticky() {
+    for (let lane = 0; lane < 8; lane++) {
+      const held = this.latched(lane)
+      if (held.size === 0) continue
+      const last = this.lanes[lane][this.len - 1]
+      if (last === null || last.fx === undefined) this.put(lane, this.len - 1, { fx: cancelsFor(held) })
+    }
+    return this
+  }
+
   /** An effect-only cell at `bar`:`row` — a `Bxx` loop, an `Fxx` tempo event, an `A00`
    *  that cancels a fade without restriking anything. */
   fx(lane, bar, row, cmd, param = 0) {
@@ -85,36 +116,26 @@ export class Section {
   /** A melodic line. `events` are `[bar, row, note, cmd?, param?]`; the note may be a
    *  name, a MIDI number, `'---'` (cut) or `'==='` (release).
    *
-   *  Sticky effects — `0xy` arpeggio, `3xx` portamento, `4xy` vibrato, `7xy` tremolo —
-   *  are cleared with a zero param on the next event that carries no effect of its own,
-   *  and, if one is still latched at the end, on the section's last row. Effect memory
-   *  is per channel and per letter and it survives a section boundary and the loop seam
-   *  (§2.9 rule 3), so a hook that wobbles once must not wobble forever. */
+   *  Channel modes — the §12.5 table in `sticky.mjs` — are cancelled on the next event
+   *  that carries no effect of its own, each with the cancel the DRIVER honours and not
+   *  merely a zero param, and anything still latched at the end of the section is
+   *  cancelled on its last row by `sealSticky()`. A mode survives its note, a section
+   *  boundary and the loop seam (§2.9 rule 3), so a hook that wobbles once must not
+   *  wobble forever. */
   line(lane, inst, vol, events) {
-    // Effect memory is per channel and per LETTER, so two latched effects are two
-    // separate things to cancel — clearing only the most recent one leaves the other
-    // running into the next section and across the loop seam.
-    const pending = new Set()
-    const clears = () => [...pending].sort().map((cmd) => [cmd, 0])
     for (const [bar, row, note, cmd, param] of events) {
+      const at = this.at(bar, row)
       const fields = { note, inst, vol }
       if (cmd !== undefined && cmd !== null) {
-        const upper = String(cmd).toUpperCase()
-        const value = param === undefined ? 0 : param
-        fields.fx = [[upper, value]]
-        if (STICKY_EFFECTS.includes(upper)) {
-          if (value === 0) pending.delete(upper)
-          else pending.add(upper)
-        }
-      } else if (pending.size > 0) {
-        fields.fx = clears()
-        pending.clear()
+        fields.fx = [[String(cmd).toUpperCase(), param === undefined ? 0 : param]]
+      } else {
+        // A bare event is the lane playing something that is not part of whatever came
+        // before it, so it cancels every mode still standing — including one a `chord()`
+        // or a raw `put()` left there, not merely this call's own.
+        const held = this.latched(lane, at - 1)
+        if (held.size > 0) fields.fx = cancelsFor(held)
       }
-      this.put(lane, this.at(bar, row), fields)
-    }
-    if (pending.size > 0) {
-      const last = this.lanes[lane][this.len - 1]
-      if (last === null || last.fx === undefined) this.put(lane, this.len - 1, { fx: clears() })
+      this.put(lane, at, fields)
     }
     return this
   }
@@ -133,7 +154,14 @@ export class Section {
   }
 
   /** A chord as one `0xy` arpeggio cell: `chord(lane, inst, vol, bar, row, 'c4', [4, 7])`
-   *  is the root plus a major third and a fifth — the grid's `047`, stored as 71. */
+   *  is the root plus a major third and a fifth — the grid's `047`, stored as 71.
+   *
+   *  `0xy` is a channel MODE, not a one-row effect: it is the same latch `line()` cancels,
+   *  and a chord that is never cancelled voices every later note on the lane and the whole
+   *  second pass of the piece. So a chord enters the same per-lane ledger — the next bare
+   *  `line()` event on the lane cancels it, and `sealSticky()` cancels it on the section's
+   *  last row if nothing else did. The chord's own cell carries an effect, so, exactly
+   *  like `line()`'s effect branch, it does not itself cancel what came before it. */
   chord(lane, inst, vol, bar, row, root, offsets) {
     if (!Array.isArray(offsets) || offsets.length !== 2) {
       throw new Error(`${this.where(lane, this.at(bar, row))}: a 0xy chord takes exactly two offsets, [x, y]`)

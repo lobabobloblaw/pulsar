@@ -12,6 +12,7 @@ tools/songs/compose/
   section.mjs    the Section grid and its setters
   build.mjs      order flattening, the loop seam, the channel prefix
   serialize.mjs  serializeSong's exact byte shape
+  sticky.mjs     the channel modes a note trigger does not clear, and their cancels
   check.mjs      the structural pre-flight
   analyse.mjs    the facts report.mjs prints
   wav.mjs        PCM16 reading, RMS/peak/zero-crossings
@@ -120,6 +121,8 @@ One code per fault; `tests/unit/compose.test.ts` proves each one can fire.
 | `noise-envelope` | a noise volume macro that loops or does not end on 0 — the lane never releases |
 | `instrument-name` | a name that is neither the shared bank's values nor `x-<id>-…` |
 | `loop-row` | a lane that sounds but states nothing at the loop row (§2.9) |
+| `sticky-latched` | a channel mode still latched at the end of the order — pass 2 starts under it (§12.5) |
+| `sticky-loop` | a channel mode that reaches the loop row latched, which the loop row does not state |
 | `thin-lane` | a claimed lane with fewer than eight attacks; the lint refuses it |
 | `bpm-range` / `qa-missing` / `qa-justification` | the declared block does not match the document, or is incomplete |
 
@@ -181,12 +184,17 @@ do not re-gain it.
   kit table for a shared-bank drum (kick 36, snare 39, tom 37, hat-closed 45, hat-open 46,
   crash 46, metal 44, rim 44), or whatever `s.instrument(name, { note })` declared. The
   `note` field is an authoring default and never reaches the file.
-- **`line()` clears its own sticky effects.** `0xy`, `3xx`, `4xy` and `7xy` latch per
-  channel *and per letter*, and survive a section boundary and the loop seam. The next
-  event that carries no effect of its own cancels EVERY letter still latched, each with a
-  zero param, and anything still latched at the end is cancelled on the section's last
-  row. An explicit zero param (`['4', 0]`) counts as the cancel and clears the letter.
-  `put()` does no such thing — it writes exactly what you say.
+- **Every channel mode you turn on is turned off in the section that turned it on** —
+  `0xy` (which is what `chord()` writes), `1xx`/`2xx`, `3xx`, `4xy`, `7xy`, `Axy` and
+  `Pxx` latch per channel and survive the note, the pattern, the frame and the loop
+  (preset-suite §12.5), so the library cancels each on the next bare `line()` event on
+  that lane and, failing that, on the section's last row — and `check()` refuses a piece
+  that ends the order, or reaches the loop row, with one still standing.
+- **The cancel is the one the DRIVER honours, not a zero param.** `sticky.mjs` holds the
+  table: `000`, `100`/`200`, `4x0`, `A00`, `P80` — but `300` only FREEZES the portamento
+  (cancel it with `100`) and `700` REPLAYS the last tremolo depth (cancel it with `7x0`,
+  x > 0). `Vxx` has no off value at all, so the library cannot police it; state it on the
+  loop row if you use it. `put()` writes exactly what you say and nothing else.
 - **`put(lane, row, …)` takes an ABSOLUTE row** inside the section; `line`, `hits`,
   `chord` and `fx` take `bar, row`. `at(bar, row)` converts.
 - **`order()` names sections, not frames.** A section longer than one pattern becomes
