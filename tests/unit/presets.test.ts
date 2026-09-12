@@ -1051,12 +1051,24 @@ describe('the shared instrument bank', () => {
   })
 })
 
-/** ESCALATE, 2026-09-11 — tide-tables really does carry four channel modes across its own
- *  loop, and this gate is the first thing to walk that seam. They are PINNED here, not
- *  waived: the gate reports them in full, the list cannot grow without this assertion
- *  failing, and fixing the song fails it too (delete the entry in the same commit). The
- *  frame:row evidence is in `docs/preset-suite.md` §12. Fixing it changes what the album
- *  sounds like on its second pass, which is the composer's call and not a test's. */
+/** RESOLVED 2026-09-11 — NOT a port defect. tide-tables really does carry four channel
+ *  modes across its own loop, and the escalation these entries opened asked the right
+ *  question: is that Pulsar's driver diverging from the engine the piece was composed on?
+ *  It is not. OCTET's `core/engine.js` latches `4xy` and `7xy` exactly as `trackerDriver`
+ *  does — `applyCell` writes `vibDepth`/`tremDepth` and only a zero depth nibble clears
+ *  them, `triggerNote` resets the PHASES and not the modes, and `nextOrder()` wraps the
+ *  order with no channel reset, so the modes cross the loop there too. Running OCTET's own
+ *  engine over its own document for two passes reproduces the finding: of 189 note events
+ *  a pass, the one that differs audibly is `vrc6saw` frame 2 row 0 under `7xy` depth 2 —
+ *  the same note, the same effect, the same pass. `convert.mjs` carries every `3xx`, `4xy`
+ *  and `7xy` cell over one for one (34/3/2/20/4 per lane, both sides), so there is nothing
+ *  for `applyEngineDifferences` to correct: the song already plays what was composed.
+ *
+ *  The entries therefore stay as a PIN on the music, not a waiver of a bug: the gate still
+ *  reports all six in full, the list cannot grow without this assertion failing, and a
+ *  later edit that cancels one fails it too (delete the entry in the same commit).
+ *  Evidence and the frame:row table are in `docs/preset-suite.md` §12 and
+ *  `docs/soundtrack.md`. Changing the song here would be re-composition. */
 const KNOWN_STICKY: Record<string, string[]> = {
   'tide-tables': [
     'seam:vrc6p1:vibrato',

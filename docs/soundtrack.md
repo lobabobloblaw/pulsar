@@ -57,6 +57,19 @@ drone that is held across the seam and cuts the five lanes that are silent there
 bells, their echoes and the three VRC6 voices, which release in the penultimate pattern.
 Skyline Run keeps its own loop-entry cells and its DPCM restart gates.
 
+**Channel modes across the loop — checked, and deliberately NOT corrected.** Gate B2
+reports six findings on Tide Tables: `4xy` vibrato latched on both VRC6 pulses at the loop
+row, `3xx` and `7xy` latched on the sawtooth, and 33 notes triggering under a vibrato
+stated 320 rows earlier. That looked like the port, and it is not. OCTET's `core/engine.js`
+latches the same modes the same way — `applyCell` writes `vibDepth`/`tremDepth` and only a
+zero depth nibble clears them, `triggerNote` resets the phases and not the modes, and
+`nextOrder()` wraps the order without resetting a channel — so the source engine carries
+them across its own loop too. Driven over its own document for two passes it reproduces the
+finding note for note: one audible difference, the sawtooth's entrance at frame 2 row 0
+sounding under tremolo depth 2 on pass 2 and dry on pass 1. `convert.mjs` carries every
+`3xx`, `4xy` and `7xy` cell over one for one, so there is nothing to compensate;
+`applyEngineDifferences` is untouched and the song is what OCTET plays.
+
 Both eight-voice songs claim seven lanes and declare a silent `dpcm` as well, because
 `channels` is a prefix of the canonical eight and reaching `vrc6p1` means carrying every
 lane before it. That lane gets an empty pattern and a `0` in each order frame.
