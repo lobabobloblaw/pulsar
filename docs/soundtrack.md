@@ -48,7 +48,7 @@ The first three rows are the ports, the last three the pieces composed here.
 | Long Light | Open mid-tempo, eight voices | 100 | 2:34 | Horizon, A, A′, B, air, answer, build, light, descent (16 frames of four bars) in F lydian, the raised fourth heard rather than implied; a five-row ostinato phasing against the four-row beat for three full cycles, an arpeggio bed established and then taken away so the ear supplies the harmony, two sections of two lanes and nothing else, a chromatic mediant on a stationary common tone, an Italian sixth resolving outward, and the global peak held back to the last third |
 
 About twenty-one minutes of first-pass material. The nine span every mode the preset
-lint knows — major, minor, dorian, phrygian, lydian, mixolydian — on five different roots,
+lint knows — major, minor, dorian, phrygian, lydian, mixolydian — on four different roots,
 at 56, 100, 120, 150 and 180 BPM, and on grids from three rows to the bar-beat up to
 ninety-six rows to the frame. For a quick contrast test, audition **Blue Hour → Winding
 Stair → Long Light**: a shuffle in four, a gallop in three and an open piece that will not
