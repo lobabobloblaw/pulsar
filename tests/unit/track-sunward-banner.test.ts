@@ -251,6 +251,59 @@ describe('06 Sunward Banner', () => {
     expect(gaps.filter((g) => g === 16)).toHaveLength(1)
   })
 
+  it('hands the loop row a sounding dominant and a pickup, not a row of silence', () => {
+    // §2.9 rule 5. The coda's last row is 200 ms of wall clock, because the ritardando
+    // has reached speed 12 by then: whatever it holds is what the seam sounds like.
+    const last = song.order.length - 1
+    const seam = at(last, ROWS - 1)
+    // the three lanes the loop row leaves silent are cut there, and only those three
+    for (const ch of ['pulse2', 'vrc6p1', 'vrc6p2'] as const) {
+      expect(lane(ch).get(seam)?.note, ch).toBe(-1)
+      expect(notes(ch).get(at(qa.loopFrame)), ch).toBeUndefined()
+    }
+    // the five the loop row restrikes sound straight through it — no cut, no release
+    for (const ch of ['pulse1', 'triangle', 'vrc6saw', 'noise', 'dpcm'] as const) {
+      const tail = [...lane(ch)].filter(([row]) => row >= at(last))
+      expect(tail.some(([, c]) => c.note !== undefined && c.note < 0), ch).toBe(false)
+      expect(notes(ch).get(at(qa.loopFrame)), ch).toBeGreaterThan(0)
+    }
+    // ...and the ritardando's final hit lands ON that row, as a pickup into the theme
+    expect(notes('noise').get(seam)).toBe(36)
+    expect(notes('dpcm').get(seam)).toBe(36)
+  })
+
+  it('reaches the loop row with no sticky effect still latched on any lane', () => {
+    // The driver keeps 0xy/3xx/4xy/7xy/Qxy/Rxy/Axy per CHANNEL, and a note trigger does
+    // NOT clear them (`applyRowEffect`), so one left latched at the last row plays over
+    // the whole of every pass after the first. Walk the order and read the state out.
+    const STICKY = ['0', '3', '4', '7', 'Q', 'R', 'A']
+    const CLEARS_ARP = ['1', '2', '3', 'Q', 'R'] // these zero arpParam as a side effect
+    const stateOf = (ch: ChannelId): Map<string, number> => {
+      const state = new Map<string, number>()
+      for (const [, cell] of [...lane(ch)].sort((a, b) => a[0] - b[0])) {
+        for (const e of cell.fx ?? []) {
+          if (e === null) continue
+          if (CLEARS_ARP.includes(e.cmd)) state.set('0', 0)
+          if (STICKY.includes(e.cmd)) state.set(e.cmd, e.param)
+        }
+      }
+      return state
+    }
+    for (const ch of song.channels) {
+      expect([...stateOf(ch)].filter(([, param]) => param !== 0), ch).toEqual([])
+    }
+    // anti-vacuity: the piece really does latch every sticky effect it uses, so the loop
+    // above is reading cancellations rather than an absence of effects
+    const fx = (ch: ChannelId, cmd: string) => [...lane(ch)]
+      .flatMap(([row, c]) => (c.fx ?? []).filter((e) => e !== null && e.cmd === cmd).map((e) => [row, e!.param] as const))
+    expect(fx('vrc6p2', '0').filter(([, p]) => p !== 0).length).toBeGreaterThan(8) // the bridge stabs
+    expect(fx('pulse1', '4').filter(([, p]) => p !== 0).length).toBeGreaterThan(20) // delayed vibrato
+    expect(fx('vrc6p1', 'A').filter(([, p]) => p !== 0).length).toBeGreaterThan(0) // the brass swells
+    for (const [ch, cmd] of [['vrc6p2', '0'], ['pulse1', '4'], ['vrc6p1', 'A']] as const) {
+      expect(fx(ch, cmd).filter(([, p]) => p === 0).length, `${ch} ${cmd}`).toBeGreaterThan(0)
+    }
+  })
+
   it('slows into the loop and restores its own speed on the loop row', () => {
     const last = song.order.length - 1
     const rit = [...lane('noise')]

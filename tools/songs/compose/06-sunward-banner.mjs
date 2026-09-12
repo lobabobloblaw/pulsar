@@ -903,28 +903,34 @@ const chorusP = s.section('chorusP', 16)
 // turnaround, and the theme's bare d answers the leading tone. An Fxx
 // ritardando slows the last bar from speed 6 to 12 under decelerating drum hits, and the
 // loop row restores speed 6 (§2.9 rule 3 — a tempo, like an effect, survives the seam).
+//
+// THE SEAM. At speed 12 one row is 200 ms, so what the last row holds is not a detail.
+// Nothing releases inside the last bar and the A7 sounds through 22:63; the final kick
+// lands ON 22:63 as a pickup; and only pulse 2, vrc6p1 and vrc6p2 — the three lanes the
+// loop row leaves silent — are cut there. The dominant is still sounding when the theme
+// answers it, which is the difference between a loop and a stop.
 // =====================================================================================
 const coda = s.section('coda', 4)
 {
   // With only two brass voices, spell the chord with the two tones that define it: the
   // dominant gets its third and its seventh (c#4 and g4, a tritone apart), the root left
   // to the bass pair. b3 -> c#4 rises a step as g#4 -> g4 falls a semitone.
+  // No lane releases inside the last bar. At speed 12 one row is 200 ms, so a chord that
+  // lets go three rows early leaves a hole where the turnaround should be (§2.9 rule 5).
   const chords = [[0, 'e2', 'b3', 'g#4'], [1, 'e2', 'b3', 'g#4'], [2, 'a2', 'c#4', 'g4'], [3, 'a2', 'c#4', 'g4']]
   for (const [bar, bass, mid, top] of chords) {
-    const len = bar === 3 ? 13 : 16
-    hold(coda, L.SAW, SAWBASS, 10, bar, 0, bass, len)
+    hold(coda, L.SAW, SAWBASS, 10, bar, 0, bass, 16)
     coda.put(L.TRI, coda.at(bar, 0), { note: n(bass) + 12, inst: BASS, vol: 15 })
-    if (bar === 3) coda.put(L.TRI, coda.at(3, 13), { note: CUT })
-    hold(coda, L.V2, BRASS, 9, bar, 0, mid, len)
-    hold(coda, L.V1, BRASS, 9, bar, 0, top, len)
+    hold(coda, L.V2, BRASS, 9, bar, 0, mid, 16)
+    hold(coda, L.V1, BRASS, 9, bar, 0, top, 16)
   }
   const tune = [
     [0, 0, 'e5'], [1, 0, 'f#5'], [1, 8, 'g#5'], [2, 0, 'a5'], [2, 8, 'g5'],
-    [3, 0, 'e5', '4', 0x42], [3, 13, '---'],
+    [3, 0, 'e5', '4', 0x42],
   ]
   sing(coda, L.P1, LEAD, 13, tune)
   for (const [bar, row, note] of tune) {
-    coda.put(L.P2, coda.at(bar, row), note === '---' ? { note: CUT } : { note: n(note) - 12, inst: COUNTER, vol: 10 })
+    coda.put(L.P2, coda.at(bar, row), { note: n(note) - 12, inst: COUNTER, vol: 10 })
   }
   for (const [row, inst, vol, note] of [[0, CRASH, 12, 46], [0, KICK, 13, 36], [8, KICK, 12, 36]]) {
     coda.put(L.NOISE, coda.at(0, row), { note, inst, vol })
@@ -937,18 +943,23 @@ const coda = s.section('coda', 4)
     for (const row of [4, 12]) coda.put(L.DPCM, coda.at(bar, row), { note: KIT.snare, inst: KIT.inst, vol: 12 })
   }
   coda.put(L.NOISE, coda.at(2, 0), { note: 46, inst: CRASH, vol: 12 })
-  // the last bar: four hits getting further apart as the tempo falls away
-  for (const [row, inst, vol, note] of [[0, CRASH, 11, 46], [4, SNARE, 11, SNARE_LO], [10, SNARE, 9, SNARE_LO], [14, KICK, 12, 36]]) {
+  // the last bar: four hits getting further apart as the tempo falls away, the last of
+  // them ON the loop row, so the seam gets a pickup into the theme's downbeat
+  for (const [row, inst, vol, note] of [[0, CRASH, 11, 46], [4, SNARE, 11, SNARE_LO], [10, SNARE, 9, SNARE_LO], [15, KICK, 12, 36]]) {
     coda.put(L.NOISE, coda.at(3, row), { note, inst, vol })
   }
   coda.put(L.DPCM, coda.at(3, 0), { note: KIT.kick, inst: KIT.inst, vol: 12 })
-  coda.put(L.DPCM, coda.at(3, 14), { note: KIT.kick, inst: KIT.inst, vol: 12 })
+  coda.put(L.DPCM, coda.at(3, 15), { note: KIT.kick, inst: KIT.inst, vol: 12 })
   for (const [row, speed] of [[48, 7], [56, 9], [60, 12]]) {
     const cell = coda.lanes[L.NOISE][row]
     coda.put(L.NOISE, row, { fx: [...(cell?.fx ?? []), ['F', speed]] })
   }
-  // nothing rings across the seam (§2.9 rule 4)
-  for (const lane of [L.P1, L.P2, L.TRI, L.V1, L.V2, L.SAW]) coda.put(lane, coda.len - 1, { note: CUT })
+  // §2.9 rule 4 is "nothing rings across the seam UNRESOLVED", not "everything stops".
+  // The loop row restrikes pulse 1 (d5), the triangle (d3), the sawtooth (d2), the crash
+  // and the DPCM kick, so those five may sound straight through 22:63 and be answered
+  // rather than cut — which is what keeps the last 200 ms of the ritardando from being
+  // digital silence. Only the three lanes the loop row leaves silent are cut here.
+  for (const lane of [L.P2, L.V1, L.V2]) coda.put(lane, coda.len - 1, { note: CUT })
 }
 
 // --- the order, the declaration, the file ---------------------------------------------
@@ -986,7 +997,7 @@ s.qa({
     '(§9.4). The Fxx ritardando slows speed 6 -> 7 -> 9 -> 12 over 22:48-22:63, and the',
     'loop row restores speed 6 at 2:0 because a tempo survives the seam as an effect does.',
   ].join(' '),
-  renderChecksum: 1819303205,
+  renderChecksum: 4165215518,
 })
 s.check()
 s.write('src/assets/songs/06-sunward-banner.json')

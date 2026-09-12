@@ -25,7 +25,7 @@
     "vrc6saw"
   ],
   "effectColumns": [
-    1,
+    2,
     1,
     1,
     1,
@@ -2167,21 +2167,12 @@
           ]
         },
         {
-          "r": 61,
-          "note": -1,
-          "inst": 0,
-          "vol": 13,
+          "r": 63,
           "fx": [
             {
               "cmd": "4",
               "param": 0
-            }
-          ]
-        },
-        {
-          "r": 63,
-          "note": -1,
-          "fx": [
+            },
             {
               "cmd": "B",
               "param": 2
@@ -3156,10 +3147,6 @@
           "note": 64,
           "inst": 1,
           "vol": 10
-        },
-        {
-          "r": 61,
-          "note": -1
         },
         {
           "r": 63,
@@ -5331,14 +5318,6 @@
           "note": 57,
           "inst": 11,
           "vol": 15
-        },
-        {
-          "r": 61,
-          "note": -1
-        },
-        {
-          "r": 63,
-          "note": -1
         }
       ]
     },
@@ -11401,7 +11380,7 @@
           ]
         },
         {
-          "r": 62,
+          "r": 63,
           "note": 36,
           "inst": 13,
           "vol": 12
@@ -12762,7 +12741,7 @@
           "vol": 12
         },
         {
-          "r": 62,
+          "r": 63,
           "note": 36,
           "inst": 19,
           "vol": 12
@@ -13510,10 +13489,6 @@
           "note": 67,
           "inst": 2,
           "vol": 9
-        },
-        {
-          "r": 61,
-          "note": -2
         },
         {
           "r": 63,
@@ -14370,10 +14345,6 @@
           "note": 61,
           "inst": 2,
           "vol": 9
-        },
-        {
-          "r": 61,
-          "note": -2
         },
         {
           "r": 63,
@@ -17685,14 +17656,6 @@
           "note": 45,
           "inst": 5,
           "vol": 10
-        },
-        {
-          "r": 61,
-          "note": -2
-        },
-        {
-          "r": 63,
-          "note": -1
         }
       ]
     }
@@ -18424,7 +18387,7 @@
         "rev": 2
       },
       "notes": "D major. The raised chromatic allowance covers four prepared and resolved devices, each in a different section. (1) Chained secondaries, E (V/V) -> A (V) -> D across 4:32-5:0, with the tune reaching the lydian g#5 at 4:40. (2) Modal interchange: a borrowed bVI (Bb) and bVII (C) for the whole lift, 8:0-9:31, under a suspension chain. (3) An Italian sixth at 13:32 — bass Bb2 with d4 on vrc6p2, g#4 on vrc6p1 and d5 in the lead — resolving outward onto A at 13:36, the bass falling a semitone as the g#4 rises one. (4) A true pivot modulation at 17:16-17:63: A is V in D and IV in E, so the build leaves D through its own dominant and B7 confirms E, and the final chorus is a whole step up, which is most of the accidental count on its own. Written suspensions and appoggiaturas: 5:28-5:36, the lead strikes d5 over D/F#, holds it over the A that arrives at 5:32 and resolves to c#5 at 5:36, with vrc6p2 doing the same underneath; the brass chain at 8:0 (d#4 -> d4), 8:48 (f4 -> e4) and 9:32 (d4 -> c#4); 10:48, where the lead attacks g5 — the fourth over D — on the downbeat and resolves to f#5 at 10:52; and 11:32-11:44, where pulse 2 prepares d4 as the fifth of G, holds it over the A of 11:40 and resolves down to c#4. Effect params are DECIMAL: 66 is the grid's 442 vibrato, 67 is 443, 49 is 431, and the vrc6p2 stabs use 55 = 037, 71 = 047 and 56 = 038 (F# major in first inversion, because 0xy only builds upward from the written note). percussionGap is 16 rather than the default 8 for exactly one gap, 15:48-15:63: the bar where the kit stops dead under the sawtooth cell and the stabs, which is the piece's one metric surprise (§9.4). The Fxx ritardando slows speed 6 -> 7 -> 9 -> 12 over 22:48-22:63, and the loop row restores speed 6 at 2:0 because a tempo survives the seam as an effect does.",
-      "renderChecksum": 1819303205
+      "renderChecksum": 4165215518
     }
   }
 }
