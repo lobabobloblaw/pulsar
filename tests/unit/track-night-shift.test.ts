@@ -116,9 +116,10 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
     expect(comp).toEqual([10, 11, 12, 13])
     // EVERY note-carrying vrc6p2 cell in comp is two ticks late. `Gxx` is not a channel
     // mode — the driver reads it per cell — so a lane that lays back needs it on all of
-    // them, and there is nothing to cancel afterwards.
+    // them, and there is nothing to cancel afterwards. Six a bar for six of the eight bars,
+    // and five in bars 5 and 7, where the comping hand lays out at the phrase end.
     const behind = attacks('vrc6p2', comp)
-    expect(behind).toHaveLength(48)
+    expect(behind).toHaveLength(46)
     expect(behind.every((c) => hasFx(c, 'G', 2))).toBe(true)
     expect(behind[0].row).toBe(10 * ROWS + 2)
     expect(behind.at(-1)!.row).toBe(13 * ROWS + 62)
@@ -142,6 +143,13 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
     const strum = attacks('vrc6p2', framesOf("A''")).filter((c) => hasFx(c, 'G', 1))
     expect(strum.length).toBeGreaterThanOrEqual(10)
     expect(strum[0].row).toBe(19 * ROWS + 14)
+    // The claim this piece makes is SECTIONAL, not that the album has no other delay
+    // (Blue Hour's is a global feel over four lanes and all sixteen of its frames). What
+    // has to stay true is the concentration: the great majority of this piece's delay
+    // cells live inside one section, against lanes that are dead on.
+    const allG = song.channels.flatMap((ch) => timeline(ch).filter((c) => hasFx(c, 'G')))
+    const inComp = allG.filter((c) => comp.includes(c.frame))
+    expect(inComp.length / allG.length).toBeGreaterThan(0.8)
   })
 
   it('a six-row cell carries its phase across three frames — 0, 2, 4, computed for 64 rows', () => {
@@ -246,7 +254,7 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
   it('pulse 2 is an independent line for the whole of comp, and carries the 4–3 suspension', () => {
     const comp = framesOf('comp')
     const p2 = attacks('pulse2', comp)
-    expect(p2).toHaveLength(31)
+    expect(p2).toHaveLength(30)
     expect(p2[0].row).toBe(10 * ROWS + 4)
     expect(p2.at(-1)!.row).toBe(13 * ROWS + 58)
     const p1Rows = new Set(attacks('pulse1', comp).map((c) => c.row))
@@ -257,14 +265,25 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
       expect(rowsOf(attacks('pulse2', [f])).join(), `frame ${f}`)
         .not.toBe(rowsOf(attacks('pulse1', [f])).join())
     }
-    // the cadential 4–3: d4 at 13:32 is Bm7's third, it holds through the change to A7 on
-    // row 48 (nothing restrikes it there) and resolves DOWN BY STEP to c#4 at 13:52
-    expect(cellAt('pulse2', 13, 32)?.note).toBe(62)
-    expect(cellAt('pulse2', 13, 48)).toBeUndefined()
-    expect(cellAt('pulse2', 13, 52)?.note).toBe(61)
-    // the second one is the same figure in A′
-    expect(cellAt('pulse2', 9, 40)?.note).toBe(62)
-    expect(cellAt('pulse2', 9, 52)?.note).toBe(61)
+    // THE CADENTIAL SUSPENSION, in its three parts. PREPARED: e4 attacks on the last beat
+    // of bar 6 (13:24), where the chord is Gmaj7 and e is a consonant sixth. SUSPENDED:
+    // there is NO CELL at 13:32, so the same pitch is tied across the barline into Bm7,
+    // where it is a dissonant eleventh. RESOLVED: down by step to d4 at 13:52.
+    expect(cellAt('pulse2', 13, 24)?.note).toBe(64)
+    expect(cellAt('pulse2', 13, 32)).toBeUndefined()
+    expect(cellAt('pulse2', 13, 52)?.note).toBe(62)
+    // …and the suspended pitch is NOT one vrc6p2 is already playing: the comp holds to
+    // d4 and a4 through that bar, so an e4 is a voice, where a d4 would be a doubling.
+    const comping = attacks('vrc6p2', [13]).filter((c) => c.r >= 32).map((c) => c.note)
+    expect([...new Set(comping)].sort((a, b) => (a as number) - (b as number))).toEqual([62, 69])
+    expect(comping).not.toContain(64)
+    // the second one is the same figure at A′'s cadence, prepared as Bm7's third at 9:24,
+    // tied into 9:32 where the bass walks to a1, resolving at 9:40 while that a1 sounds
+    expect(cellAt('pulse2', 9, 24)?.note).toBe(62)
+    expect(cellAt('pulse2', 9, 32)).toBeUndefined()
+    expect(cellAt('pulse2', 9, 40)?.note).toBe(61)
+    expect(cellAt('vrc6saw', 9, 38)?.note).toBe(33) // a1, still the bass at the resolution
+    expect(cellAt('vrc6saw', 9, 48)?.note).toBe(31) // it does not leave for g1 until here
     // and it sings: the long notes carry vibrato written a beat after the attack
     expect(timeline('pulse2').filter((c) => hasFx(c, '4')).length).toBeGreaterThanOrEqual(4)
   })
@@ -291,6 +310,24 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
     expect(rowsOf(attacks('triangle', [18])).slice(0, 6)).toEqual(TRESILLO)
   })
 
+  it("the climax's kit is not one two-bar loop", () => {
+    // The three frames of A″ are sixteen seconds of the loudest part of the piece. A noise
+    // lane that is byte-identical across them is the reference document's unchanging-drum-
+    // pattern failure landing where it costs most, and it is invisible in an attacks-per-
+    // frame map because the ghosts take their rows FROM the sixteenth hats: the count stays
+    // 32 a frame while the pattern thickens in snare bar by bar.
+    const [a, b, c] = framesOf("A''").map((f) =>
+      JSON.stringify(pattern('noise', f).rows.filter((r) => r.r <= 55)))
+    expect(new Set([a, b, c]).size).toBe(3)
+    const ghosts = (f: number) => attacks('noise', [f]).filter((x) => x.note === 39 && (x.vol ?? 0) <= 6).length
+    const counts = framesOf("A''").map(ghosts)
+    expect(counts[1]).toBeGreaterThan(counts[0]) // the ghosts thicken into the C7…
+    // …and hold through the peak, even though frame 21 gives its last half-bar up to the
+    // section-ending fill, which takes back two of the ghosts bar 5 would otherwise have.
+    expect(counts[2]).toBeGreaterThanOrEqual(counts[1])
+    expect(counts).toEqual([8, 10, 10])
+  })
+
   it('the global peak is one appoggiatura in the last third, and the lead shuts up elsewhere', () => {
     const lead = attacks('pulse1')
     const peak = Math.max(...lead.map((c) => c.note as number))
@@ -304,6 +341,11 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
     // …and the lane is silent for most of the piece, which is the idiom, not an omission
     const silent = song.order.map((_, f) => attacks('pulse1', [f]).length).filter((n) => n === 0)
     expect(silent.length).toBeGreaterThanOrEqual(12)
+    // …and when it does speak it is not one level: the answer phrase enters at 10 and
+    // climbs to 14, in a piece whose subject is how hard an attack lands
+    expect(new Set(attacks('pulse1').map((c) => c.vol)).size).toBeGreaterThanOrEqual(6)
+    expect(cellAt('pulse1', 5, 40)?.vol).toBe(10)
+    expect(cellAt('pulse1', 9, 40)?.vol).toBe(10)
   })
 
   it('nine fills, none identical, and no fill at the loop seam', () => {

@@ -89,20 +89,28 @@
  *          (D) a six-row cell on vrc6p1 through graveyard, unbroken from 14:0 to 16:52,
  *            entry rows 14:0, 15:2, 16:4 — three frames, after which the carry would return
  *            to entry row 0; the cell stops at 16:52, before the `D00`.
- *          (G) `G02` used structurally: vrc6p2's comping (48 cells, 10:2 to 13:62) and the
- *            noise ghosts (19 cells) through the whole of comp. Dead on, deliberately: the
- *            sawtooth bass, the DPCM kick and snare, the noise hats and vrc6p1's held guide
- *            tone. A″'s `G01` on the horn stabs (11 cells from 19:14) is decorative, not
- *            structural, and is a different amount of lateness on purpose.
+ *          (G) `G02` used SECTIONALLY and CONTRASTIVELY. The honest claim is not that the
+ *            album has no other `Gxx` — measured across the shipped nine, Blue Hour carries
+ *            186 delay cells over four lanes and ALL SIXTEEN of its frames (a global feel),
+ *            Winding Stair 42, Long Light 12, Tide Tables 2. This piece carries 76, and 64
+ *            of them sit inside ONE section: vrc6p2's comping (46 cells, 10:2 to 13:62) and
+ *            the noise ghosts (18) through the whole of comp, against a sawtooth bass, a
+ *            DPCM kick and snare, hats and a vrc6p1 guide tone that are deliberately dead
+ *            on. The contrast is the device; a whole mix moved back two ticks is the same
+ *            mix. A″'s `G01` on the horn stabs (11 cells from 19:14) is a decorative strum
+ *            at a different amount of lateness, and the single `G02` at 7:63 is a flam.
  *          (H) the metric surprise, exactly one: `D00` at 16:55 drops the last beat of
  *            graveyard (a 56-row frame — a beat is eight rows here), so the lift arrives a
- *            whole beat early. Not at the
- *            loop seam.
- *    §9.2  pulse 2 is an independent line for the whole of comp — 31 attacks from 10:4 to
+ *            whole beat early. Not at the loop seam.
+ *    §9.2  pulse 2 is an independent line for the whole of comp — 30 attacks from 10:4 to
  *            13:58, its own off-sixteenth rhythm and its own contour — and it carries the
- *            cadential 4–3 SUSPENSION: d4 at 13:32 holds through the change to A7 at 13:48
- *            and resolves down to c#4 at 13:52. The second is the same 4–3 in A′: d4 at
- *            9:40 across the change to A7 at 9:48, resolving to c#4 at 9:52.
+ *            cadential 4–3 SUSPENSION, written in its three parts: PREPARED as a consonant
+ *            sixth over Gmaj7 at 13:24, TIED across the barline (no attack at 13:32) where
+ *            Bm7 makes the same pitch a dissonant eleventh, RESOLVED down by step to d4 at
+ *            13:52 — and off vrc6p2's own d4/a4, which a d4 here would have doubled at the
+ *            unison. The second is the same figure at A′'s cadence: d4 prepared as Bm7's
+ *            third at 9:24, tied into 9:32 where the bass walks to a1 and the pitch becomes
+ *            the fourth, resolving to c#4 at 9:40 while that a1 still sounds.
  *    §9.3  common-tone diminished at 6:62 → 7:0 (A°7 → A7) and again, transposed, at
  *            19:62 → 20:0 (C°7 → C7); true pivot modulation by a MINOR THIRD — Am7 arrives
  *            as the borrowed iv of E at 16:32, stands bare on two voices at 17:0 where it
@@ -548,7 +556,7 @@ const LICK_G = [
  *  tonic, the lead climbs f#4 · a4 · b4 · c#5 — contrary motion at the cadence, and the
  *  c#5 is the raised sixth handing A′ its first note. */
 const ANSWER_A = [
-  [8, '-'], [8, 'f#4', 11], [8, 'a4', 12], [6, 'b4', 12], [2, 'c#5', 13],
+  [8, '-'], [8, 'f#4', 9], [8, 'a4', 10], [6, 'b4', 12], [2, 'c#5', 13],
 ]
 
 const A = s.section('A', 8)
@@ -648,7 +656,11 @@ const A2 = s.section("A'", 8)
   // at bar 7 row 16, and it resolves down to c#4 four rows later (§9.2).
   phrase(A2, L.P2, VOICE, A2.at(3, 20), [[6, 'c#4', 10], [6, 'b3', 9], [4, '-']])
   phrase(A2, L.P2, VOICE, A2.at(5, 16), [[6, 'b3', 10], [6, 'a3', 9], [4, '-']])
-  phrase(A2, L.P2, VOICE, A2.at(7, 8), [[12, 'd4', 11], [8, 'c#4', 10], [4, '-']])
+  // …and the same figure at the cadence, prepared: d4 attacks on the last beat of bar 6
+  // (9:24) where it is Bm7's third, TIES across the barline into 9:32 where the bass walks
+  // to a1 and the same pitch becomes the fourth, and resolves down by step to c#4 at 9:40
+  // while that a1 is still sounding — the bass does not leave for g1 until 9:48.
+  phrase(A2, L.P2, VOICE, A2.at(6, 24), [[16, 'd4', 11], [8, 'c#4', 10], [4, '-']])
   // TRI  one extra tenor figure over the ii, so the triangle is a line in A′ and only an
   // answer in A.
   phrase(A2, L.TRI, TRI_SHORT, A2.at(4, 24), [[4, 'c#4'], [4, 'b3'], [4, 'a3'], [4, '-']], { fixedVol: 15 })
@@ -703,8 +715,15 @@ const COMP_ROWS = [2, 6, 14, 18, 22, 30]
 const COMP_BARS = ['em', 'csm7b5', 'a13', 'fsm', 'bm', 'em', 'gmaj', 'bm']
 /** Pulse 2's line through the whole section (§9.2): its own off-sixteenth rhythm, its own
  *  contour — rising over bars 0, 2 and 4, falling over 1, 3 and 5 — its own breath at bar 5
- *  where pulse 1 finally speaks, and the cadential 4–3 SUSPENSION in bar 7: d4 is Bm7's
- *  third, it is held through the change to A7 on row 16, and it resolves down to c#4. */
+ *  where pulse 1 finally speaks, and the cadential 4–3 SUSPENSION across the last barline.
+ *
+ *  The suspension is written the way a suspension actually works, in three parts. PREPARED:
+ *  e4 attacks on the last beat of bar 6 (13:24), where Gmaj7 makes it a consonant sixth.
+ *  SUSPENDED: it is TIED across the barline into bar 7 — no attack at 13:32 — where the
+ *  chord is Bm7 and the same pitch is now a dissonant eleventh. RESOLVED: down by step to
+ *  d4 at 13:52, Bm7's third. It also keeps pulse 2 off vrc6p2's own notes: the comp plays
+ *  d4 and a4 through bar 7, so a d4 here would have been a unison doubling spending a voice
+ *  on a pitch another lane already has. */
 const COMP_VOICE = [
   [4, '-'], [6, 'b3', 10], [8, 'd4', 10], [8, 'e4', 11], [6, 'g4', 11],
   [2, '-'], [8, 'g4', 11], [10, 'e4', 10], [8, 'c#4', 10], [4, 'b3', 9],
@@ -712,8 +731,8 @@ const COMP_VOICE = [
   [2, '-'], [10, 'a4', 12], [8, 'f#4', 11], [8, 'e4', 10], [4, 'c#4', 10],
   [4, '-'], [8, 'b3', 10], [8, 'd4', 10], [6, 'f#4', 11], [6, 'a4', 11],
   [2, '-'], [6, 'g4', 11], [6, '-'], [8, 'e4', 10], [8, 'd4', 10], [2, 'b3', 9],
-  [4, '-'], [8, 'b3', 10], [6, 'd4', 10], [8, 'c#4', 10], [6, 'a3', 9],
-  [20, 'd4', 11], [6, 'c#4', 10], [6, 'b3', 9],
+  [4, '-'], [8, 'b3', 10], [6, 'd4', 10], [6, 'c#4', 10], [8, 'e4', 10],
+  [20, '~'], [6, 'd4', 10], [6, 'b3', 9],
 ]
 /** L a fifth up, over Bm7 → Em7 — the same eleven rows, the same shape, a new register.
  *  Its peak (g5) stays under the piece's global peak, which belongs to the last third. */
@@ -742,7 +761,10 @@ const comp = s.section('comp', 8)
       // The comp alternates the chord's two guide tones, so it is a line and not a pedal,
       // and it is ACCENTED on the pushes (rows 6, 22, 30) and ghosted on the sixteenths
       // after the beat: a comping hand has two weights, and the volume column is the only
-      // place this machine keeps them.
+      // place this machine keeps them. At the two phrase ends (bars 5 and 7) it drops the
+      // row-14 scratch and breathes — six bars of the eight state the grid in full, which
+      // is what makes the drag legible, and a hand that never lays out is a sequencer.
+      if ((bar === 5 || bar === 7) && r === 14) return
       const vol = r === 6 || r === 22 || r === 30 ? 11 : 8
       comp.put(L.V2, comp.at(bar, r), { note: n(i % 2 === 0 ? lo : hi), inst: COMP, vol, fx: [['G', DRAG]] })
     })
@@ -982,11 +1004,17 @@ const A3 = s.section("A''", 6)
   // the backbeat, ghosts on four off-sixteenths, the kick on 1, the "and of 2" and the push
   // into beat 4.
   for (let bar = 0; bar < 6; bar++) {
+    // The ghosts THICKEN bar by bar, and because they are written before the sixteenth
+    // hats and take those rows from them, the lane gets denser in snare without getting
+    // denser in attacks: 32 a frame throughout, and no two of A″'s three frames alike.
+    // Sixteen seconds of the climax on one two-bar loop is the reference document's
+    // unchanging-drum-pattern failure landing where it costs most.
+    const ghosts = bar < 2 ? [6, 14, 20, 30] : bar < 4 ? [6, 14, 20, 26, 30] : [6, 10, 14, 20, 26, 30]
     kit(A3, bar, {
       hats: '16th', hatOn: 9, hatOff: 6,
       snares: [8, 24], snareVol: 12, snareNote: 41,
-      ghosts: [6, 14, 20, 30], ghostVol: 5,
-      open: bar % 2 === 1 ? [28] : [], crash: bar === 0,
+      ghosts, ghostVol: 5,
+      open: bar % 2 === 1 ? (bar === 5 ? [22] : [28]) : [], crash: bar === 0,
     })
     pair(A3, bar, [0, 12, 22], [8, 24])
   }
@@ -1072,10 +1100,14 @@ s.qa({
   notes:
     'E dorian, 90.000 BPM on THIRTY-SECOND rows (speed 5, rowHighlight 8), so a bar is 32 ' +
     'rows and an order frame is TWO bars. The subject is the pocket. Devices, at frame:row. ' +
-    '(1) Gxx USED STRUCTURALLY: vrc6p2 comps and the noise ghosts sit two ticks (33.3 ms) ' +
-    'behind the beat for the whole of comp - 48 G02 cells on vrc6p2 from 10:2 to 13:62 and ' +
-    '18 on the noise ghosts - while the sawtooth bass, the DPCM kick and snare, the hats and ' +
-    "vrc6p1's held guide tone stay DEAD ON. Gxx is not a channel mode (applyRowEffect " +
+    '(1) Gxx USED SECTIONALLY AND CONTRASTIVELY: vrc6p2 comps and the noise ghosts sit two ' +
+    'ticks (33.3 ms) behind the beat for the whole of comp - 46 G02 cells on vrc6p2 from ' +
+    '10:2 to 13:62 and 18 on the noise ghosts - while the sawtooth bass, the DPCM kick and ' +
+    "snare, the hats and vrc6p1's held guide tone stay DEAD ON. The claim is NOT that no " +
+    'other album piece delays a lane; measured across the shipped nine, Blue Hour carries ' +
+    '186 Gxx cells over four lanes and all sixteen of its frames, which is a global feel, ' +
+    'Winding Stair 42, Long Light 12, Tide Tables 2. This piece carries 76 and 64 of them ' +
+    'are inside one section. The contrast is the device. Gxx is not a channel mode (applyRowEffect ' +
     'returns the delay and pendTick schedules that cell, clamped to ticksThisRow-1, so G04 ' +
     'is the ceiling at speed 5): every note-carrying cell carries its own and there is ' +
     'nothing to cancel. The comp instrument is two ticks longer than the dead-on stab ' +
@@ -1103,20 +1135,30 @@ s.qa({
     'album pieces already use. Sequence: descending THIRDS E -> C# -> A -> F#, three links at ' +
     '10:0, 10:32, 11:0, 11:32, arriving on Bm7 at 12:0 (descending fifths appear twice ' +
     'already). comp is the section whose harmonic rhythm differs: one chord per bar against ' +
-    "A's one per two. Written suspensions: 4-3 at 13:32 resolving 13:52, and 4-3 at 9:40 " +
-    'resolving 9:52. Appoggiatura and global peak: bb5 attacked on beat 1 of 21:32 over Dm7, ' +
+    "A's one per two. Written suspensions, both PREPARED and both tied across their barline: " +
+    'e4 attacks at 13:24 as a consonant sixth over Gmaj7, ties into 13:32 where Bm7 makes it ' +
+    'a dissonant eleventh, and resolves down by step to d4 at 13:52; d4 attacks at 9:24 as ' +
+    "Bm7's third, ties into 9:32 where the bass walks to a1 and it becomes the fourth, and " +
+    'resolves to c#4 at 9:40 while that a1 still sounds. Neither doubles vrc6p2, which plays ' +
+    'd4 and a4 through both bars. Appoggiatura and global peak: bb5 attacked on beat 1 of 21:32 over Dm7, ' +
     'where it is not a chord tone, resolving down by step to a5 - one occurrence, in the last ' +
     'third. SECOND LEAD COLOUR (mandatory): the tune leaves pulse 1 at 17:16 for the ' +
     'SAWTOOTH in the tenor, MIDI 52-64, an octave and a half above the register it has ' +
     'occupied for sixteen frames, on a bend-in instrument, while the TRIANGLE takes the bass ' +
     "and M's rhythm with it; pulse 1 is silent for the whole of lift. In A'' vrc6p1 doubles " +
-    'the tune AT PITCH for six bars (2.1s fourth sanctioned break) - a unison thickening, ' +
-    'not a second lead, and the two chips take the same timer at unison so the pair locks. ' +
+    "the tune AT PITCH across A''s six bars - the fourth sanctioned break of the style " +
+    'bible section 2.1, and the double itself sounds 16 notes over 92 rows, about 7.7 s of ' +
+    "the section's 16.0 s, from 19:12 to 21:63. It is a unison THICKENING, not a second " +
+    'lead, and the two chips take the same timer at unison so the pair locks rather than ' +
+    'beats. It is deliberately NOT moved an octave below the lead: measured, A\'\' holds the ' +
+    'sawtooth at 31-48, the triangle chank at 53-62 and the vrc6p2 stabs at 53-64, so an ' +
+    'octave-below double (58-70) would put a third lane into a band that already has two at ' +
+    'the loudest point of the piece. The actual gap is 65-69, five semitones wide. ' +
     'Params are DECIMAL: 4xy vibrato 432 = 50 (written a beat after the note it colours); ' +
     'Qxy note-slide 82 = 130 on the bass (x is the speed, 2x+1 period units a tick, y the ' +
     'semitones) and 11 = 17 on the triangle glide into the borrowed iv at 16:28; Rxy 35 = 53 ' +
     'for the falls; A05 = 5 is the horn swell at 18:54 and A00 = 0 cancels it at 18:62. ' +
-    'DECLARED BOUNDS. accidentalFractionMax 0.15: measured 12.09% (67 of 554 melodic notes). ' +
+    'DECLARED BOUNDS. accidentalFractionMax 0.15: measured 12.16% (67 of 551 melodic notes). ' +
     'The bulk is the G-dorian sections (19-21 and 22:0) plus the borrowed Am7 and the ' +
     'confirming D7 - every one of those notes is a CHORD TONE of a named chord, which is ' +
     'modal interchange rather than melodic chromaticism. The only true passing chromatics are ' +
@@ -1125,19 +1167,19 @@ s.qa({
     "held longer than two rows' is a rule about melodic chromaticism; the c-naturals of the " +
     'borrowed iv and of D7 are harmony and are held as harmony. percussionGap 16: the longest ' +
     'noise gap is 15 rows (1.25 s), at 17:0-17:16, where the pivot chord stands bare under a ' +
-    'single brush; coverage at that bound is 100.00%. rmsRange [-26, -19]: measured -24.06 ' +
-    'dBFS whole-file, peak 0.697, zero clamped samples. The piece is deliberately the most ' +
+    'single brush; coverage at that bound is 100.00%. rmsRange [-26, -19]: measured -24.08 ' +
+    'dBFS whole-file, peak 0.679, zero clamped samples. The piece is deliberately the most ' +
     'spacious groove on the album - a bar can be one note and a rest - and the level is an ' +
-    'ARC rather than a setting: clock-in -32.1, A -25.2, comp -24.6, graveyard -26.4, lift ' +
+    'ARC rather than a setting: clock-in -32.1, A -25.3, comp -24.6, graveyard -26.4, lift ' +
     "-21.2, A'' -21.7, turn -24.4 dBFS, measured per section on the two-pass preview; the " +
-    'zero-crossing rate moves with it, 2713/s in graveyard against 5379/s in A\'\', so the ' +
+    'zero-crossing rate moves with it, 2713/s in graveyard against 5408/s in A\'\', so the ' +
     'piece changes colour as well as level. Density ' +
     'is 24.9 note attacks a bar across all eight lanes, p90 35, max 43. DEVIATION DECLARED: ' +
     "9.4's 'fill in the last 8 rows of each 8-bar unit' was written for 16-row bars; a bar " +
     'here is 32 rows, so the nine fills occupy the last 16 rows - the same musical length - ' +
     'and none of them is at the loop seam, where the kit thins to a brush on the beat and the ' +
     'last eight rows of the piece carry nothing but the held d2 and the Bxx.',
-  renderChecksum: 432685576,
+  renderChecksum: 3114034634,
 })
 s.check()
 s.write('src/assets/songs/11-night-shift.json')
