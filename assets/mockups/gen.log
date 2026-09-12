@@ -1,0 +1,93 @@
+=== 1/4 studio-hero (krea, 12 steps, 1344x768, seed 7301) ===
+Models directory: /Users/alexvoigt/Library/Containers/com.liuliu.draw-things/Data/Documents/Models
+
+[1A[KStarting... [ ] 0  %
+[1A[KProcessing... [ ] 2  %
+[1A[KProcessing... [ ] 6  %
+[1A[KSampling... 1 / 12 [ ] 2  %
+[1A[KSampling... 2 / 12 [ ] 10 %
+[1A[KSampling... 3 / 12 [ ] 17 %
+[1A[KSampling... 4 / 12 [ ] 25 %
+[1A[KSampling... 5 / 12 [ ] 32 %
+[1A[KSampling... 6 / 12 [ ] 40 %
+[1A[KSampling... 7 / 12 [ ] 48 %
+[1A[KSampling... 8 / 12 [█] 55 %
+[1A[KSampling... 9 / 12 [█] 63 %
+[1A[KSampling... 10 / 12 [█] 70 %
+[1A[KSampling... 11 / 12 [█] 78 %
+[1A[KSampling... 12 / 12 [█] 85 %
+[1A[KFinishing... [█] 93 %
+[1A[KFinishing... [█] 100%
+[1A[KGenerated [█] 100%
+Wrote: /Users/alexvoigt/Documents/GPT-5/pulsar/assets/mockups/studio-hero.png
+Generation timing:
+  Total generation time (including model loading): 161.60 s
+  Sampling step time (12 step(s)): avg 12.05 s, median 12.03 s
+exit=0 1
+=== 2/4 desk-scene (krea, 8 steps, 1344x768, seed 7302) ===
+Models directory: /Users/alexvoigt/Library/Containers/com.liuliu.draw-things/Data/Documents/Models
+
+[1A[KStarting... [ ] 0  %
+[1A[KProcessing... [ ] 3  %
+[1A[KProcessing... [ ] 8  %
+[1A[KSampling... 1 / 8 [ ] 3  %
+[1A[KSampling... 2 / 8 [ ] 14 %
+[1A[KSampling... 3 / 8 [ ] 25 %
+[1A[KSampling... 4 / 8 [ ] 36 %
+[1A[KSampling... 5 / 8 [ ] 46 %
+[1A[KSampling... 6 / 8 [█] 57 %
+[1A[KSampling... 7 / 8 [█] 68 %
+[1A[KSampling... 8 / 8 [█] 79 %
+[1A[KFinishing... [█] 90 %
+[1A[KFinishing... [█] 100%
+[1A[KGenerated [█] 100%
+Wrote: /Users/alexvoigt/Documents/GPT-5/pulsar/assets/mockups/desk-scene.png
+Generation timing:
+  Total generation time (including model loading): 111.90 s
+  Sampling step time (8 step(s)): avg 11.88 s, median 12.63 s
+exit=0
+=== 3/4 flat-lay (krea, 8 steps, 1024x1024, seed 7303) ===
+Models directory: /Users/alexvoigt/Library/Containers/com.liuliu.draw-things/Data/Documents/Models
+
+[1A[KStarting... [ ] 0  %
+[1A[KProcessing... [ ] 3  %
+[1A[KProcessing... [ ] 8  %
+[1A[KSampling... 1 / 8 [ ] 3  %
+[1A[KSampling... 2 / 8 [ ] 14 %
+[1A[KSampling... 3 / 8 [ ] 25 %
+[1A[KSampling... 4 / 8 [ ] 36 %
+[1A[KSampling... 5 / 8 [ ] 46 %
+[1A[KSampling... 6 / 8 [█] 57 %
+[1A[KSampling... 7 / 8 [█] 68 %
+[1A[KSampling... 8 / 8 [█] 79 %
+[1A[KFinishing... [█] 90 %
+[1A[KFinishing... [█] 100%
+[1A[KGenerated [█] 100%
+Wrote: /Users/alexvoigt/Documents/GPT-5/pulsar/assets/mockups/flat-lay.png
+Generation timing:
+  Total generation time (including model loading): 110.93 s
+  Sampling step time (8 step(s)): avg 11.69 s, median 11.89 s
+exit=0
+=== 4/4 in-use (krea, 8 steps, 1344x768, seed 7304) ===
+Models directory: /Users/alexvoigt/Library/Containers/com.liuliu.draw-things/Data/Documents/Models
+
+[1A[KStarting... [ ] 0  %
+[1A[KProcessing... [ ] 3  %
+[1A[KProcessing... [ ] 8  %
+[1A[KSampling... 1 / 8 [ ] 3  %
+[1A[KSampling... 2 / 8 [ ] 14 %
+[1A[KSampling... 3 / 8 [ ] 25 %
+[1A[KSampling... 4 / 8 [ ] 36 %
+[1A[KSampling... 5 / 8 [ ] 46 %
+[1A[KSampling... 6 / 8 [█] 57 %
+[1A[KSampling... 7 / 8 [█] 68 %
+[1A[KSampling... 8 / 8 [█] 79 %
+[1A[KFinishing... [█] 90 %
+[1A[KFinishing... [█] 100%
+[1A[KGenerated [█] 100%
+Wrote: /Users/alexvoigt/Documents/GPT-5/pulsar/assets/mockups/in-use.png
+Generation timing:
+  Total generation time (including model loading): 110.80 s
+  Sampling step time (8 step(s)): avg 11.76 s, median 12.09 s
+exit=0
+=== batch done ===

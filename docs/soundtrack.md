@@ -1,6 +1,6 @@
-# Pulsar — six pieces, two chips
+# Pulsar — nine pieces, two chips
 
-September 2026. The eight-genre set is replaced by an album of six original pieces for
+September 2026. The eight-genre set is replaced by an album of nine original pieces for
 the eight-voice machine — the 2A03's five lanes and the VRC6 expansion's two pulses and
 sawtooth. They arrive by two different routes, and that is the interesting fact about
 this repertoire.
@@ -14,8 +14,9 @@ lanes, so the port carries the notes over exactly and re-voices nothing: every l
 on its own lane. The converter and the per-song modules live in `tools/songs/octet/` (see
 its README); song JSON remains the shipped source.
 
-**Three were composed here.** Tailwind, Counterweight and Sunward Banner were written for
-pulsar, each as a committed generator script under `tools/songs/compose/` that imports
+**Six were composed here.** Tailwind, Counterweight and Sunward Banner came first;
+Winding Stair, Blue Hour and Long Light followed. Each was written for
+pulsar as a committed generator script under `tools/songs/compose/` that imports
 `lib.mjs` and writes its own `src/assets/songs/NN-<id>.json`. `docs/preset-suite.md` §12.3
 sanctions that arrangement, amending §7.3 step 3's "write the JSON directly": the JSON is
 still the shipped artifact and is never hand-edited, gate A's byte-identical round trip
@@ -42,15 +43,22 @@ The first three rows are the ports, the last three the pieces composed here.
 | Tailwind | Bright stage theme, eight voices | 180 | 2:05 | Intro, A, A′, pre-chorus, chorus, break, A″, chorus′, tag (24 frames of four bars on a 16th-note grid, the fastest on the album); the hook on 2A03 pulse 1 with a three-row echo canon at pitch on a duty-0 pulse 2, five volume steps quieter and copying the lead's cuts, a sawtooth gallop answered by the triangle on the off-16ths an octave up, VRC6 thirds in A and sixths in the chorus, the DPCM pair under the noise kit's high snare; A′ moves the hook onto the sawtooth at pitch with the counter-hook an octave below it, and the last chorus is the tune a whole step up in B |
 | Counterweight | Boss theme, eight voices | 150 | 2:19 | Alarm, riff A, B, riff A′, bridge, phase 2, riff A″, turn (44 frames of two bars on a 32nd-note grid, the longest order here) in D phrygian; the riff on the VRC6 sawtooth doubled by the triangle an octave up, `0xy` power fifths a 32nd behind it on the 2A03 pulses, the lead answering only in the riff's tails with pulse 2 a fourth under every phrase, a half-time bridge on a six-row tom cell over a tresillo kick, and a second phase that inverts the riff by scale degree a minor third up into F minor |
 | Sunward Banner | Anthem, eight voices | 150 | 2:28 | Fanfare, theme, theme′, lift, chorus, bridge, build, chorus′, coda (23 frames of four bars on a 16th-note grid); an opening three-voice VRC6 chorale with the whole 2A03 silent, then the tune on pulse 1 with an echo three rows behind, a sawtooth eighth-note bass with octave leaps under a triangle an octave up, a chorus on a 6+6+4 tresillo with pulse 2 as an independent counter-melody, an Italian sixth at its cadence, a pivot modulation into a final chorus a whole step up in E, and an `Fxx` ritardando into the loop |
+| Winding Stair | Descent in triple metre, eight voices | 150 | 2:14 | Entries, A, B, stretto, landing, A′, spiral, coda, turn (28 frames of four 3/4 bars — the album's only piece in three) in G minor; a real three-voice imitative exposition, each entry answered a fifth below while the voice before it hands over to a countersubject on rows the entry never uses; four stretto entries a bar apart down the circle, the subject inverted in close canon over two voices alone, then in augmentation in the triangle; a six-link chromatic bass descent, hemiola cadences, a Neapolitan in both positions, and the lowest statement of all on the sawtooth two octaves down, glided rather than struck |
+| Blue Hour | Shuffle, eight voices | 120 | 2:08 | Head, A, A′, bridge, trade, comp, hush, A″, out (16 frames of four bars on a six-rows-to-the-beat grid) in G mixolydian — the album's only swung piece, and the ratio is exact rather than a tempo trick: every one of 1,349 attacks across all eight lanes lands on row 0, 2 or 4 of the beat and none on 1, 3 or 5. A walking triangle bass with chromatic approaches into every change, VRC6 pulses comping guide tones on the "and" and the push, the two 2A03 pulses trading phrases, a kit that is mostly ghosts, a chain of descending fifths and a tritone substitution at the last cadence |
+| Long Light | Open mid-tempo, eight voices | 100 | 2:34 | Horizon, A, A′, B, air, answer, build, light, descent (16 frames of four bars) in F lydian, the raised fourth heard rather than implied; a five-row ostinato phasing against the four-row beat for three full cycles, an arpeggio bed established and then taken away so the ear supplies the harmony, two sections of two lanes and nothing else, a chromatic mediant on a stationary common tone, an Italian sixth resolving outward, and the global peak held back to the last third |
 
-About fourteen and a quarter minutes of first-pass material. For a quick contrast test,
-audition **Tailwind → Tide Tables → Counterweight**: they differ at once in grid,
-register, density and articulation. Heard end to end, **Tailwind → Counterweight → Tide
-Tables → Skyline Run → Cathedral of Gears → Sunward Banner** alternates bright against
-dark and fast against slow, keeps the one five-lane 2A03 piece in the middle where the
-eight-voice mixes on either side make its restraint audible, and ends on the anthem.
-Neither order groups the ports together: the two routes are a fact about how these pieces
-were written, not a category the ear sorts them into.
+About twenty-one minutes of first-pass material. The nine span every mode the preset
+lint knows — major, minor, dorian, phrygian, lydian, mixolydian — on five different roots,
+at 56, 100, 120, 150 and 180 BPM, and on grids from three rows to the bar-beat up to
+ninety-six rows to the frame. For a quick contrast test, audition **Blue Hour → Winding
+Stair → Long Light**: a shuffle in four, a gallop in three and an open piece that will not
+stay in step with its own bar, differing at once in grid, register, density and
+articulation. Heard end to end, **Tailwind → Counterweight → Long Light → Skyline Run →
+Winding Stair → Tide Tables → Blue Hour → Cathedral of Gears → Sunward Banner** alternates
+bright against dark and fast against slow, puts the two slowest pieces where the dense
+mixes on either side make their restraint audible, separates the two triple-feel pieces,
+and ends on the anthem. No order groups the ports together: the two routes are a fact
+about how these pieces were written, not a category the ear sorts them into.
 
 ## The three ports — what the conversion corrects
 
@@ -114,7 +122,7 @@ no VRC6 yet. Commit `006f837` holds that arrangement and the fold modules that p
 it. It is history, not a fallback: the chip is in the core now and the pieces play as
 composed.
 
-## The three composed for pulsar
+## The six composed for pulsar
 
 Each of these is a generator script under `tools/songs/compose/`: it runs with `node`,
 imports `lib.mjs`, and writes the JSON the app ships. `check()` runs before every write
@@ -129,11 +137,11 @@ de-duplication, the instrument table, `qa.channels`, `qa.effects`, `qa.form`,
 Each piece then pins the devices that make it itself in its own
 `tests/unit/track-<id>.test.ts`, at `frame:row`, against the bytes that shipped.
 
-All three carry all eight lanes and sound every one of them, including the sample lane
+All six carry all eight lanes and sound every one of them, including the sample lane
 that both eight-voice ports declare and leave empty. §3.1's cap of three piece-specific
-instruments is retired by §12.6 — these carry 12, 23 and 9 of their own against the ports'
-12, 17 and 23 — and what the shared bank is still for is the kit, which all six take by
-name and byte-identical. Sunward Banner's `extra.qa.notes`
+instruments is retired by §12.6 — these carry 12, 23, 9, 11, 8 and 11 of their own
+against the ports' 12, 17 and 23 — and what the shared bank is still for is the kit, which
+all nine take by name and byte-identical. Sunward Banner's `extra.qa.notes`
 still declares its nine as a deviation and refers the cap to the director; it was written
 four minutes before §12.6 answered the question, and the note is left standing as the
 record of why the cap moved.
@@ -203,6 +211,74 @@ chorus, and the piece's test measures both. Its single metric surprise is 15:48,
 where the kit stops dead and only the saw's six-row cell and the VRC6 stabs continue; the
 coda's `Fxx` ritardando then slows speed 6 → 7 → 9 → 12 across 22:48–22:63, and the loop
 row restores speed 6 at 2:0, because a tempo survives the seam the way any effect does.
+
+**Winding Stair** (`07-winding-stair.mjs`) is the descent: G minor, speed 6 for 150 BPM on
+a twelve-row 3/4 bar, 28 frames of four bars, looping past a three-frame exposition. It is
+the album's only piece in three and the only one whose form is contrapuntal rather than
+melody-and-accompaniment. The subject arrives alone on 2A03 pulse 1 at 0:0, is answered a
+real fifth below on VRC6 pulse 1 at 0:24 — the same intervals on the same row offsets —
+and a fifth below that on the sawtooth at 1:0; each voice that has finished hands over to a
+countersubject instead of shadowing the entry, pulse 1 tying its b♭ through the answer's
+head and taking rows 26, 34, 38, 40 and 46, VRC6 pulse 1 doing the same from 1:2 to 1:22,
+and neither sharing a single attack row with the entry it accompanies. The subject then
+travels: four stretto entries a bar apart down the circle at 9:0, 9:12, 9:24 and 9:36
+(d5, g4, c4, g3); inverted in close canon over `landing`'s two bare voices at 13:0; in
+augmentation in the triangle at 15:0 under its own inversion; and lowest of all on the
+sawtooth two octaves down at 22:0, restated at 24:0 as a `3xx` glide rather than an attack,
+so the final statement arrives with no transient at all. The harmonic rhythm doubles twice —
+a chord every two bars in the exposition, one a bar from 3:0, two a bar from 19:0 — and the
+colour is a six-link chromatic bass descent in the triangle (g2, f♯2, f2, e2, d♯2, d2 at
+7:0, 7:12, 7:24, 7:36, 8:0, 8:12) and a Neapolitan taken twice, root position at 23:0 and
+first inversion at 25:0. Metrically the piece leans on the hemiola native to three — two
+bars regrouped as three groups of eight rows, realised differently at 6:24 and 12:24 — over
+a five-row cell on VRC6 pulse 2 whose entry row walks 19:0, 20:2, 21:4, 22:1, exactly
+`(−48k) mod 5`, at a strict five-row stride; the kit stops for the whole of 21:0 while the
+cell runs on. Two lead timbres share pulse 1, the thinner duty taking `landing` and the
+coda's two answers, and `percussionGap` is declared at 32 because `landing` has no kit at
+all.
+
+**Blue Hour** (`08-blue-hour.mjs`) is the shuffle: G mixolydian, speed 5 for 120 BPM, and
+the grid *is* the composition. Six rows to the beat make a swung eighth pair rows 0 and 4 —
+an exact 2:1 triplet ratio written on the grid rather than a fractional tempo, and straight
+sixteenths do not exist on it. The discipline holds everywhere: of 1,349 note attacks across
+all eight lanes over 1,536 rows, every one lands on row 0, 2 or 4 of its beat and **not one**
+on row 1, 3 or 5, so no lane can straighten against the rest. The triangle walks — 274
+quarter-note attacks, 47 % of its motion stepwise with chromatic approaches into the
+changes, only four of 64 bar downbeats repeating a pitch class, and an eight-link chromatic
+descent through `hush` at 11:0–11:42 — while the sawtooth stays off the bass and comps or
+solos instead. The VRC6 pulses comp guide tones, third and seventh rather than a doubled
+root, on the "and" at bar row 4 and pushed at bar row 22. The two 2A03 pulses trade two-bar
+phrases through `trade`, and pulse 1's tail rings one beat into pulse 2's entry at 7:48 so
+the hand-off is a conversation; the return hand-off at 8:48 is left clean, because once is a
+gesture and twice is a habit. The harmony moves: E7–A7–D7–G7 descending fifths at 5:0, 5:24,
+5:48 and 5:72 with the guide-tone tritones walking down chromatically, a borrowed minor iv
+at 3:72, and a tritone substitution at 13:48 where A♭7's guide tones each fall a semitone
+into G7 at 13:72 against a bass rising a♭ to g. The kit is mostly ghosts — 419 of its 467
+noise events sit at volume 3 to 8 — across sixteen distinct noise patterns with a different
+fill at every eight-bar seam, and the metric surprise is the bar at 10:0 where it stops dead
+and the polyrhythm plays on. That polyrhythm is a four-row cell against the six-row beat,
+unbroken for 48 attacks from 9:0 to 10:92, its accent pair advancing one place each bar so
+the 3:2 is heard rather than merely present; a twenty-row cell carries phase across three
+frames at 3:0, 4:4 and 5:8.
+
+**Long Light** (`09-long-light.mjs`) is the open piece: F lydian, speed 9 for 100 BPM, 16
+frames of four bars, and the raised fourth is heard rather than implied. Its spine is a
+five-row ostinato on VRC6 pulse 2 written straight through the four-row grid, its entry row
+walking 1:0, 2:1, 3:2, 4:3, 5:4, then 6:0, silent through `air`, 8:2, 9:3, 10:4, 11:0, 12:1,
+13:2, 14:3, 15:4 — `(−64k) mod 5`, three complete cycles inside one pass at a strict
+five-row stride, with the last attack at 15:59 so nothing is stranded at the seam. The
+harmony is spelled by a fast `0xy` bed through `horizon` and A and then **taken away** at
+3:0, the removal being the event: the ear supplies the chord that is no longer being
+arpeggiated, and the bed returns only at 15:32 to state itself on the loop row. Space is the
+mix here — `horizon` and `air` are two lanes and nothing else, every lead phrase ends in a
+rest, and the global peak, d6 on pulse 1 at 13:40, is held back to the last third. Motif L
+is stated at 1:0, reharmonised at 3:0, re-orchestrated onto the sawtooth an octave down at
+5:0, inverted at 7:4, augmented at 11:0 and displaced a row late at 14:1, under three
+different lead duties. Its two non-diatonic colours sit in different sections: a chromatic
+mediant at 5:8, where the bass falls f2 to a♭2 while VRC6 pulse 1 restrikes c4 without
+moving and pulse 2's suspended a4 resolves to a♭4, and an Italian sixth at 10:48 resolving
+outward to c3 and c6 at 10:56. Both `rmsRange` and `percussionGap` are declared with their
+justifications: this is the album's quietest render, and `air` has no kit at all.
 
 ## Rendering and checks
 
