@@ -214,20 +214,23 @@ describe('Crooked Mile — seven eighths, grouped 2+2+3', () => {
     expect(attacks('noise', [11]).some((c) => c.inst === kickId)).toBe(false)
   })
 
-  it('one metric surprise: D00 at 15:51 makes a last bar of five eighths', () => {
-    const d = pattern('noise', 15).rows.find((c) => hasFx(c, 'D'))!
-    expect(d.r).toBe(51)
-    expect(hasFx(d, 'D', 0)).toBe(true)
-    expect(d.note).toBeGreaterThanOrEqual(0) // it rides the last drum of an unfinished roll
-    // 51 is row 9 of that frame's fourth bar, so the bar is TEN rows — five eighths, 2+3
-    expect(51 - 3 * BAR).toBe(9)
-    // nothing is written in rows 52-55 of frame 15 on any lane: the driver never reaches
-    // them, so a cancel placed there would never fire
-    for (const channel of song.channels) {
-      expect(pattern(channel, 15).rows.filter((c) => c.r >= 52)).toHaveLength(0)
+  it('the loop body closes on a bar line: no Dxx anywhere, 1064 rows = 76 bars of 7/8', () => {
+    // A frame-ending cut (`Dxx`) that is not a whole 7/8 bar (14 rows) leaves the loop body
+    // short of a bar line, so every pass re-enters a few rows out of phase with the one
+    // before it — this piece used to carry exactly that bug via a D00 at 15:51 that has
+    // since been removed. Guard the property structurally: no Dxx at all, and the loop
+    // body sums to a whole number of bars.
+    expect(song.channels.flatMap((ch) => timeline(ch)).filter((c) => hasFx(c, 'D'))).toHaveLength(0)
+
+    // Walk every frame from the loop target to the end of the order, summing its rows —
+    // no cut shortens any frame now, so each one contributes a full rowsPerPattern.
+    let total = 0
+    for (let frame = qa.loopFrame; frame < song.order.length; frame++) {
+      total += ROWS
     }
-    // and it is the ONLY Dxx in the piece
-    expect(song.channels.flatMap((ch) => timeline(ch)).filter((c) => hasFx(c, 'D'))).toHaveLength(1)
+    expect(total % BAR).toBe(0)
+    expect(total).toBe(1064)
+    expect(total / BAR).toBe(76)
   })
 
   it('two lead colours, and the loop seam carries no fill', () => {

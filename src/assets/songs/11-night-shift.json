@@ -200,7 +200,7 @@
       1,
       9,
       15,
-      8,
+      1,
       14,
       0,
       15
@@ -210,7 +210,7 @@
       1,
       10,
       16,
-      9,
+      8,
       15,
       13,
       16
@@ -270,7 +270,7 @@
       0,
       16,
       22,
-      10,
+      9,
       21,
       19,
       22
@@ -3844,6 +3844,18 @@
           "note": 39,
           "inst": 12,
           "vol": 5
+        },
+        {
+          "r": 56,
+          "note": 45,
+          "inst": 19,
+          "vol": 8
+        },
+        {
+          "r": 60,
+          "note": 45,
+          "inst": 19,
+          "vol": 6
         }
       ]
     },
@@ -5280,63 +5292,6 @@
           "vol": 15
         },
         {
-          "r": 8,
-          "note": 39,
-          "inst": 18,
-          "vol": 14
-        },
-        {
-          "r": 12,
-          "note": 36,
-          "inst": 18,
-          "vol": 15
-        },
-        {
-          "r": 24,
-          "note": 39,
-          "inst": 18,
-          "vol": 14
-        },
-        {
-          "r": 32,
-          "note": 36,
-          "inst": 18,
-          "vol": 15
-        },
-        {
-          "r": 40,
-          "note": 39,
-          "inst": 18,
-          "vol": 14
-        },
-        {
-          "r": 44,
-          "note": 36,
-          "inst": 18,
-          "vol": 15
-        },
-        {
-          "r": 55,
-          "fx": [
-            {
-              "cmd": "D",
-              "param": 0
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "channel": "dpcm",
-      "index": 9,
-      "rows": [
-        {
-          "r": 0,
-          "note": 36,
-          "inst": 18,
-          "vol": 15
-        },
-        {
           "r": 32,
           "note": 36,
           "inst": 18,
@@ -5364,7 +5319,7 @@
     },
     {
       "channel": "dpcm",
-      "index": 10,
+      "index": 9,
       "rows": [
         {
           "r": 0,
@@ -9091,7 +9046,6 @@
         "4",
         "A",
         "B",
-        "D",
         "G",
         "Q",
         "R"
@@ -9160,8 +9114,8 @@
         ],
         "rev": 2
       },
-      "notes": "E dorian, 90.000 BPM on THIRTY-SECOND rows (speed 5, rowHighlight 8), so a bar is 32 rows and an order frame is TWO bars. The subject is the pocket. Devices, at frame:row. (1) Gxx USED SECTIONALLY AND CONTRASTIVELY: vrc6p2 comps and the noise ghosts sit two ticks (33.3 ms) behind the beat for the whole of comp - 46 G02 cells on vrc6p2 from 10:2 to 13:62 and 18 on the noise ghosts - while the sawtooth bass, the DPCM kick and snare, the hats and vrc6p1's held guide tone stay DEAD ON. The claim is NOT that no other album piece delays a lane; measured across the shipped nine, Blue Hour carries 186 Gxx cells over four lanes and all sixteen of its frames, which is a global feel, Winding Stair 42, Long Light 12, Tide Tables 2. This piece carries 76 and 64 of them are inside one section. The contrast is the device. Gxx is not a channel mode (applyRowEffect returns the delay and pendTick schedules that cell, clamped to ticksThisRow-1, so G04 is the ceiling at speed 5): every note-carrying cell carries its own and there is nothing to cancel. The comp instrument is two ticks longer than the dead-on stab because Gxx delays macro index 0 too. A''s G01 on the horn stabs (11 cells from 19:14) is a decorative strum, a different amount of lateness on purpose, and the one remaining G02, at 7:63, is a flam: the second of two snares a thirty-second apart. (2) 16TH-LEVEL TRESILLO on the sawtooth, 3+3+2 sixteenths = 6+6+4 rows, attacks at rows 0, 6, 12 and 16, 22, 28 of every bar, from 1:0 to 23:0, with the kit square above it; broadened to the 8th level (12+12+8 rows) through comp. (3) A SIX-ROW CELL on vrc6p1 through graveyard, unbroken from 14:0 to 16:52. Computed for a 64-row frame, not read off 9.1s 64/4 table: entry row of frame k is (-64k) mod 6 = 0, 2, 4 and the cycle closes after lcm(6,64)/64 = 3 frames. Verified in the file: first attacks 14:0, 15:2, 16:4. (4) THE ONE METRIC SURPRISE: D00 at 16:55 ends that frame after row 55, so graveyards last bar is three beats and the lift arrives a whole beat early (a beat is eight rows here). Frame 16 rows 56-63 are empty on all eight lanes and no playthrough reaches them. Not at the loop seam. Harmony (9.3), two distinct devices in different sections. COMMON-TONE DIMINISHED: A07 (a c eb f#) -> A7 (a c# e g) at 6:62 -> 7:0, vrc6p1 holding a3 stationary while vrc6p2 c4->c#4, pulse2 eb4->e4 and the triangle f#3->g3 all rise a semitone; restated transposed as C07 -> C7 at 19:62 -> 20:0 (c4 held; eb4->e4, gb4->g4, a3->bb3). TRUE PIVOT MODULATION BY A MINOR THIRD: Am7 arrives as the borrowed iv of E at 16:32, stands bare on two pitched voices at 17:0 (triangle a1 + vrc6p1 g3) where it turns into ii of G, D7 confirms at 18:0, and G dorian lands at 19:0 - not the whole tone two other album pieces already use. Sequence: descending THIRDS E -> C# -> A -> F#, three links at 10:0, 10:32, 11:0, 11:32, arriving on Bm7 at 12:0 (descending fifths appear twice already). comp is the section whose harmonic rhythm differs: one chord per bar against A's one per two. Written suspensions, both PREPARED and both tied across their barline: e4 attacks at 13:24 as a consonant sixth over Gmaj7, ties into 13:32 where Bm7 makes it a dissonant eleventh, and resolves down by step to d4 at 13:52; d4 attacks at 9:24 as Bm7's third, ties into 9:32 where the bass walks to a1 and it becomes the fourth, and resolves to c#4 at 9:40 while that a1 still sounds. Neither doubles vrc6p2, which plays d4 and a4 through both bars. Appoggiatura and global peak: bb5 attacked on beat 1 of 21:32 over Dm7, where it is not a chord tone, resolving down by step to a5 - one occurrence, in the last third. SECOND LEAD COLOUR (mandatory): the tune leaves pulse 1 at 17:16 for the SAWTOOTH in the tenor, MIDI 52-64, an octave and a half above the register it has occupied for sixteen frames, on a bend-in instrument, while the TRIANGLE takes the bass and M's rhythm with it; pulse 1 is silent for the whole of lift. In A'' vrc6p1 doubles the tune AT PITCH across A''s six bars - the fourth sanctioned break of the style bible section 2.1, and the double itself sounds 16 notes over 92 rows, about 7.7 s of the section's 16.0 s, from 19:12 to 21:63. It is a unison THICKENING, not a second lead, and the two chips take the same timer at unison so the pair locks rather than beats. It is deliberately NOT moved an octave below the lead: measured, A'' holds the sawtooth at 31-48, the triangle chank at 53-62 and the vrc6p2 stabs at 53-64, so an octave-below double (58-70) would put a third lane into a band that already has two at the loudest point of the piece. The actual gap is 65-69, five semitones wide. Params are DECIMAL: 4xy vibrato 432 = 50 (written a beat after the note it colours); Qxy note-slide 82 = 130 on the bass (x is the speed, 2x+1 period units a tick, y the semitones) and 11 = 17 on the triangle glide into the borrowed iv at 16:28; Rxy 35 = 53 for the falls; A05 = 5 is the horn swell at 18:54 and A00 = 0 cancels it at 18:62. DECLARED BOUNDS. accidentalFractionMax 0.15: measured 12.16% (67 of 551 melodic notes). The bulk is the G-dorian sections (19-21 and 22:0) plus the borrowed Am7 and the confirming D7 - every one of those notes is a CHORD TONE of a named chord, which is modal interchange rather than melodic chromaticism. The only true passing chromatics are the diminished chords' two semitones, and each sounds for exactly two rows and resolves by step in the same direction, to the row. DEVIATION DECLARED: 9.3's 'no chromatic note held longer than two rows' is a rule about melodic chromaticism; the c-naturals of the borrowed iv and of D7 are harmony and are held as harmony. percussionGap 16: the longest noise gap is 15 rows (1.25 s), at 17:0-17:16, where the pivot chord stands bare under a single brush; coverage at that bound is 100.00%. rmsRange [-26, -19]: measured -24.08 dBFS whole-file, peak 0.679, zero clamped samples. The piece is deliberately the most spacious groove on the album - a bar can be one note and a rest - and the level is an ARC rather than a setting: clock-in -32.1, A -25.3, comp -24.6, graveyard -26.4, lift -21.2, A'' -21.7, turn -24.4 dBFS, measured per section on the two-pass preview; the zero-crossing rate moves with it, 2713/s in graveyard against 5408/s in A'', so the piece changes colour as well as level. Density is 24.9 note attacks a bar across all eight lanes, p90 35, max 43. DEVIATION DECLARED: 9.4's 'fill in the last 8 rows of each 8-bar unit' was written for 16-row bars; a bar here is 32 rows, so the nine fills occupy the last 16 rows - the same musical length - and none of them is at the loop seam, where the kit thins to a brush on the beat and the last eight rows of the piece carry nothing but the held d2 and the Bxx.",
-      "renderChecksum": 3114034634
+      "notes": "E dorian, 90.000 BPM on THIRTY-SECOND rows (speed 5, rowHighlight 8), so a bar is 32 rows and an order frame is TWO bars. The subject is the pocket. Devices, at frame:row. (1) Gxx USED SECTIONALLY AND CONTRASTIVELY: vrc6p2 comps and the noise ghosts sit two ticks (33.3 ms) behind the beat for the whole of comp - 46 G02 cells on vrc6p2 from 10:2 to 13:62 and 18 on the noise ghosts - while the sawtooth bass, the DPCM kick and snare, the hats and vrc6p1's held guide tone stay DEAD ON. The claim is NOT that no other album piece delays a lane; measured across the shipped nine, Blue Hour carries 186 Gxx cells over four lanes and all sixteen of its frames, which is a global feel, Winding Stair 42, Long Light 12, Tide Tables 2. This piece carries 76 and 64 of them are inside one section. The contrast is the device. Gxx is not a channel mode (applyRowEffect returns the delay and pendTick schedules that cell, clamped to ticksThisRow-1, so G04 is the ceiling at speed 5): every note-carrying cell carries its own and there is nothing to cancel. The comp instrument is two ticks longer than the dead-on stab because Gxx delays macro index 0 too. A''s G01 on the horn stabs (11 cells from 19:14) is a decorative strum, a different amount of lateness on purpose, and the one remaining G02, at 7:63, is a flam: the second of two snares a thirty-second apart. (2) 16TH-LEVEL TRESILLO on the sawtooth, 3+3+2 sixteenths = 6+6+4 rows, attacks at rows 0, 6, 12 and 16, 22, 28 of every bar, from 1:0 to 23:0, with the kit square above it; broadened to the 8th level (12+12+8 rows) through comp. (3) A SIX-ROW CELL on vrc6p1 through graveyard, unbroken from 14:0 to 16:52. Computed for a 64-row frame, not read off 9.1s 64/4 table: entry row of frame k is (-64k) mod 6 = 0, 2, 4 and the cycle closes after lcm(6,64)/64 = 3 frames. Verified in the file: first attacks 14:0, 15:2, 16:4. (4) NO METRIC SURPRISE: graveyard used to carry a D00 cut at 16:55, ending that frame after row 55, leaving the loop body at 1400 rows - not a whole number of bars - so every pass re-entered 24 rows (three beats) out of phase with the pass before it. The cut is gone: the loop body is 1408 rows, exactly 44 bars, and graveyards last bar plays whole into the lift. Harmony (9.3), two distinct devices in different sections. COMMON-TONE DIMINISHED: A07 (a c eb f#) -> A7 (a c# e g) at 6:62 -> 7:0, vrc6p1 holding a3 stationary while vrc6p2 c4->c#4, pulse2 eb4->e4 and the triangle f#3->g3 all rise a semitone; restated transposed as C07 -> C7 at 19:62 -> 20:0 (c4 held; eb4->e4, gb4->g4, a3->bb3). TRUE PIVOT MODULATION BY A MINOR THIRD: Am7 arrives as the borrowed iv of E at 16:32, stands bare on two pitched voices at 17:0 (triangle a1 + vrc6p1 g3) where it turns into ii of G, D7 confirms at 18:0, and G dorian lands at 19:0 - not the whole tone two other album pieces already use. Sequence: descending THIRDS E -> C# -> A -> F#, three links at 10:0, 10:32, 11:0, 11:32, arriving on Bm7 at 12:0 (descending fifths appear twice already). comp is the section whose harmonic rhythm differs: one chord per bar against A's one per two. Written suspensions, both PREPARED and both tied across their barline: e4 attacks at 13:24 as a consonant sixth over Gmaj7, ties into 13:32 where Bm7 makes it a dissonant eleventh, and resolves down by step to d4 at 13:52; d4 attacks at 9:24 as Bm7's third, ties into 9:32 where the bass walks to a1 and it becomes the fourth, and resolves to c#4 at 9:40 while that a1 still sounds. Neither doubles vrc6p2, which plays d4 and a4 through both bars. Appoggiatura and global peak: bb5 attacked on beat 1 of 21:32 over Dm7, where it is not a chord tone, resolving down by step to a5 - one occurrence, in the last third. SECOND LEAD COLOUR (mandatory): the tune leaves pulse 1 at 17:16 for the SAWTOOTH in the tenor, MIDI 52-64, an octave and a half above the register it has occupied for sixteen frames, on a bend-in instrument, while the TRIANGLE takes the bass and M's rhythm with it; pulse 1 is silent for the whole of lift. In A'' vrc6p1 doubles the tune AT PITCH across A''s six bars - the fourth sanctioned break of the style bible section 2.1, and the double itself sounds 16 notes over 92 rows, about 7.7 s of the section's 16.0 s, from 19:12 to 21:63. It is a unison THICKENING, not a second lead, and the two chips take the same timer at unison so the pair locks rather than beats. It is deliberately NOT moved an octave below the lead: measured, A'' holds the sawtooth at 31-48, the triangle chank at 53-62 and the vrc6p2 stabs at 53-64, so an octave-below double (58-70) would put a third lane into a band that already has two at the loudest point of the piece. The actual gap is 65-69, five semitones wide. Params are DECIMAL: 4xy vibrato 432 = 50 (written a beat after the note it colours); Qxy note-slide 82 = 130 on the bass (x is the speed, 2x+1 period units a tick, y the semitones) and 11 = 17 on the triangle glide into the borrowed iv at 16:28; Rxy 35 = 53 for the falls; A05 = 5 is the horn swell at 18:54 and A00 = 0 cancels it at 18:62. DECLARED BOUNDS. accidentalFractionMax 0.15: measured 12.16% (67 of 551 melodic notes). The bulk is the G-dorian sections (19-21 and 22:0) plus the borrowed Am7 and the confirming D7 - every one of those notes is a CHORD TONE of a named chord, which is modal interchange rather than melodic chromaticism. The only true passing chromatics are the diminished chords' two semitones, and each sounds for exactly two rows and resolves by step in the same direction, to the row. DEVIATION DECLARED: 9.3's 'no chromatic note held longer than two rows' is a rule about melodic chromaticism; the c-naturals of the borrowed iv and of D7 are harmony and are held as harmony. percussionGap 16: the longest noise gap is 15 rows (1.25 s), at 17:0-17:16, where the pivot chord stands bare under a single brush; coverage at that bound is 100.00%. rmsRange [-26, -19]: measured -24.11 dBFS whole-file, peak 0.679, zero clamped samples. The piece is deliberately the most spacious groove on the album - a bar can be one note and a rest - and the level is an ARC rather than a setting: clock-in -32.1, A -25.3, comp -24.6, graveyard -26.4, lift -21.2, A'' -22.0, turn -23.6 dBFS, measured per section on the two-pass preview; the zero-crossing rate moves with it, 2747/s in graveyard against 5683/s in A'', so the piece changes colour as well as level. Density is 24.9 note attacks a bar across all eight lanes, p90 35, max 43. DEVIATION DECLARED: 9.4's 'fill in the last 8 rows of each 8-bar unit' was written for 16-row bars; a bar here is 32 rows, so the nine fills occupy the last 16 rows - the same musical length - and none of them is at the loop seam, where the kit thins to a brush on the beat and the last eight rows of the piece carry nothing but the held d2 and the Bxx.",
+      "renderChecksum": 2992020422
     }
   }
 }

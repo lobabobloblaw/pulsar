@@ -168,23 +168,25 @@ describe('Night Shift — a straight 90 BPM groove whose subject is the pocket',
     // unbroken: every gap is exactly six rows, straight through both frame lines
     const gaps = new Set(cell.slice(1).map((c, i) => c.row - cell[i].row))
     expect([...gaps]).toEqual([6])
-    expect(cell.at(-1)!.row).toBe(16 * ROWS + 52) // and it stops before the `D00`
+    expect(cell.at(-1)!.row).toBe(16 * ROWS + 52) // the three-frame cycle simply ends there
     // it is a LINE as well as a clock: the pitch steps down with the harmony
     expect([...new Set(cell.map((c) => c.note))]).toEqual([59, 57, 54, 52])
   })
 
-  it('exactly one metric surprise: `D00` drops a beat at 16:55, and never at the loop seam', () => {
+  it('the loop body closes on a bar line: no Dxx anywhere, 1408 rows = 44 bars', () => {
+    // a one-beat cut is not a whole bar: it would leave every loop pass re-entering the
+    // loop 24 rows (three beats) out of phase with the pass before it, recovering only
+    // after several passes. There is no `Dxx` cut anywhere in this piece.
     const all = song.patterns.flatMap((p) => p.rows.flatMap((c) => (c.fx ?? [])
       .filter((e) => e !== null && e.cmd === 'D').map(() => ({ channel: p.channel, index: p.index, r: c.r }))))
-    expect(all).toHaveLength(1)
-    expect(all[0].r).toBe(55)
-    expect(hasFx(cellAt('dpcm', 16, 55), 'D', 0)).toBe(true)
-    // rows 56–63 of that frame are unreachable, so nothing is written there on any lane
-    for (const ch of song.channels) {
-      expect(pattern(ch, 16).rows.filter((c) => c.r > 55), ch).toEqual([])
-    }
-    // a beat is eight rows here, so the frame is 56 rows and the bar is three beats
-    expect(ROWS - 56).toBe(song.meta.rowHighlight)
+    expect(all).toHaveLength(0)
+    // walk every frame from the loop point to the end and add its full length — no cut
+    // shortens any of them, so the loop body is a whole number of bars
+    let loopRows = 0
+    for (let f = qa.loopFrame; f < song.order.length; f++) loopRows += song.meta.rowsPerPattern
+    expect(loopRows % BAR).toBe(0)
+    expect(loopRows).toBe(1408)
+    expect(loopRows / BAR).toBe(44)
     // and the last frame's last row is the loop, not a metric event
     expect(hasFx(cellAt('pulse1', 23, ROWS - 1), 'B', 2)).toBe(true)
   })

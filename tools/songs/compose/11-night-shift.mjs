@@ -51,8 +51,8 @@
  *  |       |            |      | thirds chain Em7 → C#m7♭5 → A7 → F#m7 → Bm7               |
  *  | 14–16 | graveyard  | 6    | thin: a SIX-ROW cell on vrc6p1 phase-carrying 0, 2, 4     |
  *  |       |            |      | across three frames (3:4 against the beat); the bass in    |
- *  |       |            |      | augmentation; brush on the beat; the metric surprise       |
- *  |       |            |      | `D00` at 16:55 drops the last beat into the lift          |
+ *  |       |            |      | augmentation; brush on the beat; the loop body closes on  |
+ *  |       |            |      | a full bar and the kit walks whole into the lift           |
  *  | 17–18 | lift       | 4    | SECOND LEAD COLOUR: the tune leaves pulse 1 for the SAW   |
  *  |       |            |      | in the tenor (MIDI 52–64) while the TRIANGLE takes the     |
  *  |       |            |      | bass and M with it; Am7 stated bare (two voices) at 17:0   |
@@ -88,7 +88,7 @@
  *            deliberate; the kit stays square above it.
  *          (D) a six-row cell on vrc6p1 through graveyard, unbroken from 14:0 to 16:52,
  *            entry rows 14:0, 15:2, 16:4 — three frames, after which the carry would return
- *            to entry row 0; the cell stops at 16:52, before the `D00`.
+ *            to entry row 0; the cell simply stops at 16:52, on its own account.
  *          (G) `G02` used SECTIONALLY and CONTRASTIVELY. The honest claim is not that the
  *            album has no other `Gxx` — measured across the shipped nine, Blue Hour carries
  *            186 delay cells over four lanes and ALL SIXTEEN of its frames (a global feel),
@@ -99,9 +99,9 @@
  *            on. The contrast is the device; a whole mix moved back two ticks is the same
  *            mix. A″'s `G01` on the horn stabs (11 cells from 19:14) is a decorative strum
  *            at a different amount of lateness, and the single `G02` at 7:63 is a flam.
- *          (H) the metric surprise, exactly one: `D00` at 16:55 drops the last beat of
- *            graveyard (a 56-row frame — a beat is eight rows here), so the lift arrives a
- *            whole beat early. Not at the loop seam.
+ *          (H) no metric surprise: the loop body is a full 1408 rows (44 bars), so every
+ *            pass re-enters in phase. A one-beat cut is not a whole bar — it would have left
+ *            every pass three beats out of phase with the one before it.
  *    §9.2  pulse 2 is an independent line for the whole of comp — 30 attacks from 10:4 to
  *            13:58, its own off-sixteenth rhythm and its own contour — and it carries the
  *            cadential 4–3 SUSPENSION, written in its three parts: PREPARED as a consonant
@@ -861,18 +861,11 @@ const grave = s.section('graveyard', 6)
   // FILL 7 (bar 3, rows 26–31): two brushes and a low tom — the quietest fill of the nine.
   grave.put(L.NOISE, grave.at(3, 26), { note: 45, inst: BRUSH, vol: 6 })
   grave.put(L.NOISE, grave.at(3, 30), { note: 37, inst: TOM, vol: 9 })
-  // THE METRIC SURPRISE (§9.1 recipe H, §9.4's one-per-piece): `D00` at 16:55 ends the
-  // frame after row 55, so graveyard's last bar is THREE beats and the lift arrives an
-  // beat early. Rows 56–63 of frame 16 are silent by construction and no playthrough
-  // reaches them. Placed at the seam into the modulation, and never at the loop seam.
-  grave.put(L.DPCM, grave.at(5, 23), { fx: [['D', 0]] })
-}
-
-// clean-up: rows 56–63 of frame 16 are past the `D00` and no playthrough reaches them, so
-// nothing is written there. Anything the per-bar helpers put in bar 5's last eight rows is
-// removed, which keeps the document honest about what it actually plays.
-for (let lane = 0; lane < 8; lane++) {
-  for (let r = grave.at(5, 24); r < grave.len; r++) grave.lanes[lane][r] = null
+  // There WAS a `D00` here, at 16:55, ending the frame a beat early so the lift arrived
+  // ahead of its bar. One beat is not a whole bar: the loop body came out 43.75 bars and
+  // every pass re-entered three beats out of phase with the one before it, recovering
+  // only on the fourth (check.mjs `loop-metre`). The beat it cut was blank, so graveyard
+  // now plays its last bar whole and the kit walks into the lift instead of jumping.
 }
 
 // =====================================================================================
@@ -1121,10 +1114,11 @@ s.qa({
     'for a 64-row frame, not read off 9.1s 64/4 table: entry row of frame k is (-64k) mod 6 ' +
     '= 0, 2, 4 and the cycle closes after lcm(6,64)/64 = 3 frames. Verified in the file: ' +
     'first attacks 14:0, 15:2, 16:4. ' +
-    '(4) THE ONE METRIC SURPRISE: D00 at 16:55 ends that frame after row 55, so graveyards ' +
-    'last bar is three beats and the lift arrives a whole beat early (a beat is eight rows ' +
-    'here). Frame 16 rows 56-63 are ' +
-    'empty on all eight lanes and no playthrough reaches them. Not at the loop seam. ' +
+    '(4) NO METRIC SURPRISE: graveyard used to carry a D00 cut at 16:55, ending that frame ' +
+    'after row 55, leaving the loop body at 1400 rows - not a whole number of bars - so ' +
+    'every pass re-entered 24 rows (three beats) out of phase with the pass before it. The ' +
+    'cut is gone: the loop body is 1408 rows, exactly 44 bars, and graveyards last bar ' +
+    'plays whole into the lift. ' +
     'Harmony (9.3), two distinct devices in different sections. COMMON-TONE DIMINISHED: ' +
     'A07 (a c eb f#) -> A7 (a c# e g) at 6:62 -> 7:0, vrc6p1 holding a3 stationary while ' +
     'vrc6p2 c4->c#4, pulse2 eb4->e4 and the triangle f#3->g3 all rise a semitone; restated ' +
@@ -1167,19 +1161,19 @@ s.qa({
     "held longer than two rows' is a rule about melodic chromaticism; the c-naturals of the " +
     'borrowed iv and of D7 are harmony and are held as harmony. percussionGap 16: the longest ' +
     'noise gap is 15 rows (1.25 s), at 17:0-17:16, where the pivot chord stands bare under a ' +
-    'single brush; coverage at that bound is 100.00%. rmsRange [-26, -19]: measured -24.08 ' +
+    'single brush; coverage at that bound is 100.00%. rmsRange [-26, -19]: measured -24.11 ' +
     'dBFS whole-file, peak 0.679, zero clamped samples. The piece is deliberately the most ' +
     'spacious groove on the album - a bar can be one note and a rest - and the level is an ' +
     'ARC rather than a setting: clock-in -32.1, A -25.3, comp -24.6, graveyard -26.4, lift ' +
-    "-21.2, A'' -21.7, turn -24.4 dBFS, measured per section on the two-pass preview; the " +
-    'zero-crossing rate moves with it, 2713/s in graveyard against 5408/s in A\'\', so the ' +
+    "-21.2, A'' -22.0, turn -23.6 dBFS, measured per section on the two-pass preview; the " +
+    'zero-crossing rate moves with it, 2747/s in graveyard against 5683/s in A\'\', so the ' +
     'piece changes colour as well as level. Density ' +
     'is 24.9 note attacks a bar across all eight lanes, p90 35, max 43. DEVIATION DECLARED: ' +
     "9.4's 'fill in the last 8 rows of each 8-bar unit' was written for 16-row bars; a bar " +
     'here is 32 rows, so the nine fills occupy the last 16 rows - the same musical length - ' +
     'and none of them is at the loop seam, where the kit thins to a brush on the beat and the ' +
     'last eight rows of the piece carry nothing but the held d2 and the Bxx.',
-  renderChecksum: 3114034634,
+  renderChecksum: 2992020422,
 })
 s.check()
 s.write('src/assets/songs/11-night-shift.json')

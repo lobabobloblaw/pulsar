@@ -20,7 +20,7 @@
  *        lint's 12 % default — so NO `accidentalFractionMax` is declared. An allowance a
  *        piece does not need is a raised bound.
  *
- *  FORM (51 frames, 204 bars; one pass 122.10 s = 2:02)
+ *  FORM (51 frames, 204 bars; one pass 122.40 s = 2:02)
  *  | frame | section  | bars | what happens                                             |
  *  |-------|----------|------|----------------------------------------------------------|
  *  | 0–1   | launch   | 8    | the triangle's compound gallop alone, the saw answering   |
@@ -49,8 +49,8 @@
  *  |       |          |      | No kit at all; the piece's dynamic floor                  |
  *  | 33–37 | sprint   | 20   | falling fifths, eight links, arriving; a 5-ROW CELL on V2 |
  *  |       |          |      | carrying its phase through the whole five-frame cycle     |
- *  | 38–39 | stall    | 8    | the brake: half-time, then `D00` at 39:41 — a 42-row      |
- *  |       |          |      | frame whose last bar is ONE beat, jumping into the return |
+ *  | 38–39 | stall    | 8    | the brake: half-time, then a full beat of silence before  |
+ *  |       |          |      | the return; the frame plays all 48 rows, closing on a bar |
  *  | 40–43 | return   | 16   | A″: H at pitch, the second half re-harmonised             |
  *  | 44–48 | crest    | 20   | the climb, on the lead's THIRD colour (a flat 50 %): the  |
  *  |       |          |      | global peak d6 at 47:6, then the second and different     |
@@ -97,7 +97,6 @@
  *          48:24 (the SAW and the snare take the groups, the kick drops out, the hats keep
  *          the beat underneath and pulse 1 holds one note across all 24 rows).
  *          DISPLACEMENT: H and H2 one eighth late through `chase` bars 1–8, 10:2 to 12:1.
- *          METRIC SURPRISE: `D00` at 39:41, one per piece.
  *    §9.2  pulse 2 is an independent line for the whole of `flight2` (6:0–9:47): its own
  *          rhythm — dotted quarters on rows 3 and 9, the beat displaced by half of itself —
  *          and 32 of its 32 attacks on rows pulse 1 does not use. One voice crossing, at
@@ -136,7 +135,7 @@
  *    updraft2  P1 + P2 in sixths (four bars, earned) · SAW the turn back
  *    hush      P1 thin colour · TRI · nothing else
  *    sprint    P1 the sequence · V2 the 5-row cell · SAW eighths · TRI roots · DPCM snare
- *    stall     SAW + TRI alone, half-time, then the fill and the dropped beat
+ *    stall     SAW + TRI alone, half-time, then the fill and a beat of silence
  *    return    as flight, re-harmonised from bar 4 (41:0) · DPCM kick doubling
  *    crest     P1 climbing to d6 on the wide colour · V1 V2 fifths · SAW the hemiola ·
  *              crash and toms
@@ -148,8 +147,8 @@
  *            eighths and its average sits far under its peak. Peak 0.695 with zero clamped
  *            samples said there was room, so the PARTS were lifted (see `LIFT` below), per
  *            lane and not flat: the quiet lanes came up three steps and the lead one, which
- *            is why only 21 % of its note events sit at column 15. Final: -18.57 dBFS,
- *            peak 0.787, zero clamped, one pass 122.10 s.
+ *            is why only 21 % of its note events sit at column 15. Final: -18.58 dBFS,
+ *            peak 0.741, zero clamped, one pass 122.40 s.
  */
 import { CUT, L, Song, n, nib } from './lib.mjs'
 
@@ -1526,22 +1525,20 @@ const sprint = s.section('sprint', 20)
 }
 
 // =====================================================================================
-// stall — frames 38–39 (8 bars). The brake, and THE METRIC SURPRISE. Half-time: one bass
-// attack a bar, a kick on the barline and nothing on the off-eighths, so a piece that has
-// been moving in 100 ms eighths for ninety seconds suddenly has 600 ms to think in.
-// `D00` at 39:41 ends the frame after row 41, which makes frame 39 forty-two rows long and
-// its last bar SIX ROWS — one beat instead of two. The music jumps half a bar forward into
-// the return of the main theme, and the theme lands early. One per piece (§9.4), placed at
-// the seam where it does something, and never at the loop seam.
-// Everything this section latches is cancelled before row 41, because rows 42–47 of frame
-// 39 are never played and a cancel written there would never happen. The assertion at the
-// bottom of this file proves it on the built document rather than trusting the comment.
+// stall — frames 38–39 (8 bars). The brake: half-time, one bass attack a bar, a kick on
+// the barline and nothing on the off-eighths, so a piece that has been moving in 100 ms
+// eighths for ninety seconds suddenly has 600 ms to think in. The brake roll stops in
+// bar 6, and rows 42–47 of frame 39 — the frame's last beat — are left silent before the
+// return of the main theme: a full frame, no early landing, and `stall` stalls for real.
+// Everything this section latches is cancelled before that silence, because a cancel
+// written into rows 42–47 would never sound. The assertion at the bottom of this file
+// proves it on the built document rather than trusting the comment.
 // =====================================================================================
 const stall = s.section('stall', 8)
 {
   const S_HARMONY = [CH.i, CH.i, CH.VI, CH.VI, CH.iv, CH.iv, CH.V, CH.V]
   // P1  two notes a bar, falling: the lead marking time. No vibrato and no fade in the last
-  // two bars, so nothing needs cancelling in the rows the `D00` skips.
+  // two bars, so nothing needs cancelling before the silence that closes the frame.
   phrase(stall, L.P1, LEAD, 0, [
     [6, 'f#5', 13], [6, 'd5', 12], [6, 'b4', 12], [6, 'd5', 12],
     [6, 'g5', 13], [6, 'e5', 12], [6, 'b4', 12], [6, 'g4', 12],
@@ -1573,14 +1570,14 @@ const stall = s.section('stall', 8)
   stall.put(L.SAW, stall.at(7, 0), { note: n('f#3'), inst: SAW_RUN, vol: 11, fx: [['1', 0]] })
   stall.put(L.SAW, stall.at(7, 2), { note: n('a#3'), inst: SAW_RUN, vol: 11 })
   stall.put(L.SAW, stall.at(7, 4), { note: n('c#4'), inst: SAW_RUN, vol: 11 })
-  // V1  the bed drops to one chord a bar on the downbeat, and carries the `D00`
+  // V1  the bed drops to one chord a bar on the downbeat, one per bar for seven bars
   for (const bar of range(0, 7)) bed(stall, bar, S_HARMONY[bar], 'd4', 8, [0, 1, 2], [0])
   // V2  one held tone a bar
   for (const bar of range(0, 7)) {
     stall.put(L.V2, stall.at(bar, 0), { note: tone(S_HARMONY[bar], 1, 'f#3'), inst: HARM, vol: 9 })
   }
   // NOISE  half-time: a kick on the barline, a snare on beat 2 of every second bar, no hats
-  // at all for four bars — and then the fill that sets up the dropped beat.
+  // at all for four bars — and then the fill that sets up the beat of silence.
   for (const bar of range(0, 7)) {
     stall.hits(L.NOISE, KICK, 12, [[bar, 0]])
     if (bar % 2 === 1) stall.hits(L.NOISE, SNARE, 12, [[bar, 6]], 39)
@@ -1589,9 +1586,11 @@ const stall = s.section('stall', 8)
   clearKit(stall, 6, 6)
   fill(stall, 6, 'brake-roll', rollCells(6, [43, 41, 40], [9, 10, 11, 12, 13, 14]))
   fill(stall, 7, 'dropped-beat', [[0, KICK, 13, 36], [2, SNARE, 12, 41], [4, SNARE, 14, 41]])
-  // THE DROPPED BEAT. `D00` on row 41 of frame 39 — the section's row 89, bar 7 row 5 —
-  // ends the frame there. Rows 42–47 of that frame do not exist in playback.
-  stall.put(L.V1, stall.at(7, 5), { fx: [['D', 0]] })
+  // THE DROPPED BEAT used to be a `D00` on row 41 of frame 39, ending the frame six rows
+  // early. Six rows is half a 12-row bar, so the loop body came out 195.5 bars and the
+  // second pass re-entered a whole beat out of phase with the first (check.mjs
+  // `loop-metre`). Rows 42–47 were empty anyway, so `stall` now stalls for real: the
+  // brake roll stops and one beat of silence stands before the theme returns.
   stall.put(L.DPCM, 0, { note: CUT })
 }
 
@@ -1879,8 +1878,8 @@ for (const sec of s.sections.values()) {
   const perFrame = range(0, 5).map((k) => attacks.find((r) => r >= k * rows) - k * rows)
   if (perFrame.join() !== entries.join()) throw new Error(`the cell's entry rows are ${perFrame.join()}`)
 }
-// 2. THE DROPPED BEAT. `D00` at 39:41 means rows 42–47 of that frame never play, so nothing
-//    may be written there — least of all a channel-mode cancel, which would never happen.
+// 2. THE STALL. Rows 42–47 of frame 39 are the beat of silence the section is named for:
+//    nothing may be written there, and no channel mode may still be latched going into it.
 {
   const first = stall.at(7, 6)
   for (let lane = 0; lane < 8; lane++) {
@@ -1917,7 +1916,7 @@ s.qa({
     'B minor in 6/8 at 200 BPM, the album\'s fastest piece and its only compound metre: speed 3, ' +
     'rowHighlight 6 (the dotted-quarter beat), rowHighlight2 12 (a bar), rowsPerPattern 48 (a frame ' +
     '= 4 bars = 2.4 s). One row is a 16th at 50 ms and an EIGHTH IS TWO ROWS, which is the piece\'s ' +
-    'unit of motion; 51 frames, 204 bars, one pass 122.10 s. THE MOTIF H is four bars in which every ' +
+    'unit of motion; 51 frames, 204 bars, one pass 122.40 s. THE MOTIF H is four bars in which every ' +
     'bar climbs three eighths and LANDS on the second beat, and every landing is answered by a ' +
     'stepwise fall whose last eighth is a REST — at 100 ms an eighth the rest is the third limb of ' +
     'the motif and the only reason the tune is singable at this tempo. H is stated at 2:0 and its ' +
@@ -1950,11 +1949,14 @@ s.qa({
     'admits it. All five frames of the section carry a different noise pattern. CADENTIAL HEMIOLA twice, and differently: at 5:24 pulse 1, pulse 2, V2 and the KICK ' +
     'take six 4-row groups over the last two bars of A while the triangle holds f# and the sawtooth ' +
     'rests; at 48:24 the SAWTOOTH and the SNARE take the groups, the kick disappears, the hats keep ' +
-    'the two beats underneath and pulse 1 holds ONE NOTE across all twenty-four rows. METRIC ' +
-    'SURPRISE, exactly one: D00 at 39:41, which makes that frame 42 rows and its last bar six rows — ' +
-    'one beat instead of two — jumping a half-bar forward into the return of the theme. Rows 42-47 ' +
-    'of frame 39 are therefore never played, so nothing is written there and every channel mode ' +
-    '`stall` sets is cancelled before row 41; the generator asserts both on the built grid. ' +
+    'the two beats underneath and pulse 1 holds ONE NOTE across all twenty-four rows. NO Dxx ' +
+    'METRIC SURPRISE: an earlier draft cut `D00` at 39:41, ending frame 39 six rows early, and ' +
+    'because six rows is half a 12-row bar the loop body came out 195.5 bars, so the second ' +
+    'pass re-entered a beat out of phase with the first. Removing the cut leaves rows 42-47 of ' +
+    'frame 39 — already empty on every lane, with every channel mode cancelled before them — ' +
+    'as a real beat of silence before the theme returns, and the loop body a clean 196 bars ' +
+    '(2352 rows), both asserted on the built grid and enforced for every piece by check.mjs\'s ' +
+    'new `loop-metre` rule. ' +
     'HARMONY (9.3): NON-DIATONIC 1 is a six-link chromatic bass descent b-a#-a-g#-g-f# at 14:0, ' +
     '14:24, 15:0, 15:24, 16:0 and 16:24, TWO BARS a link — 1.2 s each — under a descant that ' +
     'oscillates d5-c#5 and a kit with no kick at all for eight bars, so each chord is what the ' +
@@ -2013,15 +2015,15 @@ s.qa({
     'the sustained inner voice and A03 = 3 SWELLING (the direction is inverted: Ax0 fades, A0y ' +
     'swells) on the sawtooth\'s climb out of the dive at 16:3, each cancelled with A00; 314 = 20 ' +
     'portamento on the sawtooth through the brake at 39:0-39:30, cancelled with 100 at 39:36 ' +
-    'because 300 only FREEZES a portamento; R14 = 20 as a one-shot phrase-end fall at 32:42; D00 at ' +
-    '39:41; B02 as the loop. NOT USED, deliberately: Vxx, because every melodic instrument here ' +
+    'because 300 only FREEZES a portamento; R14 = 20 as a one-shot phrase-end fall at 32:42; ' +
+    'B02 as the loop. NOT USED, deliberately: Vxx, because every melodic instrument here ' +
     'carries a duty macro and a macro overrides Vxx from the next tick, so the cell would be a write ' +
     'nothing reads; Gxx, because at speed 3 a tick is a sixth of an eighth and reads as timbre ' +
     'rather than as time; Fxx, because the piece is about one tempo. NOTHING IS DECLARED THAT THE ' +
     'PIECE DOES NOT NEED: the accidentals measure 181 of 2801 melodic notes (6.46 %) against the ' +
     'lint\'s 12 % default, so no accidentalFractionMax; the longest percussion gap is the 97 rows of ' +
     '`hush` and coverage is 92.4 % of played rows inside a gap of 8 or less, over the 80 % floor, so ' +
-    'no percussion bound is raised; the render is -18.57 dBFS with peak 0.787 and ZERO clamped ' +
+    'no percussion bound is raised; the render is -18.58 dBFS with peak 0.741 and ZERO clamped ' +
     'samples, so neither rmsRange nor clippedSamplesMax is declared. DEVIATIONS, stated because an ' +
     'unexplained one is a finding: (1) A\'s two fills are at 3:42 and 5:16 — the second unit takes ' +
     'its fill two bars early because bars 15-16 of that section belong to the cadential ' +
@@ -2032,7 +2034,7 @@ s.qa({
     'a bar was written for five lanes — measured across all eight here the densest frame is 27.0 ' +
     'attacks a bar (frame 29), and the V1 bed alternates six notes a bar with three specifically to ' +
     'keep it there.',
-  renderChecksum: 8685560,
+  renderChecksum: 130968323,
 })
 s.check()
 s.write('src/assets/songs/12-headlong.json')

@@ -29,7 +29,7 @@
  *  on 2A03 pulse 2 (`stile`, a quarter-note counter-line that lands on the group heads in
  *  even bars and between them in odd ones). Both agree with the brief.
  *
- *  FORM (20 frames, 80 bars, one pass 130.2 s = 2:10 — 1120 rows less the four the D00 eats)
+ *  FORM (20 frames, 80 bars, one pass 130.67 s = 2:11 — 1120 rows)
  *  | frame | section | bars | what happens                                                |
  *  |-------|---------|------|-------------------------------------------------------------|
  *  | 0     | gate    | 4    | the limp alone: the triangle states 2+2+3 with no kit at    |
@@ -53,8 +53,8 @@
  *  | 11–12 | hollow  | 8    | the thinnest place: the CHROMATIC MEDIANT, E major on a      |
  *  |       |         |      | stationary e, quitted to F and never to Am. No kick          |
  *  | 13–15 | climb   | 12   | the build: M's rhythm sequenced up a step at a time. The     |
- *  |       |         |      | METRIC SURPRISE ends it — D00 on 15:51, a 52-row frame       |
- *  |       |         |      | whose last bar is 10 rows: five eighths, 2+3                  |
+ *  |       |         |      | the accelerating snare roll simply ends. NO metric           |
+ *  |       |         |      | surprise: one beat of air carries into `crest`               |
  *  | 16–17 | crest   | 8    | the peak: M in octaves on pulse 1 and V1 for four bars, the  |
  *  |       |         |      | global high d6 at 17:18, a flat VII–IV–I plagal close        |
  *  | 18–19 | turn    | 8    | walking away: descending fifths, the lanes leaving one at a  |
@@ -91,7 +91,7 @@
  *            P2 silent to bar 8
  *    hollow  P1 bare · V2 the stationary e · V1 the g# · TRI three notes · no kick, no
  *            saw until bar 6, no DPCM
- *    climb   P1 MS · everything rising · DPCM from bar 8 · the D00 at bar 11
+ *    climb   P1 MS · everything rising · DPCM from bar 8 · the roll ends bar 11, no cut
  *    crest   P1 + V1 M in octaves · SAW the bass · full kit + DPCM · P2 sixths
  *    turn    everything leaving; the last bar is pulse 1 and the triangle over G7
  *
@@ -102,7 +102,8 @@
  *          STRUCTURAL 2: the 7/4 regrouping at 6:0–7:55, four 28-row bars accented every
  *          four rows by the kit, the bass and V1 together.
  *          Also: pulse 2's 4-row cell at 4:0–5:52 (realigns with the bar every 2 bars).
- *          METRIC SURPRISE: D00 at 15:51, one only, at the seam into `crest`.
+ *          NO metric surprise: the piece carries no Dxx pattern break anywhere. The
+ *          snare roll in `climb` bar 11 simply ends; one beat of air runs into `crest`.
  *    §9.2  pulse 2 is an independent line for the whole of `stile` (4:0–5:55): its own
  *          4-row rhythm, its own contour, and it falls at the cadence (5:8) while pulse 1
  *          rises. Suspensions at 4:4 (resolving 4:12) and, at the cadence, 5:40
@@ -1122,13 +1123,9 @@ const hollow = s.section('hollow', 8)
 // rises with it — C Dm Em F. Everything thickens: the saw joins the bass on the heads from
 // bar 4, the DPCM kick from bar 8, the kit gains a third kick.
 //
-// THE METRIC SURPRISE, and the only one in the piece: `D00` on 15:51 ends the frame after
-// that row, so this frame plays 52 rows and its last bar is TEN — five eighths, grouped
-// 2+3, the walk swallowing two of them. It lands at the seam into `crest`, under the lead's
-// highest note so far (b5 at 15:42), so the arrival of the peak section comes two eighths
-// early and the ear feels the floor move. Rows 52–55 of frame 15 are unwritten on every
-// lane, because the driver never reaches them: a cancel placed there would never fire.
-// Harmony: C Dm Em F · G Am F G · Em F Dm G7.
+// NO metric surprise: the piece carries no `Dxx` pattern break anywhere. The snare roll
+// in bar 11 (FILL 10) simply ends under the lead's highest note so far (b5 at 15:42), and
+// one beat of air carries over the seam into `crest`. Harmony: C Dm Em F · G Am F G · Em F Dm G7.
 // =====================================================================================
 const climb = s.section('climb', 12)
 {
@@ -1211,8 +1208,8 @@ const climb = s.section('climb', 12)
   climb.put(L.SAW, 0, { note: CUT })
   // NOISE  three kits in one section: bars 0–3 a single kick with eighth hats, bars 4–6 the
   // kick back on the long group with an open hat, bars 8–10 a third kick on row 6 and the
-  // hats thinned to two. FILL 9 at bar 7 is a triple riser; FILL 10 at bar 11 is a snare
-  // roll that the D00 CUTS OFF — the fill is unfinished, which is the whole gesture.
+  // hats thinned to two. FILL 9 at bar 7 is a triple riser; FILL 10 at bar 11 is an
+  // accelerating snare roll that simply ends — no cut, no metric surprise.
   for (const bar of range(0, 4)) {
     climb.hits(L.NOISE, KICK, lv(11), [[bar, 0]])
     climb.hits(L.NOISE, SNARE, lv(11), [[bar, 4]])
@@ -1245,8 +1242,12 @@ const climb = s.section('climb', 12)
   climb.hits(L.NOISE, SNARE, lv(12), [[11, 4]])
   climb.hits(L.NOISE, SNARE, lv(13), [[11, 6]], 41)
   climb.hits(L.NOISE, KICK, lv(13), [[11, 8]])
-  // THE METRIC SURPRISE rides the last drum of the unfinished roll: D00 on 15:51.
-  climb.hits(L.NOISE, SNARE, lv(14), [[11, 9, 'D', 0]], 41)
+  // The roll's last drum. It USED to carry `D00`, which ended the frame four rows early
+  // and left a bar of five eighths — but four rows is not a whole 7/8 bar, so the loop
+  // body came out 75.71 bars and every pass re-entered ten rows out of phase with the
+  // one before it (check.mjs `loop-metre`). The rows the cut discarded were empty, so
+  // the roll now simply stops and one beat of air carries into `crest`.
+  climb.hits(L.NOISE, SNARE, lv(14), [[11, 9]], 41)
   // DPCM  the downbeat of the last four bars, which is where the build needs weight the
   // triangle cannot spare.
   climb.put(L.DPCM, 0, { note: CUT })
@@ -1452,7 +1453,7 @@ s.qa({
   notes:
     'C major in 7/8 grouped 2+2+3, 128.571 BPM on 16th rows: speed 7, rowHighlight 4 (a beat), ' +
     'rowHighlight2 14 (a seven-eighth bar), rowsPerPattern 56 (a frame = 4 bars = 6.533 s); 20 ' +
-    'frames, one pass 130.2 s, which is 1120 rows less the four the D00 eats. THE BAR: eighths at ' +
+    'frames, one pass 130.67 s, which is 1120 rows exactly. THE BAR: eighths at ' +
     'rows 0 2 4 6 8 10 12, the three groups starting at 0, 4 and 8, the third six rows long. ' +
     'rowHighlight marks 0, 4, 8 and 12, and the 12 is INSIDE the long group - that mismatch is ' +
     'the piece, and every lane uses row 12 as a step the metre does not have. THE SUBJECT M is ' +
@@ -1476,11 +1477,11 @@ s.qa({
     'by the kit (an event on each of the seven quarters and none between them), by the bass ' +
     'moving once every two quarters and by V1\'s seven-attack arch. A third, smaller one: pulse ' +
     '2\'s 4-row cell at 4:0-5:52, a quarter against a seven-row bar, on the group heads in even ' +
-    'bars and between them in odd ones. METRIC SURPRISE, exactly one: D00 (param 0) at 15:51, ' +
-    'riding the last drum of an unfinished snare roll, so that frame plays 52 rows and its last ' +
-    'bar is TEN - five eighths, 2+3. Rows 52-55 of frame 15 are unwritten on every lane, because ' +
-    'the driver never reaches them and a cancel placed there would never fire. It is at a section ' +
-    'seam, into the return of the full band, and nowhere near the loop. NON-DIATONIC 1 (9.3): ' +
+    'bars and between them in odd ones. NO metric surprise of the Dxx kind anywhere in the piece: ' +
+    'a `D00` pattern break once sat at 15:51, cutting frame 15 four rows short, but four rows is ' +
+    'not a whole 7/8 bar (14 rows) and left the loop body 10 rows short of closing, so every pass ' +
+    'would have re-entered out of phase. The cut is gone; the snare roll in `climb` bar 11 simply ' +
+    'ends, and one beat of air carries into `crest`. NON-DIATONIC 1 (9.3): ' +
     'chained secondaries, four applied dominants that arrive - E7 at 4:36, A7 at 4:42, D7 at ' +
     '4:50, G7 at 5:0, C at 5:8. Voiced as the two lines a dominant seventh has: VRC6 pulse 1 ' +
     'takes d4 c#4 c4 b3 c4 (each seventh falling a semitone into the next chord\'s third) and VRC6 ' +
@@ -1545,9 +1546,10 @@ s.qa({
     'portamento on the sawtooth at 12:36, cancelled with 100 at 12:42 because 300 would only ' +
     'FREEZE it; R24 = 36 and R23 = 35 phrase- end falls at 9:52 and 12:52, both written on an ' +
     'effect-only cell over a sounding note and both followed by a rest, so a slide that has not ' +
-    'arrived cannot steal the next attack; G01 humanisation, one tick; D00 the metric surprise; ' +
-    'Bxx the loop. No Vxx: every melodic instrument here carries a duty macro, which overrides ' +
-    'Vxx from the next tick, so a Vxx cell would be a write nothing reads. NO RAISED BOUND: the ' +
+    'arrived cannot steal the next attack; G01 humanisation, one tick; Bxx the loop; no D00 ' +
+    'anywhere in the piece. No Vxx: every melodic instrument here carries a duty macro, which ' +
+    'overrides Vxx from the next tick, so a Vxx cell would be a write nothing reads. NO RAISED ' +
+    'BOUND: the ' +
     'piece needs 3.0 % of its melodic notes outside C major against the 12 % default, its longest ' +
     'percussion gap is 14 rows with 97.9 % of played rows inside a gap of 8 or less against the ' +
     '80 % floor, and it clamps zero samples against the allowance of eight - so ' +
@@ -1574,11 +1576,11 @@ s.qa({
     '(-18.30) now leads `climb` (-18.70) instead of trailing it by 0.05; and `broad`\'s release, ' +
     'which pulse 2\'s sixths alone moved by only 0.28 dB, took the quarter arch and the entering ' +
     'saw down with them until frame 7 sat 0.46 dB under `stile` and the section 1.21 dB under it. ' +
-    'Final: -19.53 dBFS whole file, peak 0.902, zero clamped. Section range: -18.30 at `crest`, ' +
-    '-18.56 at `stile`, -18.70 at `climb`, -19.77 at `broad`, -19.84 at `walk2`, -20.08 at ' +
+    'Final: -19.56 dBFS whole file, peak 0.891, zero clamped. Section range: -18.42 at `crest`, ' +
+    '-18.56 at `stile`, -18.77 at `climb`, -19.77 at `broad`, -19.84 at `walk2`, -20.04 at ' +
     '`turn`, -20.10 at `hollow`, -20.63 at `walk`, -23.95 at `gate`. The floor was met by lifting ' +
     'the parts, never by re-gaining the render. ',
-  renderChecksum: 1195369285,
+  renderChecksum: 1231770164,
 })
 s.check()
 s.write('src/assets/songs/10-crooked-mile.json')

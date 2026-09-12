@@ -194,18 +194,26 @@ describe('Headlong — 6/8 at 200, and the bar keeps coming apart', () => {
     expect(new Set(F.map((f) => attacks('vrc6p2', [f])[0].inst)).size).toBe(2)
   })
 
-  it('the metric surprise: D00 at 39:41 makes a 42-row frame and an unplayed half-bar', () => {
-    expect(hasFx(cellAt('vrc6p1', 39, 41), 'D', 0)).toBe(true)
-    // exactly one Dxx in the whole piece (§9.4: one metric surprise), and not at the seam
+  it('the loop body closes on a bar line: no Dxx anywhere, 2352 rows = 196 bars', () => {
+    // a cut that is not a whole bar makes every loop pass re-enter out of phase with the one
+    // before it — an earlier draft cut D00 here, six rows short of closing a bar, and the
+    // build now refuses any piece whose loop body is not a whole number of bars (check.mjs's
+    // `loop-metre` rule). So: no Dxx anywhere, the frame it used to cut short stays silent
+    // instead, and the loop body itself lands exactly on a bar line.
     const allD = song.channels.flatMap((ch) => timeline(ch).filter((c) => hasFx(c, 'D')))
-    expect(allD).toHaveLength(1)
-    expect(allD[0].frame).not.toBe(song.order.length - 1)
-    expect(allD[0].frame).not.toBe(qa.loopFrame)
-    // nothing is written in the rows it skips — a channel-mode cancel there would never run
+    expect(allD).toHaveLength(0)
+    // rows 42-47 of frame 39 are the beat of silence `stall` is named for — empty on every lane
     for (const ch of song.channels) {
       expect(pattern(ch, 39).rows.filter((c) => c.r >= 42), ch).toHaveLength(0)
     }
-    // and it lands on the return of the theme: frame 40 row 0 restates H
+    // the loop body is every frame from the loop row to the end; with no cuts left, each one
+    // contributes a full rowsPerPattern, so the total must divide evenly into whole bars
+    let loopRows = 0
+    for (let f = qa.loopFrame; f < song.order.length; f++) loopRows += ROWS
+    expect(loopRows % song.meta.rowHighlight2).toBe(0)
+    expect(loopRows).toBe(2352)
+    expect(loopRows / song.meta.rowHighlight2).toBe(196)
+    // the silence still lands on the return of the theme: frame 40 row 0 restates H
     expect(shape(attacks('pulse1', [40]))).toEqual(H.map(([r, n]) => [r + 40 * ROWS, n]))
   })
 

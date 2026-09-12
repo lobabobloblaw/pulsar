@@ -182,6 +182,47 @@ export function checkDoc(doc, id, loopFrame) {
     }
   }
 
+  // --- the loop body must close on a bar line (§2.9) --------------------------------
+  // `Dxx` and `Bxx` truncate the frame they sit in, so a cut that is not a whole number
+  // of bars leaves the loop body a fraction of a bar long. The rows still play at an
+  // exact tempo — nothing drifts — but each pass re-enters the music a fraction of a bar
+  // away from the pulse the listener entrained on the pass before, and only comes back
+  // after lcm(remainder, bar) / remainder passes. It is heard as the beat slipping and,
+  // some minutes later, sorting itself out. Nine of the album's twelve close cleanly;
+  // the three that did not each carried a one-beat `D00` over an EMPTY frame tail.
+  if (loopFrame !== undefined) {
+    const rpp = doc.meta.rowsPerPattern
+    const bar = doc.meta.rowHighlight2
+    const byKey = new Map(doc.patterns.map((p) => [`${p.channel}:${p.index}`, p]))
+    let body = 0
+    const cuts = []
+    for (let f = loopFrame; f < doc.order.length; f++) {
+      let end = rpp - 1
+      for (let c = 0; c < doc.channels.length; c++) {
+        for (const row of byKey.get(`${doc.channels[c]}:${doc.order[f][c]}`)?.rows ?? []) {
+          for (const e of row.fx ?? []) {
+            if (e !== null && (e.cmd === 'D' || e.cmd === 'B') && row.r < end) end = row.r
+          }
+        }
+      }
+      if (end !== rpp - 1) cuts.push(`frame ${f} ends at row ${end} (${rpp - 1 - end} rows dropped)`)
+      body += end + 1
+    }
+    const rem = body % bar
+    if (rem !== 0) {
+      const g = (a, b) => (b === 0 ? a : g(b, a % b))
+      const passes = bar / g(rem, bar)
+      add(
+        'loop-metre',
+        `the loop body is ${body} rows = ${(body / bar).toFixed(2)} bars of ${bar}: it is ${rem} row` +
+          `${rem === 1 ? '' : 's'} short of closing. Every pass re-enters ${rem} rows ` +
+          `(${(rem / doc.meta.rowHighlight).toFixed(2)} beats) out of phase with the one before it and ` +
+          `the metre only recovers after ${passes} passes. ${cuts.length ? cuts.join('; ') : 'No Dxx/Bxx truncates a frame'} — ` +
+          'make every cut a whole number of bars, or drop the cut.',
+      )
+    }
+  }
+
   // --- the channel modes a note trigger does not clear (§12.5) ----------------------
   // `trigger()` resets the phases and nothing else, so an arpeggio, a slide, a
   // portamento, a vibrato, a tremolo, a volume slide or a fine pitch outlives its note,
