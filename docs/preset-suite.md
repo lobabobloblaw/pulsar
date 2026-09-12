@@ -531,6 +531,7 @@ reference and we are not adding one. So:
 - **Values are frozen.** An instrument named `lead-bright` must resolve to exactly the
   macro values in §3.2–3.4. The critic (§6) checks this by resolving each instrument's
   macro indices to values and comparing against the canonical table.
+*Cap superseded 2026-09-11 — see §12.6.*
 - **Piece-specific additions are allowed**: up to **3** extra instruments per piece, named
   `x-<piece>-<what>` (e.g. `x-tidepool-glass`), appended after the shared ones, plus any
   sequences they need. Anything an agent finds itself wanting twice belongs in the bank —
@@ -2287,3 +2288,23 @@ as the latch reaches before frame 6 restates it. So the seam finding is one wobb
 note, and the `inherited:` findings are the larger half of it: 33 notes carrying a vibrato
 written five sections earlier. Both are real, neither is an emergency, and fixing either
 changes what the album sounds like — the composer's call, not a test's.
+
+### 12.6 the piece-specific instrument cap is retired
+
+§3.1 allows **3** piece-specific `x-<piece>-*` instruments. That number was written for a
+five-lane album sharing one bank, and it has never described this repertoire: the three
+shipped pieces carry **12**, **17** and **23**, every one of them piece-specific, and no gate
+has ever enforced the cap. Two things made it obsolete. Eight lanes on two chips need more
+distinct voices than five on one — a VRC6 pulse, a 2A03 pulse and a sawtooth playing the same
+line want three different envelopes. And a piece composed as a generator script (§12.3) names
+its own instruments as a matter of course, where a hand-authored piece reached for the shared
+bank to save typing.
+
+**The rule that replaces it.** A piece carries as many instruments as it plays, each either
+byte-identical to a shared-bank entry of the same name or named `x-<id>-*`. Both halves are
+already gated: gate B's bank-drift check rejects a drifted bank name or a foreign name, and an
+instrument nothing plays is a load warning, which gate A rejects. Nothing further is capped.
+What the shared bank is still *for* is the kit — a drum that is the same drum across the album
+is worth more than a lead that is the same lead — so reach for `kick`, `snare`, `hat-closed`,
+`hat-open` and `crash` before writing your own, and say why in `extra.qa.notes` when you do
+write your own.
