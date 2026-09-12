@@ -39,7 +39,9 @@
  *  |       |         |      | rhythm), the chromatic mediant Ab major against F with c4    |
  *  |       |         |      | held, and L re-orchestrated onto the sawtooth as a brass     |
  *  |       |         |      | statement with a bend-in. Pulse 2 is an INDEPENDENT LINE for |
- *  |       |         |      | the whole section (§9.2). Cell 5:4, 6:0                      |
+ *  |       |         |      | the whole section (§9.2). Cell 5:4, then it RESTS for bars   |
+ *  |       |         |      | 2–3 as the tune's phrase ends and the harmony falls to C;    |
+ *  |       |         |      | back at 6:0                                                  |
  *  | 7     | air     | 4    | TWO LANES: pulse 1 and the triangle, alone. No kit at all,   |
  *  |       |         |      | no cell, no harmony — the widest silence in the piece        |
  *  | 8     | answer  | 4    | the two pulses trade phrases — free imitation a fourth below |
@@ -50,7 +52,8 @@
  *  |       |         |      | in stages. The last bar (10:48) is the METRIC SURPRISE: the  |
  *  |       |         |      | kit, the DPCM, vrc6p1 and the sawtooth all stop and the      |
  *  |       |         |      | 5-row cell plays on under an Italian augmented sixth that    |
- *  |       |         |      | resolves outward to C at 10:56                               |
+ *  |       |         |      | resolves outward to C at 10:56. Cell 9:3, then it RESTS for  |
+ *  |       |         |      | bars 1–3 as the kick and vrc6p1 enter; back at 10:4          |
  *  | 11–13 | light   | 12   | the peak: L in RHYTHMIC AUGMENTATION (every value doubled)   |
  *  |       |         |      | for eight bars, then the tune at speed for four; eight lanes;|
  *  |       |         |      | the sawtooth doubles the tune an octave down for the last    |
@@ -72,7 +75,8 @@
  *       an octave down), 11:0 (augmented ×2, the peak), 14:1 (displaced one row late).
  *    O  the 5-row cell: a three-note figure on vrc6p2 attacking every five rows, its
  *       pitch drawn from the bar's chord but its FIGURE advancing on its own count, so
- *       the same three notes never land on the same three beats twice.
+ *       the same three notes never land on the same three beats twice. It rests three
+ *       times in the middle third (5:32–5:63, frame 7, 9:16–9:63) and never re-anchors.
  *    TIMBRE  the tune changes duty between passes, which is the anti-monotony tool the
  *       master reference names first. Three voices carry it: `lead` (12.5 % opening to
  *       25 %) at 1:0, 9:0 and 11:0; `lead-round` (25 % opening to 50 %) at 3:0, so the
@@ -83,10 +87,13 @@
  *       independent line is a different animal: a continuous off-8th counter-voice.
  *
  *  DEVICES (frame:row)
- *    §9.1  recipe B, the 5-row cell, carried across every frame of the loop body except
- *          the two-lane section: entry rows 1:0 2:1 3:2 4:3 5:4 | 6:0 (7 rests) 8:2 9:3
- *          10:4 | 11:0 12:1 13:2 14:3 15:4 — three complete cycles of five, computed as
- *          (−64k) mod 5 from the loop row, never guessed. 960 rows is 192 whole cells,
+ *    §9.1  recipe B, the 5-row cell. Its GRID is carried across every frame of the loop
+ *          body; its ATTACKS rest three times in the middle third, so each return is
+ *          heard as a return: B bars 2–3 (5:32–5:63), the two-lane frame 7, and build
+ *          bars 1–3 (9:16–9:63). No rest re-anchors it: entry rows 1:0 2:1 3:2 4:3 5:4 |
+ *          6:0 (7 rests) 8:2 9:3 10:4 | 11:0 12:1 13:2 14:3 15:4 — three complete cycles of
+ *          five, computed as (−64k) mod 5 from the loop row, never guessed, and the returns
+ *          after the rests are rows the grid already owned. 960 rows is 192 whole cells,
  *          so the cell's phase REPEATS exactly on pass 2 rather than evolving further —
  *          deliberate: three cycles of five inside one pass is the device stated in full,
  *          and a seam that arrives mid-cell would cost more than the fourth cycle is
@@ -94,8 +101,9 @@
  *          last statement is displaced +1 row at 14:1 against a bass, a bell and a kit
  *          that do not move. The metric surprise is 10:48: for one whole bar the kit, the
  *          DPCM pair, vrc6p1 and the sawtooth all stop, and the only things left are the
- *          five-row cell and the three sustained voices spelling the augmented sixth —
- *          four attacks where the bar before it had twenty-six.
+ *          five-row cell and the three voices spelling the augmented sixth — nine
+ *          attacks (the sixth struck at 48 and resolved at 56, three strokes of the cell)
+ *          where the bar before it had thirty-one.
  *    §9.2  pulse 2 is an independent line for the whole of B (5:0–6:63): its own rhythm
  *          — every attack on an off-8th, never a row the sawtooth attacks — its own
  *          contour, and three leaning suspensions at 5:6, 6:6 and 6:22, each held across
@@ -115,11 +123,11 @@
  *    horizon  SAW pedal · V1 arpeggio bed                                     (2 lanes)
  *    A        P1 tune · TRI bass · V1 bed · V2 cell · NOISE rim+hats
  *    A'       P1 tune · P2 answers in the rests · TRI · V2 cell · NOISE       (no bed)
- *    B        SAW tune · P2 independent line · P1 rests · V1 held mediant · V2 cell ·
- *             TRI · NOISE toms
+ *    B        SAW tune · P2 independent line · P1 rests · V1 held mediant · V2 cell
+ *             (resting bars 2–3) · TRI · NOISE toms
  *    air      P1 · TRI                                                        (2 lanes)
  *    answer   P1 · P2 imitation in its rests · TRI · V2 cell · NOISE rim
- *    build    P1 · P2 · TRI · V1 · V2 cell · NOISE · DPCM
+ *    build    P1 · P2 · TRI · V1 · V2 cell (resting bars 1–3) · NOISE · DPCM
  *    light    all eight; SAW doubles the tune an octave down for bars 4–11 only
  *    descent  the reverse of the build; SAW out first, then DPCM, then P2
  *  HEADROOM  the sawtooth never above 12 and never sustained above 10; the VRC6 pair at
@@ -326,10 +334,11 @@ const CELL_TONES = {
   It6: ['f4', 'db4', 'b4'],
 }
 
-/** The figure's own counter, advancing once per attack for the whole piece. It is NOT
- *  reset at a bar, a frame or a section: that is the entire point. Three notes on a
- *  five-row cell against a sixteen-row bar means the same three pitches never land on the
- *  same three beats twice inside one pass. */
+/** The figure's own counter. It is NOT reset at a bar, a frame or a section: that is the
+ *  entire point. Three notes on a five-row cell against a sixteen-row bar means the same
+ *  three pitches never land on the same three beats twice inside one pass. It advances
+ *  once for every grid slot cellRun walks, struck or skipped (see `skip` below); `air`
+ *  never calls cellRun, so the count stands still through frame 7. */
 let cellStep = 0
 
 /** Write the cell into `sec`, whose first order frame is `startFrame`.
@@ -341,7 +350,21 @@ let cellStep = 0
  *  is fifteen frames = 960 rows = 192 cells exactly, so the phase is continuous across
  *  the seam as well as across every frame boundary.
  *
- *  `chords` is one chord name per bar. `skip` is a list of bars the cell sits out. */
+ *  `chords` is one chord name per bar, or a function of the row. `skip` lists the
+ *  SECTION's bars the cell sits out. A skipped bar withholds only the attacks: `r` keeps
+ *  walking the same five-row grid, so nothing re-anchors, and the first attack after
+ *  the rest is on the row the unbroken grid gives it (6:0 after B's, 10:4 after the
+ *  build's).
+ *
+ *  `cellStep` keeps turning through a skipped bar too, one step per silent slot. That
+ *  was chosen over "advance only on an attack" so that a rest is a pure subtraction:
+ *  every attack after it plays the pitch it would have played had the bell never
+ *  stopped, so a rest cannot re-voice everything that follows it, and the figure's
+ *  three-against-five count stays locked to the grid. The two readings agree when the
+ *  silent slots are a multiple of three (B's rest is six); the build's is ten, and
+ *  this choice is why the bell comes back at 10:4 on an accented f4, the tonic, rather
+ *  than on a4. `air` is a different kind of rest: it never calls cellRun, so there the
+ *  grid counts on and the figure does not. */
 function cellRun(sec, startFrame, chords, opts = {}) {
   const { vol = 8, accent = 2, skip = [], inst = BELL, until = sec.len } = opts
   const first = (4 + startFrame) % 5
@@ -490,8 +513,9 @@ const A = s.section('A', 8)
     // 4 on: the bed leans forward under the half of the tune that climbs.
     return (bar < 4 ? [0, 8] : [0, 6, 12]).map((row) => [bar, row, ...root])
   }), 8)
-  // V2  the 5-row cell enters here, on the loop row itself, and from here it runs on
-  // its own grid through every frame but one (`air`) all the way to 15:59.
+  // V2  the 5-row cell enters here, on the loop row itself, and from here its grid runs
+  // unbroken to 15:59. Its attacks rest three times on the way: B bars 2–3, the whole
+  // of `air`, and build bars 1–3.
   cellRun(A, 1, A_CHORDS, { vol: 7 })
   // NOISE  rim on beats 2 and 4, hats on the off-8ths only, nothing on the downbeat
   // except in bar 0 — a brushed pulse, not a kit. No kick anywhere in this section.
@@ -555,7 +579,7 @@ const A2 = s.section("A'", 8)
   // of the piece. Nothing replaces it — the bass and the tune are left to imply the
   // harmony, and the removal is the event (§2.4: drop the arpeggio once it has done its
   // work and the listener fills in the blanks).
-  // V2  the cell, unbroken, entering this frame two rows in.
+  // V2  the cell, through all eight bars of this section, entering this frame two rows in.
   cellRun(A2, 3, A2_CHORDS, { vol: 8 })
   // NOISE  the kit answers the bed's disappearance by arriving: a soft kick on beat 1,
   // the rim still on 2 and 4, and an OPEN HAT on the "and" of 4 — this section's
@@ -667,8 +691,14 @@ const B = s.section('B', 8)
   B.put(L.V1, B.at(0, 0), { fx: [['7', nib(3, 2)]] })
   B.put(L.V1, B.at(4, 0), { fx: [['7', nib(3, 2)]] })
   B.put(L.V1, B.at(7, 12), { note: CUT, fx: [['7', nib(1, 0)]] })
-  // V2  the cell, following the half-bar harmony.
-  cellRun(B, 5, B_CHORD_AT, { vol: 8 })
+  // V2  the cell, following the half-bar harmony, and its first rest outside `air`. It
+  // states the mediant and the fall back to G (5:4–5:29), then withholds its attacks
+  // for bars 2–3 (5:32–5:63): G · F | Dm · C, the end of the tune's second phrase,
+  // which the sawtooth closes with three beats of air while pulse 2's line, the inner
+  // voice's stepwise fall (b3 · a3 · g3) and the bass carry the harmony down to C. The
+  // grid keeps counting, so the bell returns at 6:0 on its own row as the next phrase
+  // starts over F, eight rows before the mediant is struck again at 6:8.
+  cellRun(B, 5, B_CHORD_AT, { vol: 8, skip: [2, 3] })
   // NOISE  a tom pulse instead of a kick: low tom on beat 1, rim on 3, hats only on the
   // second half of each bar. Nothing here has a backbeat — the section floats.
   for (const bar of range(0, 8)) {
@@ -742,7 +772,8 @@ const answer = s.section('answer', 4)
     [3, 0, 'g2'], [3, 8, 'd3'], [3, 12, 'b2'],
   ], TRI_LONG)
   // V2  the cell returns, two rows into the frame, exactly where it would have been had
-  // it never stopped — the figure counted through the rest.
+  // it never stopped — the GRID counted through the rest. The figure did not: `air`
+  // never calls cellRun, so 8:2 plays the figure's next note after 6:60.
   cellRun(answer, 8, ANSWER_CHORDS, { vol: 7 })
   // NOISE  a rim on beat 3 and one brushed ghost a bar: the kit re-enters at its
   // quietest, which is the only way the build can be a build.
@@ -818,10 +849,16 @@ const build = s.section('build', 8)
   held(build, [[2, 0, 'b3', null], [3, 0, 'e4', null], [4, 0, 'a3', null],
     [5, 0, 'f3', null], [6, 0, 'b3', null]], 9)
   build.put(L.V1, build.at(6, 15), { note: CUT })
-  // V2  the cell, through everything, including the stop bar — where it is the only
-  // thing left moving. That bar is the piece's ONE metric surprise (§9.4): the bar
-  // itself is intact, but nothing marks it except a figure that does not agree with it.
-  cellRun(build, 9, BUILD_CHORD_AT, { vol: 8, accent: 3 })
+  // V2  the cell's second rest outside `air`. It marks the sequence's first link, Am,
+  // then withholds its attacks for bars 1–3 (9:16–9:63), the links Dm · G · C, where
+  // the bass states a new root every bar, the two pulses move in contrary motion and,
+  // at 9:32, the kick on 1 and 3 and vrc6p1 both enter: the sequence is the clock
+  // there. The grid keeps counting, so the bell returns at 10:4 on the sequence's goal,
+  // F, as the snare and the DPCM pair arrive, and then plays through the stop bar,
+  // where it is the only thing left moving. That bar is the piece's ONE metric surprise
+  // (§9.4): the bar itself is intact, but nothing marks it except a figure that does
+  // not agree with it, which is why the cell never rests there.
+  cellRun(build, 9, BUILD_CHORD_AT, { vol: 8, accent: 3, skip: [1, 2, 3] })
   // NOISE  the only section with a conventional backbeat, and it arrives in stages:
   // rim and hats (bars 0–1), a kick on 1 and 3 (2–3), the snare on 2 and 4 (4–5), a roll
   // (6), silence (7).
@@ -1065,8 +1102,8 @@ s.qa({
     'the kit is rim, brushes and hats until frame 9. Lowering the arrangement is the ' +
     'composition; the level was not re-gained to meet the default, per section 2.8. ' +
     'The dynamic arc is a single long build and one deep dip, measured per section: ' +
-    'horizon -27.3, A -22.1, A-prime -21.1, B -21.0, air -24.8, answer -22.9, build ' +
-    '-20.7, light -19.7 (the loudest music in the piece, in the last third), descent ' +
+    'horizon -27.3, A -22.1, A-prime -21.1, B -21.1, air -24.8, answer -22.9, build ' +
+    '-20.8, light -19.7 (the loudest music in the piece, in the last third), descent ' +
     '-23.1. Peak 0.664, zero clamped samples, so no clip allowance is declared. ' +
     'percussionGap 32: frame 7 (air) drops the kit entirely for its four bars, which is ' +
     'the piece\'s widest silence and the point of the section; the report tool measures ' +
@@ -1074,13 +1111,24 @@ s.qa({
     'answer section\'s first rim, and coverage still reads 86.4% against the 80% floor. ' +
     'The bar at 10:48 also stops the kit, deliberately (below). ' +
     'DEVICES. Metric, section 9.1 recipe B: an ostinato attacking every FIVE rows on ' +
-    'vrc6p2, anchored at the loop row and carried unbroken through the loop body, so ' +
-    'frame k enters at (-64(k-1)) mod 5 = (k-1) mod 5. Measured entry rows, frame:row: ' +
+    'vrc6p2, anchored at the loop row. Its GRID is carried unbroken through the loop ' +
+    'body, so frame k enters at (-64(k-1)) mod 5 = (k-1) mod 5; its ATTACKS rest three ' +
+    'times in the middle third, so that each return is heard as a return: 5:32 to 5:63 ' +
+    '(B bars 2-3, where the tune ends a phrase and the harmony falls to C), all of ' +
+    'frame 7, and ' +
+    '9:16 to 9:63 (build bars 1-3, where the kick and vrc6p1 enter). No rest re-anchors ' +
+    'it: the bell returns at 6:0 and 10:4, on the rows the grid always gave it, both ' +
+    'times on an accented f4. Measured entry rows, frame:row: ' +
     '1:0 2:1 3:2 4:3 5:4 | 6:0, frame 7 rests, 8:2 9:3 10:4 | 11:0 12:1 13:2 14:3 15:4 ' +
-    '- three complete cycles of five. The loop body is 15 frames = 960 rows = 192 cells ' +
+    '- three complete cycles of five; frame 5 attacks only in its first two bars and ' +
+    'frame 9 only in its first. 163 attacks: 192 grid slots less 13 in frame 7 and 16 ' +
+    'in the two bar rests, so the cell sounds in 51 of the 64 bars. ' +
+    'The loop body is 15 frames = 960 rows = 192 cells ' +
     'exactly, so the grid is continuous across the seam too: the last attack is 15:59 ' +
     'and the next one is the loop row itself. Its three-note figure advances on its own ' +
-    'count and is never reset by a bar, a frame or a section. The one metric surprise ' +
+    'count and is never reset by a bar, a frame or a section; it keeps turning through ' +
+    'the two bar rests and stands still through frame 7, which the cell sits out ' +
+    'entirely. The one metric surprise ' +
     '(section 9.4) is 10:48 - a whole bar in which noise, dpcm, vrc6p1 and vrc6saw all ' +
     'stop and only the five-row cell marks time. Recipe F is here too: the tune\'s last ' +
     'statement is DISPLACED one row late at 14:1 - frame 14\'s pulse 1 is frame 1\'s, note ' +
@@ -1098,7 +1146,7 @@ s.qa({
     'dominant, one bar before the peak section. Positives: a four-link descending-fifths ' +
     'sequence Am-Dm-G-C-F at 9:0, 9:16, 9:32, 9:48, 10:0; three different harmonic ' +
     'rhythms (one chord a bar in A and A-prime, two a bar in B, one per two bars in the ' +
-    'augmented half of light); no four-chord cycle is repeated anywhere. Only 2.0% of ' +
+    'augmented half of light); no four-chord cycle is repeated anywhere. Only 2.1% of ' +
     'melodic notes are outside the mode, against the 12% default, so no allowance is raised. ' +
     'Counterpoint, section 9.2: pulse 2 is an independent line for the whole of B ' +
     '(5:0 to 6:63) - every one of its 29 attacks is on an off-8th, so it shares no ' +
@@ -1144,10 +1192,10 @@ s.qa({
     'sustained passage reaches the ceiling. The lead rests inside the build as it does ' +
     'everywhere else: a beat at 9:60 before the sequence lands on F, and a beat at 10:44 ' +
     'so the augmented sixth arrives out of air rather than out of a continuous line. ' +
-    'Only 15.7% of note ' +
-    'events are at volume 15, and all but six of those are the triangle, which has no ' +
+    'Only 15.9% of note ' +
+    'events are at volume 15, and all but four of those are the triangle, which has no ' +
     'level at all and whose 15 is a gate.',
-  renderChecksum: 3198937226,
+  renderChecksum: 130662813,
 })
 s.check()
 s.write('src/assets/songs/09-long-light.json')

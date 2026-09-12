@@ -67,7 +67,7 @@ describe('Long Light — altitude, distance, late afternoon', () => {
     expect(song.instruments[0].name).toBe('x-long-light-lead')
   })
 
-  it('the 5-row cell: an unbroken five-row grid on vrc6p2, entering (k-1) mod 5 each frame', () => {
+  it('the 5-row cell: an unbroken five-row grid on vrc6p2, entering (k-1) mod 5 each frame, resting three times', () => {
     // §9.1 recipe B. The cell is anchored at the LOOP ROW, so frame k's first attack sits
     // at (-64(k-1)) mod 5 = (k-1) mod 5 — computed, not guessed, and not 0,1,2,3,4 by luck:
     // 64 ≡ 4 (mod 5) is what makes the sequence come out in order here.
@@ -82,12 +82,29 @@ describe('Long Light — altitude, distance, late afternoon', () => {
     }
     expect(attacks('vrc6p2', [0]), 'the cell has not started in the intro').toHaveLength(0)
     expect(attacks('vrc6p2', [7]), 'the cell rests for the whole two-lane section').toHaveLength(0)
+    // … and for bars 2–3 of B (5:32–5:63) and bars 1–3 of the build (9:16–9:63). A rest
+    // withholds ATTACKS only: both frames still enter on their own rows and keep the grid
+    // up to the rest, and the returns (6:0, 10:4) are the entry rows pinned above.
+    expect(attacks('vrc6p2', [5]).map((c) => c.r), 'vrc6p2 rests in 5:32–5:63').toEqual([4, 9, 14, 19, 24, 29])
+    expect(attacks('vrc6p2', [9]).map((c) => c.r), 'vrc6p2 rests in 9:16–9:63').toEqual([3, 8, 13])
+    // the phase is carried: every attack in the piece, across both bar rests, frame 7 and
+    // the seam, is a whole number of cells from the loop row — nothing re-anchors
+    const loopRow = qa.loopFrame * ROWS
+    for (const c of attacks('vrc6p2')) {
+      expect((c.row - loopRow) % 5, `vrc6p2 ${c.frame}:${c.r} is off the loop-row grid`).toBe(0)
+    }
+    // the figure keeps turning through a bar rest (one step per silent cell), so a rest
+    // re-voices nothing after it: the build's rest silences ten cells, and the bell returns
+    // at 10:4 on f4 (65). Had the figure advanced only on attacks it would return on a4 (69).
+    expect(cellAt('vrc6p2', 10, 4)?.note).toBe(65)
+    expect(cellAt('vrc6p2', 6, 0)?.note).toBe(65) // six silent cells: both readings agree
     // the loop body is 15 frames = 960 rows = 192 cells exactly, so the phase is
     // continuous across the seam: the last attack is at 15:59 and the next is the loop row
     const last = attacks('vrc6p2', [15]).at(-1)!
     expect(last.r).toBe(59)
     expect(cellAt('vrc6p2', qa.loopFrame, 0)?.note).toBeGreaterThanOrEqual(0)
-    expect(attacks('vrc6p2')).toHaveLength(192 - 13) // three cycles, less the frame it rests
+    // 192 grid slots, less frame 7 (13) and the two bar rests (6 in B, 10 in the build)
+    expect(attacks('vrc6p2')).toHaveLength(192 - 13 - 6 - 10)
   })
 
   it('L: the tune, its raised-fourth peak at 2:40, and every phrase ending in air', () => {
