@@ -130,12 +130,24 @@ describe('Headlong — 6/8 at 200, and the bar keeps coming apart', () => {
     // V1 takes the same three groups an eighth later, a second offset three-count
     expect(attacks('vrc6p1', [19]).map((c) => c.r)).toEqual([2, 6, 10, 14, 18, 22, 26, 30, 34, 38, 42, 46])
     // the kit agrees: kick on group 1, snare on groups 2 and 3, and NO attack on row 6
-    for (const f of [18, 19, 20]) {
+    for (const f of [18, 19]) {
       const kit = attacks('noise', [f]).filter((c) => c.r < 12)
       expect(kit.map((c) => c.r)).toEqual([0, 4, 8, 10])
       expect(kit[0].note).toBe(36)
       expect(kit[1].note).toBe(39)
     }
+    // …and it does not play that cell for twenty bars: all five frames are different
+    // patterns, the third group becomes a KICK in bars 8–11, and bars 12–15 whisper a metal
+    // tick on row 6 — the bar's real second beat — while V1 is away
+    expect(new Set(F.map((f) => song.order[f][song.channels.indexOf('noise')])).size).toBe(5)
+    expect(cellAt('noise', 20, 8)?.note).toBe(36)
+    expect(cellAt('noise', 21, 6)?.note).toBe(44)
+    expect(cellAt('noise', 18, 6)).toBeUndefined()
+    // V1 leaves for four bars at 21:0 and returns at 22:0 with its three-note cell REVERSED:
+    // bars 0–11 run root · third · fifth, bars 16–19 run fifth · third · root
+    expect(attacks('vrc6p1', [21])).toHaveLength(0)
+    expect([2, 6, 10].map((r) => cellAt('vrc6p1', 18, r)!.note! % 12)).toEqual([11, 2, 6]) // b d f# = Bm
+    expect([2, 6, 10].map((r) => cellAt('vrc6p1', 22, r)!.note! % 12)).toEqual([1, 10, 6]) // c# a# f# = F# reversed
     // …while the TRIANGLE keeps two: the two beats, rows 0 and 6, and nothing else
     for (const f of [18, 19, 20, 21]) {
       expect(attacks('triangle', [f]).map((c) => c.r % 12)).toEqual([0, 6, 0, 6, 0, 6, 0, 6])

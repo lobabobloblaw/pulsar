@@ -16,7 +16,7 @@
  *  KEY   B natural minor (b c# d e f# g a), declared `b-minor`. The relative major D is
  *        the same seven notes, so `updraft`'s lift costs nothing; the accidentals are the
  *        chromatic dive (a#, g#), the raised third of the real dominant (a#) and the
- *        augmented sixth's e#. Measured: 181 of 2806 melodic notes, 6.45 %, under the
+ *        augmented sixth's e#. Measured: 181 of 2801 melodic notes, 6.46 %, under the
  *        lint's 12 % default — so NO `accidentalFractionMax` is declared. An allowance a
  *        piece does not need is a raised bound.
  *
@@ -31,7 +31,7 @@
  *  | 6–9   | flight2  | 16   | A′: H re-voiced, pulse 2 an independent line for the whole|
  *  |       |          |      | section; the arpeggio bed LEAVES at 6:0 and stays out     |
  *  | 10–13 | chase    | 16   | H displaced one eighth late (+2 rows) against a kit that  |
- *  |       |          |      | is not displaced; the two pulses trade two-bar phrases    |
+ *  |       |          |      | is not displaced; pulse 2 answers with ONE two-bar phrase |
  *  | 14–17 | dive     | 16   | B: the chromatic bass descent b–a#–a–g#–g–f#, two bars a  |
  *  |       |          |      | link, upper voices holding; no kick for eight bars        |
  *  | 18–22 | three    | 20   | THE HEMIOLA SECTION: H in AUGMENTATION on pulse 1 — every |
@@ -83,7 +83,7 @@
  *        four-bar limbs of the tune are contrary in contour as well as in harmony.
  *    C   the counter-voice (pulse 2 in `flight2`, 16 bars): it moves in the holes H leaves
  *        — the held beat 2 and the empty last eighth — in quarters and dotted quarters
- *        against H's eighths, and it crosses above the lead exactly once, at 9:30.
+ *        against H's eighths, and it crosses above the lead exactly once, at 8:9.
  *    G   the gallop: the triangle's compound bass figure, dotted quarter + quarter +
  *        eighth (rows 0, 6, 10), stepwise and never twice the same three notes.
  *
@@ -123,18 +123,21 @@
  *    flight    P1 H · P2 answers in the holes · TRI gallop · SAW tenor eighths ·
  *              V1 bed · V2 off-beat thirds · kit · DPCM rests
  *    flight2   P1 H re-voiced · P2 THE COUNTER-VOICE · V1 SILENT · V2 sustained sixths
- *    chase     P1 H displaced · P2 trading phrases · V1 silent · DPCM kick on downbeats
+ *    chase     P1 H displaced · P2 nine attacks in sixteen bars — the suspension's
+ *              resolution at 10:3 and one two-bar answer at 12:24, and otherwise silent,
+ *              because it has just spoken for sixteen bars · V1 silent · DPCM kick
  *    dive      TRI the chromatic walk · V2 holds and breathes on a tremolo · V1 STILL
  *              ABSENT · P1 a slow descant · SAW silent eight bars · hats only, no kick
  *    three     P1 H augmented · V2 the three-count · TRI the two-count · V1 re-enters
- *              varied on 4-row groups · SAW silent eight bars
+ *              varied on 4-row groups, leaves again for four bars at 21:0 and returns
+ *              reversed · SAW silent eight bars · four different kit blocks
  *    hinge     everything at full speed; V1 V2 the augmented sixth; P1 the ♯4
  *    updraft   SAW THE TUNE · P1 a descant above it · P2 rests eight bars · V1 V2 pads
  *    updraft2  P1 + P2 in sixths (four bars, earned) · SAW the turn back
  *    hush      P1 thin colour · TRI · nothing else
  *    sprint    P1 the sequence · V2 the 5-row cell · SAW eighths · TRI roots · DPCM snare
  *    stall     SAW + TRI alone, half-time, then the fill and the dropped beat
- *    return    as flight, re-harmonised from bar 9 · DPCM kick doubling
+ *    return    as flight, re-harmonised from bar 4 (41:0) · DPCM kick doubling
  *    crest     P1 climbing to d6 on the wide colour · V1 V2 fifths · SAW the hemiola ·
  *              crash and toms
  *    tail      thins to TRI + P1 over f#; the kit stops before row 40
@@ -843,8 +846,11 @@ const flight2 = s.section('flight2', 16)
 // from row 2 of the section instead of row 0 (§9.1 recipe F: at 140–160 BPM use ±2 rows,
 // and at 200 an eighth is the smallest displacement the ear can still call late rather
 // than wrong) while the kit, the bass and the inner voices stay exactly on the grid. For
-// eight bars the tune is behind its own accompaniment; the two pulses then trade two-bar
-// phrases on the grid, and the last four bars snap the bar back into place.
+// eight bars the tune is behind its own accompaniment; pulse 1 then takes two bars on the
+// grid and pulse 2 ANSWERS with two of its own at 12:24 — nine attacks in sixteen bars is
+// all this lane plays here, and that is the point: it has just carried a whole section as
+// an independent voice, and a lane that keeps talking after it has said its piece is the
+// reference document's idle channel. The last four bars snap the bar back into place.
 // The DPCM pair speaks here for the first time — four sections in, which is why it reads
 // as weight arriving rather than as a drum machine that was always on.
 // =====================================================================================
@@ -1084,9 +1090,19 @@ const three = s.section('three', 20)
   // V1  THE ARPEGGIO BED RETURNS at 18:0, twelve frames after it left, and it is not the
   // same bed: instead of three sixteenths on beat 1 it takes the three 4-row groups
   // DISPLACED BY AN EIGHTH (rows 2, 6, 10), a second three-count offset from V2's.
-  for (const bar of range(0, 20)) {
+  // …and it does not run the same three notes for twenty bars. Bars 0-11 climb through the
+  // chord; bars 12-15 the lane is SILENT — four bars in which the offset three-count simply
+  // stops and V2's is left alone, which is the one hole in the section's plateau; bars 16-19
+  // it comes back with the cell INVERTED, descending where it climbed.
+  for (const bar of range(0, 12)) {
     [2, 6, 10].forEach((r, i) => {
       three.put(L.V1, three.at(bar, r), { note: tone(chordAt(bar), i, 'd4'), inst: BED, vol: r === 2 ? 9 : 8 })
+    })
+  }
+  three.put(L.V1, three.at(12, 0), { note: CUT })
+  for (const bar of range(16, 20)) {
+    [2, 6, 10].forEach((r, i) => {
+      three.put(L.V1, three.at(bar, r), { note: tone(chordAt(bar), 2 - i, 'd4'), inst: BED, vol: r === 2 ? 9 : 8 })
     })
   }
   // V2  the three-count itself: rows 0, 4, 8, every bar, twenty bars. The lane the hemiola
@@ -1098,12 +1114,20 @@ const three = s.section('three', 20)
     })
   }
   // NOISE  the hemiola kit: kick on the first group, snare on the second and third, the hat
-  // on the last eighth of the bar as the only thing still admitting the bar exists.
+  // on the last eighth of the bar as the only thing still admitting the bar exists. It does
+  // NOT play that cell for twenty bars — twelve seconds of one pattern under the piece's
+  // slowest harmony is a stall, not a plateau — so the four-bar blocks differ: bars 8-11 put
+  // a KICK on the third group instead of a snare and add a hat on the second eighth, and
+  // bars 12-15, where V1 has gone, whisper a metal tick on ROW 6 — the bar's real second
+  // beat, the two-count ghosting under the three while nothing else admits it.
   for (const bar of range(0, 20)) {
+    const block = Math.floor(bar / 4)
     three.hits(L.NOISE, KICK, 12, [[bar, 0]])
     three.hits(L.NOISE, SNARE, 11, [[bar, 4]], 39)
-    three.hits(L.NOISE, SNARE, 8, [[bar, 8]], 39)
-    hats(three, bar, [10], { on: 6, off: 6 })
+    if (block === 2) three.hits(L.NOISE, KICK, 10, [[bar, 8]])
+    else three.hits(L.NOISE, SNARE, 8, [[bar, 8]], 39)
+    if (block === 3) three.put(L.NOISE, three.at(bar, 6), { note: 44, inst: METAL, vol: 6 })
+    hats(three, bar, block === 2 ? [2, 10] : [10], { on: 6, off: 6 })
   }
   clearKit(three, 7, 4)
   fill(three, 7, 'three-count-toms', [[4, TOM, 12, 43], [6, TOM, 12, 41], [8, TOM, 13, 39], [10, TOM, 13, 37], [11, SNARE, 6, 39]])
@@ -1148,8 +1172,13 @@ const hinge = s.section('hinge', 8)
   phrase(hinge, L.P1, LEAD, hinge.at(4), [
     [6, 'f#5', 15], [2, 'a#5', 14], [2, 'c#6', 15], [2, 'a#5', 14],  // resolved, and launching
     [2, 'f#5', 14], [2, 'c#5', 13], [2, 'a#4', 13], [6, 'f#5', 14],
-    [12, 'f#5', 14],
-    [6, 'f#5', 14], [2, '-'], [4, 'f#5', 13],
+    // bars 6–7: the chord is stripped to its ROOT AND FIFTH and nothing else — no third, so
+    // the ear cannot yet tell a dominant from the coming D. The first draft held one f#5
+    // for a whole bar here, which read as a dominant plateau rather than a launch; the
+    // bare fifth now gallops in eighths instead, and the last note is the f# `updraft`
+    // restrikes as the third of D.
+    [2, 'f#5', 14], [2, 'c#5', 13], [2, 'f#5', 14], [2, 'c#6', 15], [2, 'f#5', 14], [2, 'c#5', 13],
+    [2, 'c#5', 13], [2, 'f#5', 14], [2, 'c#6', 15], [6, 'f#5', 15],
   ], { vib: nib(5, 2), vibMin: 6, vibAfter: 3, cutAtEnd: false })
   // P2  the tonic b, the augmented sixth's middle voice: struck at 23:36 and held through
   // the resolution, where it becomes the fourth of F# and then the sixth of D.
@@ -1897,7 +1926,9 @@ s.qa({
     'value doubled, which in 6/8 puts every attack of the tune on a 4-row grid and makes the melody ' +
     'itself the hemiola; AUGMENTED AND INVERTED about f#5 at 20:0, so the climbs fall; ' +
     'RE-ORCHESTRATED at 25:0 onto the VRC6 sawtooth an octave below the pulse\'s register (the ' +
-    'second lead colour); and RE-HARMONISED at 40:8, where A\'s closing six bars are repeated note ' +
+    'second lead colour); and RE-HARMONISED from 41:0, where the answer\'s four bars take Bm Em ' +
+    'C#dim F# under the same notes A gave Em D C#dim F#m, and again at 42:0, where A\'s closing ' +
+    'six bars are repeated note ' +
     'for note over Em C#dim D Bm Em A instead of Bm A G D Em C#dim. METRE (9.1), with the phase ' +
     'table COMPUTED FOR 48-ROW FRAMES rather than taken from 9.1\'s 64-row one: the entry row of ' +
     'frame k for a cell of length c is (-48k) mod c and the cycle closes after lcm(c,48)/48 frames, ' +
@@ -1911,7 +1942,12 @@ s.qa({
     '(18:0-22:47), twenty bars in which VRC6 pulse 2 (rows 0, 4, 8 of every bar), V1 (the same three ' +
     'groups displaced an eighth, rows 2, 6, 10), the kit and the augmented tune all count 3 x 4 rows ' +
     'while the triangle, the sawtooth and pulse 2 keep 2 x 6 — the section is bi-metric, not merely ' +
-    'regrouped. CADENTIAL HEMIOLA twice, and differently: at 5:24 pulse 1, pulse 2, V2 and the KICK ' +
+    'regrouped. Twenty bars of one harmonic plateau is not twenty bars of one pattern: V1 runs the ' +
+    'cell for twelve bars, GOES SILENT for four at 21:0 and returns at 22:0 with the cell reversed ' +
+    '(root-third-fifth becomes fifth-third-root), and the kit changes every four bars — the third ' +
+    'group becomes a kick at 20:0, and at 21:0, where V1 has gone, a metal tick whispers ROW 6, the ' +
+    'bar\'s real second beat, which is the two-count ghosting under the three while nothing else ' +
+    'admits it. All five frames of the section carry a different noise pattern. CADENTIAL HEMIOLA twice, and differently: at 5:24 pulse 1, pulse 2, V2 and the KICK ' +
     'take six 4-row groups over the last two bars of A while the triangle holds f# and the sawtooth ' +
     'rests; at 48:24 the SAWTOOTH and the SNARE take the groups, the kick disappears, the hats keep ' +
     'the two beats underneath and pulse 1 holds ONE NOTE across all twenty-four rows. METRIC ' +
@@ -1982,7 +2018,7 @@ s.qa({
     'carries a duty macro and a macro overrides Vxx from the next tick, so the cell would be a write ' +
     'nothing reads; Gxx, because at speed 3 a tick is a sixth of an eighth and reads as timbre ' +
     'rather than as time; Fxx, because the piece is about one tempo. NOTHING IS DECLARED THAT THE ' +
-    'PIECE DOES NOT NEED: the accidentals measure 181 of 2806 melodic notes (6.45 %) against the ' +
+    'PIECE DOES NOT NEED: the accidentals measure 181 of 2801 melodic notes (6.46 %) against the ' +
     'lint\'s 12 % default, so no accidentalFractionMax; the longest percussion gap is the 97 rows of ' +
     '`hush` and coverage is 92.4 % of played rows inside a gap of 8 or less, over the 80 % floor, so ' +
     'no percussion bound is raised; the render is -18.57 dBFS with peak 0.787 and ZERO clamped ' +
@@ -1996,7 +2032,7 @@ s.qa({
     'a bar was written for five lanes — measured across all eight here the densest frame is 27.0 ' +
     'attacks a bar (frame 29), and the V1 bed alternates six notes a bar with three specifically to ' +
     'keep it there.',
-  renderChecksum: 3080584180,
+  renderChecksum: 8685560,
 })
 s.check()
 s.write('src/assets/songs/12-headlong.json')
